@@ -22,8 +22,10 @@ import { DEFAULT_SETTINGS } from '../../../src/settings/defaultSettings';
 import type { PropertyItem } from '../../../src/storage/IndexedDBStorage';
 import type { IndexedDBStorage } from '../../../src/storage/IndexedDBStorage';
 import {
+    buildFilePathToIndexMap,
     buildListGroupItemCountData,
     buildListItems,
+    buildOrderedFiles,
     findCollapsedListGroupRevealTarget,
     resolveListGroupExpansionToggleState,
     type ListPaneConfig
@@ -2343,5 +2345,29 @@ describe('per-value property grouping', () => {
         const items = build('property-each-desc:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
 
         expect(headerLabels(items)).toEqual(['Topics', 'Projects']);
+    });
+
+    it('gives every row a unique key when a note repeats', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+        const keys = items.map(item => item.key);
+
+        expect(new Set(keys).size).toBe(keys.length);
+    });
+
+    it('resolves a repeated path to its first row', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+
+        const fileRowIndexes = items
+            .map((item, index) => ({ item, index }))
+            .filter(entry => entry.item.type === ListPaneItemType.FILE)
+            .map(entry => entry.index);
+        expect(fileRowIndexes).toHaveLength(2);
+
+        expect(buildFilePathToIndexMap(items).get('Dune.md')).toBe(fileRowIndexes[0]);
+
+        const { orderedFiles, orderedFileIndexMap } = buildOrderedFiles(items);
+        // orderedFiles keeps both appearances on purpose - that is what makes arrow keys walk each copy.
+        expect(orderedFiles.map(file => file.path)).toEqual(['Dune.md', 'Dune.md']);
+        expect(orderedFileIndexMap.get('Dune.md')).toBe(0);
     });
 });

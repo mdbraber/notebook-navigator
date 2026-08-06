@@ -244,6 +244,8 @@ function buildListItemsInternal(
     let activeGroupHeaderItem: ListPaneItem | null = null;
     let activeGroupHeaderKey: string | null = null;
     let activeManualSortGroupHeaderFile: TFile | null = null;
+    // Scopes file row keys so a note rendered under several groups still has unique React keys.
+    let activeGroupKeyPrefix: string | null = null;
     let fileIndexCounter = 0;
     const getFileWordCount = (file: TFile): number => {
         return normalizeManualSortGroupHeaderWordCount(db.getFile(file.path)?.wordCount);
@@ -326,7 +328,7 @@ function buildListItemsInternal(
             type: ListPaneItemType.FILE,
             data: file,
             parentFolder: selectedFolder?.path,
-            key: file.path,
+            key: activeGroupKeyPrefix ? `${activeGroupKeyPrefix}:${file.path}` : file.path,
             fileIndex: fileIndexCounter++,
             matchedAliases: matchedAliases?.get(file.path),
             matchedProperties: matchedProperties?.get(file.path),
@@ -357,6 +359,7 @@ function buildListItemsInternal(
         if (headerKind !== 'manual-sort-custom') {
             activeManualSortGroupHeaderFile = null;
         }
+        activeGroupKeyPrefix = collapseKey ?? key;
         if (activeListGroupCollapsed && activeCollapsedHeaderKind !== 'manual-sort-custom' && headerKind === 'manual-sort-custom') {
             return;
         }
@@ -828,7 +831,9 @@ function buildListItemsInternal(
 export function buildFilePathToIndexMap(listItems: ListPaneItem[]): Map<string, number> {
     const filePathToIndex = new Map<string, number>();
     listItems.forEach((item, index) => {
-        if (item.type === ListPaneItemType.FILE && item.data instanceof TFile) {
+        // A note grouped per value appears more than once. Reveal and scroll-to-file should land on
+        // the first appearance, so an already-mapped path keeps its earlier index.
+        if (item.type === ListPaneItemType.FILE && item.data instanceof TFile && !filePathToIndex.has(item.data.path)) {
             filePathToIndex.set(item.data.path, index);
         }
     });
@@ -852,7 +857,11 @@ export function buildOrderedFiles(listItems: ListPaneItem[]): {
 
     listItems.forEach(item => {
         if (item.type === ListPaneItemType.FILE && item.data instanceof TFile) {
-            orderedFileIndexMap.set(item.data.path, orderedFiles.length);
+            // orderedFiles keeps every appearance so keyboard navigation walks each copy, while the
+            // index map points at the first one.
+            if (!orderedFileIndexMap.has(item.data.path)) {
+                orderedFileIndexMap.set(item.data.path, orderedFiles.length);
+            }
             orderedFiles.push(item.data);
         }
     });
