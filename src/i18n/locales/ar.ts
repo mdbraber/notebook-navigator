@@ -382,7 +382,8 @@ export const STRINGS_AR = {
         property: {
             addKey: 'تكوين مفاتيح الخصائص',
             renameKey: 'إعادة تسمية الخاصية',
-            deleteKey: 'حذف الخاصية'
+            deleteKey: 'حذف الخاصية',
+            createPropertyNote: 'إنشاء ملاحظة خاصية'
         },
         navigation: {
             addSeparator: 'إضافة فاصل',
@@ -768,6 +769,9 @@ export const STRINGS_AR = {
             openInDefaultApp: 'فشل الفتح في التطبيق الافتراضي: {error}',
             openInDefaultAppNotAvailable: 'الفتح في التطبيق الافتراضي غير متاح على هذه المنصة',
             folderNoteAlreadyExists: 'ملاحظة المجلد موجودة بالفعل',
+            propertyNoteAlreadyExists: 'ملاحظة الخاصية موجودة بالفعل لهذه القيمة',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'المجلد "{name}" موجود بالفعل',
             folderNotesDisabled: 'قم بتمكين ملاحظات المجلد في الإعدادات لتحويل الملفات',
             folderNoteAlreadyLinked: 'هذا الملف يعمل بالفعل كملاحظة مجلد',
@@ -990,6 +994,7 @@ export const STRINGS_AR = {
             folders: 'مجلدات',
             folderNotes: 'ملاحظات المجلد',
             folderNoteFiles: 'ملفات ملاحظات المجلد',
+            propertyNotes: 'ملاحظات الخاصية',
             foldersAndFolderNotes: 'المجلدات وملاحظات المجلد',
             tagsAndProperties: 'الوسوم والخصائص',
             tags: 'وسوم',
@@ -1487,7 +1492,9 @@ export const STRINGS_AR = {
                 desc: 'اختر أنواع الملفات المراد إخفاؤها في قسم الملفات الحديثة.',
                 options: {
                     none: 'لا شيء',
-                    folderNotes: 'ملاحظات المجلدات'
+                    folderNotes: 'ملاحظات المجلدات',
+                    propertyNotes: 'ملاحظات الخاصية',
+                    allNotes: 'ملاحظات المجلدات وملاحظات الخاصية'
                 }
             },
             recentNotesCount: {
@@ -2365,6 +2372,35 @@ export const STRINGS_AR = {
             showNearestFolderNoteInSidebar: {
                 name: 'الشريط الجانبي الأيمن: عرض أقرب ملاحظة مجلد',
                 desc: 'عند تحديد مجلد، يعرض الشريط الجانبي الأيمن تلقائيًا أقرب ملاحظة مجلد أصلية.'
+            },
+            enablePropertyNotes: {
+                name: 'تمكين ملاحظات الخاصية',
+                desc: 'تُعامل قيمة الخاصية التي تكون رابطًا كرابط إلى الملاحظة التي تشير إليها، بنفس الطريقة التي تعمل بها ملاحظات المجلدات مع المجلدات.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'أسماء الخصائص تفتح ملاحظات الخاصية',
+                desc: 'تُسطَّر قيم الخصائص التي ترتبط بملاحظة. يؤدي النقر على الاسم أو الضغط على Enter إلى فتح تلك الملاحظة؛ أما النقر في أي مكان آخر من الصف فيقوم بتحديد القيمة فقط.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'فتح ملاحظات الخاصية في',
+                desc: 'مكان فتح ملاحظات الخاصية.',
+                options: {
+                    currentTab: 'علامة التبويب الحالية',
+                    newTab: 'علامة تبويب جديدة',
+                    rightSidebar: 'الشريط الجانبي الأيمن'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'فتح ملاحظة الخاصية عند التنقل',
+                desc: 'يفتح الملاحظة المرتبطة عند النقر على قيمة خاصية أو تفعيل اختصار خاصية. التنقل عبر الشجرة باستخدام مفاتيح الأسهم لا يفتح الملاحظات أبدًا.'
+            },
+            autoRevealPropertyNote: {
+                name: 'إظهار ملاحظة الخاصية في الشجرة',
+                desc: 'عند فتح ملاحظة خاصية من خارج المتصفح، يتم تحديد قيمة الخاصية التي تحددها في شجرة التنقل. يتطلب تمكين الإظهار التلقائي.'
+            },
+            propertyNoteFolder: {
+                name: 'مجلد ملاحظات الخاصية',
+                desc: 'المكان الذي تُنشأ فيه ملاحظات الخاصية الجديدة. اتركه فارغًا لاستخدام موقع Obsidian الافتراضي للملاحظات الجديدة. القيم التي ترتبط بمسار، مثل [[Fruits/Apple]]، تُنشأ دائمًا في ذلك المسار.'
             },
             confirmBeforeDelete: {
                 name: 'التأكيد قبل الحذف',

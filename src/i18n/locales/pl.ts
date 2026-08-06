@@ -383,7 +383,8 @@ export const STRINGS_PL = {
         property: {
             addKey: 'Konfiguruj klucze atrybutów',
             renameKey: 'Zmień nazwę atrybutu',
-            deleteKey: 'Usuń atrybut'
+            deleteKey: 'Usuń atrybut',
+            createPropertyNote: 'Utwórz notatkę atrybutu'
         },
         navigation: {
             addSeparator: 'Dodaj separator',
@@ -776,6 +777,9 @@ export const STRINGS_PL = {
             openInDefaultApp: 'Nie udało się otworzyć w domyślnej aplikacji: {error}',
             openInDefaultAppNotAvailable: 'Otwieranie w domyślnej aplikacji nie jest dostępne na tej platformie',
             folderNoteAlreadyExists: 'Notatka folderu już istnieje',
+            propertyNoteAlreadyExists: 'Notatka atrybutu już istnieje dla tej wartości',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'Folder "{name}" już istnieje',
             folderNotesDisabled: 'Włącz notatki folderu w ustawieniach, aby przekształcić pliki',
             folderNoteAlreadyLinked: 'Ten plik pełni już funkcję notatki folderu',
@@ -998,6 +1002,7 @@ export const STRINGS_PL = {
             folders: 'Foldery',
             folderNotes: 'Notatki folderu',
             folderNoteFiles: 'Pliki notatek folderów',
+            propertyNotes: 'Notatki atrybutów',
             foldersAndFolderNotes: 'Foldery i notatki folderu',
             tagsAndProperties: 'Tagi i atrybuty',
             tags: 'Tagi',
@@ -1495,7 +1500,9 @@ export const STRINGS_PL = {
                 desc: 'Wybierz typy plików do ukrycia w sekcji ostatnich plików.',
                 options: {
                     none: 'Brak',
-                    folderNotes: 'Notatki folderów'
+                    folderNotes: 'Notatki folderów',
+                    propertyNotes: 'Notatki atrybutów',
+                    allNotes: 'Notatki folderów i notatki atrybutów'
                 }
             },
             recentNotesCount: {
@@ -2375,6 +2382,35 @@ export const STRINGS_PL = {
             showNearestFolderNoteInSidebar: {
                 name: 'Prawy pasek boczny: Pokaż najbliższą notatkę folderu',
                 desc: 'Po wybraniu folderu prawy pasek boczny automatycznie pokazuje najbliższą nadrzędną notatkę folderu.'
+            },
+            enablePropertyNotes: {
+                name: 'Włącz notatki atrybutów',
+                desc: 'Wartość atrybutu będąca linkiem jest traktowana jako link do notatki, do której prowadzi, w taki sam sposób, w jaki notatki folderów działają dla folderów.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'Nazwy atrybutów otwierają notatki atrybutów',
+                desc: 'Wartości atrybutów prowadzące do notatki są podkreślone. Kliknięcie nazwy lub naciśnięcie Enter otwiera tę notatkę; kliknięcie w innym miejscu wiersza tylko zaznacza wartość.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'Otwieraj notatki atrybutów w',
+                desc: 'Gdzie otwierają się notatki atrybutów.',
+                options: {
+                    currentTab: 'Bieżąca karta',
+                    newTab: 'Nowa karta',
+                    rightSidebar: 'Prawy pasek boczny'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Otwieraj notatkę atrybutu podczas nawigacji',
+                desc: 'Otwiera połączoną notatkę po kliknięciu wartości atrybutu lub aktywowaniu skrótu atrybutu. Poruszanie się po drzewie za pomocą strzałek nigdy nie otwiera notatek.'
+            },
+            autoRevealPropertyNote: {
+                name: 'Pokaż notatkę właściwości w drzewie',
+                desc: 'Po otwarciu notatki właściwości spoza nawigatora zaznacza w drzewie nawigacji wartość właściwości, którą ta notatka definiuje. Wymaga włączonego automatycznego pokazywania.'
+            },
+            propertyNoteFolder: {
+                name: 'Folder notatek atrybutów',
+                desc: 'Gdzie tworzone są nowe notatki atrybutów. Zostaw puste, aby użyć domyślnej lokalizacji Obsidian dla nowych notatek. Wartości, które prowadzą do ścieżki, takiej jak [[Fruits/Apple]], są zawsze tworzone w tej ścieżce.'
             },
             confirmBeforeDelete: {
                 name: 'Potwierdź przed usunięciem',

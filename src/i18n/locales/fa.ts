@@ -382,7 +382,8 @@ export const STRINGS_FA = {
         property: {
             addKey: 'پیکربندی کلیدهای ویژگی',
             renameKey: 'تغییر نام ویژگی',
-            deleteKey: 'حذف ویژگی'
+            deleteKey: 'حذف ویژگی',
+            createPropertyNote: 'ایجاد یادداشت ویژگی'
         },
         navigation: {
             addSeparator: 'افزودن جداکننده',
@@ -773,6 +774,9 @@ export const STRINGS_FA = {
             openInDefaultApp: 'باز کردن در برنامه پیش‌فرض ناموفق بود: {error}',
             openInDefaultAppNotAvailable: 'باز کردن در برنامه پیش‌فرض در این پلتفرم در دسترس نیست',
             folderNoteAlreadyExists: 'یادداشت پوشه وجود دارد',
+            propertyNoteAlreadyExists: 'یادداشت ویژگی برای این مقدار وجود دارد',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'پوشه "{name}" وجود دارد',
             folderNotesDisabled: 'یادداشت‌های پوشه را در تنظیمات فعال کنید تا فایل‌ها را تبدیل کنید',
             folderNoteAlreadyLinked: 'این فایل در حال حاضر به عنوان یادداشت پوشه عمل می‌کند',
@@ -995,6 +999,7 @@ export const STRINGS_FA = {
             folders: 'پوشه‌ها',
             folderNotes: 'یادداشت‌های پوشه',
             folderNoteFiles: 'فایل‌های یادداشت پوشه',
+            propertyNotes: 'یادداشت‌های ویژگی',
             foldersAndFolderNotes: 'پوشه‌ها و یادداشت‌های پوشه',
             tagsAndProperties: 'برچسب‌ها و ویژگی‌ها',
             tags: 'برچسب‌ها',
@@ -1492,7 +1497,9 @@ export const STRINGS_FA = {
                 desc: 'انتخاب کنید کدام انواع فایل در بخش فایل‌های اخیر پنهان شوند.',
                 options: {
                     none: 'هیچ‌کدام',
-                    folderNotes: 'یادداشت‌های پوشه'
+                    folderNotes: 'یادداشت‌های پوشه',
+                    propertyNotes: 'یادداشت‌های ویژگی',
+                    allNotes: 'یادداشت‌های پوشه و یادداشت‌های ویژگی'
                 }
             },
             recentNotesCount: {
@@ -2371,6 +2378,35 @@ export const STRINGS_FA = {
             showNearestFolderNoteInSidebar: {
                 name: 'نوار کناری راست: نمایش نزدیک‌ترین یادداشت پوشه',
                 desc: 'وقتی پوشه‌ای انتخاب می‌شود، نوار کناری راست به‌طور خودکار نزدیک‌ترین یادداشت پوشه والد را نشان می‌دهد.'
+            },
+            enablePropertyNotes: {
+                name: 'فعال کردن یادداشت‌های ویژگی',
+                desc: 'مقدار ویژگی که یک پیوند است، مانند پیوندی به یادداشتی که به آن اشاره می‌کند در نظر گرفته می‌شود، درست همان‌طور که یادداشت‌های پوشه برای پوشه‌ها عمل می‌کنند.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'نام ویژگی‌ها یادداشت‌های ویژگی را باز می‌کند',
+                desc: 'مقادیر ویژگی که به یک یادداشت پیوند دارند زیرخط‌دار می‌شوند. کلیک روی نام یا فشار Enter آن یادداشت را باز می‌کند؛ کلیک در هر جای دیگر ردیف فقط مقدار را انتخاب می‌کند.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'باز کردن یادداشت‌های ویژگی در',
+                desc: 'محل باز شدن یادداشت‌های ویژگی.',
+                options: {
+                    currentTab: 'تب فعلی',
+                    newTab: 'تب جدید',
+                    rightSidebar: 'نوار کناری راست'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'باز کردن یادداشت ویژگی هنگام پیمایش',
+                desc: 'با کلیک روی مقدار ویژگی یا فعال کردن میانبر ویژگی، یادداشت پیوندشده را باز می‌کند. جابه‌جایی در درخت با کلیدهای جهت هرگز یادداشت‌ها را باز نمی‌کند.'
+            },
+            autoRevealPropertyNote: {
+                name: 'نمایش یادداشت ویژگی در درخت',
+                desc: 'وقتی یک یادداشت ویژگی را از بیرون ناوبر باز می‌کنید، مقدار ویژگی‌ای که تعریف می‌کند در درخت ناوبری انتخاب می‌شود. نیازمند فعال بودن نمایش خودکار است.'
+            },
+            propertyNoteFolder: {
+                name: 'پوشه یادداشت‌های ویژگی',
+                desc: 'محل ایجاد یادداشت‌های ویژگی جدید. برای استفاده از محل پیش‌فرض Obsidian برای یادداشت‌های جدید خالی بگذارید. مقادیری که به یک مسیر پیوند دارند، مانند [[Fruits/Apple]]، همیشه در همان مسیر ایجاد می‌شوند.'
             },
             confirmBeforeDelete: {
                 name: 'تأیید قبل از حذف',

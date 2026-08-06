@@ -383,7 +383,8 @@ export const STRINGS_TR = {
         property: {
             addKey: 'Özellik anahtarlarını yapılandır',
             renameKey: 'Özelliği yeniden adlandır',
-            deleteKey: 'Özelliği sil'
+            deleteKey: 'Özelliği sil',
+            createPropertyNote: 'Özellik notu oluştur'
         },
         navigation: {
             addSeparator: 'Ayırıcı ekle',
@@ -771,6 +772,9 @@ export const STRINGS_TR = {
             openInDefaultApp: 'Varsayılan uygulamada açılamadı: {error}',
             openInDefaultAppNotAvailable: 'Varsayılan uygulamada açma bu platformda kullanılamaz',
             folderNoteAlreadyExists: 'Klasör notu zaten var',
+            propertyNoteAlreadyExists: 'Bu değer için bir özellik notu zaten var',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: '"{name}" klasörü zaten var',
             folderNotesDisabled: 'Dosyaları dönüştürmek için ayarlarda klasör notlarını etkinleştirin',
             folderNoteAlreadyLinked: 'Bu dosya zaten klasör notu olarak işlev görüyor',
@@ -993,6 +997,7 @@ export const STRINGS_TR = {
             folders: 'Klasörler',
             folderNotes: 'Klasör notları',
             folderNoteFiles: 'Klasör notu dosyaları',
+            propertyNotes: 'Özellik notları',
             foldersAndFolderNotes: 'Klasörler ve klasör notları',
             tagsAndProperties: 'Etiketler ve özellikler',
             tags: 'Etiketler',
@@ -1490,7 +1495,9 @@ export const STRINGS_TR = {
                 desc: 'Son dosyalar bölümünde gizlenecek dosya türlerini seç.',
                 options: {
                     none: 'Hiçbiri',
-                    folderNotes: 'Klasör notları'
+                    folderNotes: 'Klasör notları',
+                    propertyNotes: 'Özellik notları',
+                    allNotes: 'Klasör notları ve özellik notları'
                 }
             },
             recentNotesCount: {
@@ -2369,6 +2376,35 @@ export const STRINGS_TR = {
             showNearestFolderNoteInSidebar: {
                 name: 'Sağ kenar çubuğu: En yakın klasör notunu göster',
                 desc: 'Bir klasör seçildiğinde, sağ kenar çubuğu en yakın üst klasör notunu otomatik olarak gösterir.'
+            },
+            enablePropertyNotes: {
+                name: 'Özellik notlarını etkinleştir',
+                desc: 'Bir bağlantı olan özellik değeri, klasör notlarının klasörler için çalıştığı gibi, işaret ettiği nota bir bağlantı olarak ele alınır.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'Özellik adları özellik notlarını açar',
+                desc: "Bir nota bağlanan özellik değerleri altı çizili gösterilir. Ada tıklamak veya Enter'a basmak o notu açar; satırın başka bir yerine tıklamak yalnızca değeri seçer."
+            },
+            propertyNoteOpenLocation: {
+                name: 'Özellik notlarını şurada aç',
+                desc: 'Özellik notlarının nerede açılacağı.',
+                options: {
+                    currentTab: 'Geçerli sekme',
+                    newTab: 'Yeni sekme',
+                    rightSidebar: 'Sağ kenar çubuğu'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Gezinirken özellik notunu aç',
+                desc: 'Bir özellik değerine tıkladığınızda veya bir özellik kısayolunu etkinleştirdiğinizde bağlantılı notu açar. Ok tuşlarıyla ağaçta gezinmek notları asla açmaz.'
+            },
+            autoRevealPropertyNote: {
+                name: 'Özellik notunu ağaçta göster',
+                desc: 'Bir özellik notunu gezginin dışından açtığınızda, notun tanımladığı özellik değerini gezinme ağacında seçer. Otomatik gösterimin etkin olmasını gerektirir.'
+            },
+            propertyNoteFolder: {
+                name: 'Özellik notu klasörü',
+                desc: "Yeni özellik notlarının oluşturulduğu yer. Yeni notlar için Obsidian'ın varsayılan konumunu kullanmak üzere boş bırakın. [[Fruits/Apple]] gibi bir yola bağlanan değerler her zaman o yolda oluşturulur."
             },
             confirmBeforeDelete: {
                 name: 'Silmeden önce onayla',

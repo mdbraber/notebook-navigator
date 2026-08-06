@@ -382,7 +382,8 @@ export const STRINGS_ZH_TW = {
         property: {
             addKey: '設定屬性鍵',
             renameKey: '重新命名屬性',
-            deleteKey: '刪除屬性'
+            deleteKey: '刪除屬性',
+            createPropertyNote: '建立屬性筆記'
         },
         navigation: {
             addSeparator: '新增分隔線',
@@ -765,6 +766,9 @@ export const STRINGS_ZH_TW = {
             openInDefaultApp: '以預設應用程式開啟失敗：{error}',
             openInDefaultAppNotAvailable: '此平台不支援以預設應用程式開啟',
             folderNoteAlreadyExists: '資料夾筆記已存在',
+            propertyNoteAlreadyExists: '此值的屬性筆記已存在',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: '資料夾「{name}」已存在',
             folderNotesDisabled: '請在設定中啟用資料夾筆記以轉換檔案',
             folderNoteAlreadyLinked: '此檔案已作為資料夾筆記',
@@ -987,6 +991,7 @@ export const STRINGS_ZH_TW = {
             folders: '資料夾',
             folderNotes: '資料夾筆記',
             folderNoteFiles: '資料夾筆記檔案',
+            propertyNotes: '屬性筆記',
             foldersAndFolderNotes: '資料夾與資料夾筆記',
             tagsAndProperties: '標籤與屬性',
             tags: '標籤',
@@ -1481,7 +1486,9 @@ export const STRINGS_ZH_TW = {
                 desc: '選擇在最近檔案區段中隱藏的檔案類型。',
                 options: {
                     none: '無',
-                    folderNotes: '資料夾筆記'
+                    folderNotes: '資料夾筆記',
+                    propertyNotes: '屬性筆記',
+                    allNotes: '資料夾筆記與屬性筆記'
                 }
             },
             recentNotesCount: {
@@ -2357,6 +2364,35 @@ export const STRINGS_ZH_TW = {
             showNearestFolderNoteInSidebar: {
                 name: '右側邊欄：顯示最近的資料夾筆記',
                 desc: '選取資料夾時，右側邊欄會自動顯示最近的上層資料夾筆記。'
+            },
+            enablePropertyNotes: {
+                name: '啟用屬性筆記',
+                desc: '若屬性值是連結，會被視為指向其連結筆記的連結，就像資料夾筆記對資料夾的作用一樣。'
+            },
+            enablePropertyNoteLinks: {
+                name: '屬性名稱開啟屬性筆記',
+                desc: '連結到筆記的屬性值會加底線。點擊名稱或按 Enter 鍵會開啟該筆記；點擊列的其他部分只會選取該值。'
+            },
+            propertyNoteOpenLocation: {
+                name: '開啟屬性筆記到',
+                desc: '屬性筆記的開啟位置。',
+                options: {
+                    currentTab: '目前分頁',
+                    newTab: '新分頁',
+                    rightSidebar: '右側邊欄'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: '導覽時開啟屬性筆記',
+                desc: '點擊屬性值或啟用屬性捷徑時，會開啟連結的筆記。使用方向鍵在樹狀結構中移動時從不會開啟筆記。'
+            },
+            autoRevealPropertyNote: {
+                name: '在樹狀結構中顯示屬性筆記',
+                desc: '從導覽器外部開啟屬性筆記時，在導覽樹中選取該筆記所定義的屬性值。需要啟用自動顯示。'
+            },
+            propertyNoteFolder: {
+                name: '屬性筆記資料夾',
+                desc: '新屬性筆記的建立位置。留空以使用 Obsidian 新筆記的預設位置。連結到路徑（如 [[Fruits/Apple]]）的值一律會在該路徑建立。'
             },
             confirmBeforeDelete: {
                 name: '刪除前確認',

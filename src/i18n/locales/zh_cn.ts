@@ -381,7 +381,8 @@ export const STRINGS_ZH_CN = {
         property: {
             addKey: '配置属性键',
             renameKey: '重命名属性',
-            deleteKey: '删除属性'
+            deleteKey: '删除属性',
+            createPropertyNote: '创建属性笔记'
         },
         navigation: {
             addSeparator: '添加分隔符',
@@ -764,6 +765,9 @@ export const STRINGS_ZH_CN = {
             openInDefaultApp: '在默认应用中打开失败：{error}',
             openInDefaultAppNotAvailable: '此平台不支持在默认应用中打开',
             folderNoteAlreadyExists: '文件夹笔记已存在',
+            propertyNoteAlreadyExists: '此值的属性笔记已存在',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: '文件夹"{name}"已存在',
             folderNotesDisabled: '请在设置中启用文件夹笔记以转换文件',
             folderNoteAlreadyLinked: '此文件已作为文件夹笔记',
@@ -986,6 +990,7 @@ export const STRINGS_ZH_CN = {
             folders: '文件夹',
             folderNotes: '文件夹笔记',
             folderNoteFiles: '文件夹笔记文件',
+            propertyNotes: '属性笔记',
             foldersAndFolderNotes: '文件夹和文件夹笔记',
             tagsAndProperties: '标签与属性',
             tags: '标签',
@@ -1480,7 +1485,9 @@ export const STRINGS_ZH_CN = {
                 desc: '选择在最近文件部分中隐藏的文件类型。',
                 options: {
                     none: '无',
-                    folderNotes: '文件夹笔记'
+                    folderNotes: '文件夹笔记',
+                    propertyNotes: '属性笔记',
+                    allNotes: '文件夹笔记和属性笔记'
                 }
             },
             recentNotesCount: {
@@ -2356,6 +2363,35 @@ export const STRINGS_ZH_CN = {
             showNearestFolderNoteInSidebar: {
                 name: '右侧边栏：显示最近的文件夹笔记',
                 desc: '选择文件夹时，右侧边栏会自动显示最近的上级文件夹笔记。'
+            },
+            enablePropertyNotes: {
+                name: '启用属性笔记',
+                desc: '属性值若是一个链接，会被当作指向其所链接笔记的链接处理，就像文件夹笔记对文件夹的作用一样。'
+            },
+            enablePropertyNoteLinks: {
+                name: '属性名称打开属性笔记',
+                desc: '链接到笔记的属性值会加下划线。点击名称或按 Enter 键会打开该笔记；点击行的其他部分只会选中该值。'
+            },
+            propertyNoteOpenLocation: {
+                name: '打开属性笔记到',
+                desc: '属性笔记的打开位置。',
+                options: {
+                    currentTab: '当前标签页',
+                    newTab: '新标签页',
+                    rightSidebar: '右侧边栏'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: '导航时打开属性笔记',
+                desc: '点击属性值或激活属性快捷方式时打开链接的笔记。使用方向键在树中移动时从不打开笔记。'
+            },
+            autoRevealPropertyNote: {
+                name: '在树中显示属性笔记',
+                desc: '从导航器外部打开属性笔记时，在导航树中选中该笔记所定义的属性值。需要启用自动显示。'
+            },
+            propertyNoteFolder: {
+                name: '属性笔记文件夹',
+                desc: '新属性笔记的创建位置。留空以使用 Obsidian 新笔记的默认位置。链接到路径（如 [[Fruits/Apple]]）的值始终在该路径下创建。'
             },
             confirmBeforeDelete: {
                 name: '删除前确认',

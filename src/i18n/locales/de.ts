@@ -383,7 +383,8 @@ export const STRINGS_DE = {
         property: {
             addKey: 'Eigenschaftsschlüssel konfigurieren',
             renameKey: 'Eigenschaft umbenennen',
-            deleteKey: 'Eigenschaft löschen'
+            deleteKey: 'Eigenschaft löschen',
+            createPropertyNote: 'Eigenschaftsnotiz erstellen'
         },
         navigation: {
             addSeparator: 'Trennlinie hinzufügen',
@@ -775,6 +776,9 @@ export const STRINGS_DE = {
             openInDefaultApp: 'Öffnen in Standard-App fehlgeschlagen: {error}',
             openInDefaultAppNotAvailable: 'Öffnen in Standard-App ist auf dieser Plattform nicht verfügbar',
             folderNoteAlreadyExists: 'Ordnernotiz existiert bereits',
+            propertyNoteAlreadyExists: 'Für diesen Wert existiert bereits eine Eigenschaftsnotiz',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'Ordner "{name}" existiert bereits',
             folderNotesDisabled: 'Aktivieren Sie Ordnernotizen in den Einstellungen, um Dateien zu konvertieren',
             folderNoteAlreadyLinked: 'Diese Datei fungiert bereits als Ordnernotiz',
@@ -998,6 +1002,7 @@ export const STRINGS_DE = {
             folders: 'Ordner',
             folderNotes: 'Ordnernotizen',
             folderNoteFiles: 'Ordnernotiz-Dateien',
+            propertyNotes: 'Eigenschaftsnotizen',
             foldersAndFolderNotes: 'Ordner & Ordnernotizen',
             tagsAndProperties: 'Tags & Eigenschaften',
             tags: 'Tags',
@@ -1495,7 +1500,9 @@ export const STRINGS_DE = {
                 desc: 'Wähle aus, welche Dateitypen im Bereich der neuesten Dateien ausgeblendet werden sollen.',
                 options: {
                     none: 'Keine',
-                    folderNotes: 'Ordnernotizen'
+                    folderNotes: 'Ordnernotizen',
+                    propertyNotes: 'Eigenschaftsnotizen',
+                    allNotes: 'Ordnernotizen und Eigenschaftsnotizen'
                 }
             },
             recentNotesCount: {
@@ -2376,6 +2383,35 @@ export const STRINGS_DE = {
             showNearestFolderNoteInSidebar: {
                 name: 'Rechte Seitenleiste: Nächste Ordnernotiz anzeigen',
                 desc: 'Wenn ein Ordner ausgewählt wird, zeigt die rechte Seitenleiste automatisch die nächstgelegene übergeordnete Ordnernotiz an.'
+            },
+            enablePropertyNotes: {
+                name: 'Eigenschaftsnotizen aktivieren',
+                desc: 'Ein Eigenschaftswert, der ein Link ist, wird als Link zur verlinkten Notiz behandelt – genauso wie Ordnernotizen für Ordner funktionieren.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'Eigenschaftsnamen öffnen Eigenschaftsnotizen',
+                desc: 'Eigenschaftswerte, die zu einer Notiz verlinken, werden unterstrichen. Ein Klick auf den Namen oder das Drücken von Enter öffnet diese Notiz; ein Klick an anderer Stelle in der Zeile wählt nur den Wert aus.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'Eigenschaftsnotizen öffnen in',
+                desc: 'Wo Eigenschaftsnotizen geöffnet werden.',
+                options: {
+                    currentTab: 'Aktueller Tab',
+                    newTab: 'Neuer Tab',
+                    rightSidebar: 'Rechte Seitenleiste'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Eigenschaftsnotiz beim Navigieren öffnen',
+                desc: 'Öffnet die verlinkte Notiz, wenn Sie einen Eigenschaftswert anklicken oder ein Eigenschafts-Lesezeichen aktivieren. Das Bewegen durch den Baum mit den Pfeiltasten öffnet nie Notizen.'
+            },
+            autoRevealPropertyNote: {
+                name: 'Eigenschaftsnotiz im Baum anzeigen',
+                desc: 'Wenn Sie eine Eigenschaftsnotiz außerhalb des Navigators öffnen, wird der von ihr definierte Eigenschaftswert im Navigationsbaum ausgewählt. Erfordert aktiviertes automatisches Anzeigen.'
+            },
+            propertyNoteFolder: {
+                name: 'Ordner für Eigenschaftsnotizen',
+                desc: 'Wo neue Eigenschaftsnotizen erstellt werden. Leer lassen, um Obsidians Standardspeicherort für neue Notizen zu verwenden. Werte, die zu einem Pfad verlinken, wie [[Fruits/Apple]], werden immer an diesem Pfad erstellt.'
             },
             confirmBeforeDelete: {
                 name: 'Vor dem Löschen bestätigen',

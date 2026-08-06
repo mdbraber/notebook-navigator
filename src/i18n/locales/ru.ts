@@ -383,7 +383,8 @@ export const STRINGS_RU = {
         property: {
             addKey: 'Настроить ключи свойств',
             renameKey: 'Переименовать свойство',
-            deleteKey: 'Удалить свойство'
+            deleteKey: 'Удалить свойство',
+            createPropertyNote: 'Создать заметку свойства'
         },
         navigation: {
             addSeparator: 'Добавить разделитель',
@@ -770,6 +771,9 @@ export const STRINGS_RU = {
             openInDefaultApp: 'Не удалось открыть в приложении по умолчанию: {error}',
             openInDefaultAppNotAvailable: 'Открытие в приложении по умолчанию недоступно на этой платформе',
             folderNoteAlreadyExists: 'Заметка папки уже существует',
+            propertyNoteAlreadyExists: 'Заметка свойства для этого значения уже существует',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'Папка "{name}" уже существует',
             folderNotesDisabled: 'Включите заметки папок в настройках для конвертации файлов',
             folderNoteAlreadyLinked: 'Этот файл уже является заметкой папки',
@@ -992,6 +996,7 @@ export const STRINGS_RU = {
             folders: 'Папки',
             folderNotes: 'Заметки папок',
             folderNoteFiles: 'Файлы заметок папок',
+            propertyNotes: 'Заметки свойств',
             foldersAndFolderNotes: 'Папки и заметки папок',
             tagsAndProperties: 'Теги и свойства',
             tags: 'Теги',
@@ -1489,7 +1494,9 @@ export const STRINGS_RU = {
                 desc: 'Выберите типы файлов для скрытия в разделе недавних файлов.',
                 options: {
                     none: 'Нет',
-                    folderNotes: 'Заметки папок'
+                    folderNotes: 'Заметки папок',
+                    propertyNotes: 'Заметки свойств',
+                    allNotes: 'Заметки папок и заметки свойств'
                 }
             },
             recentNotesCount: {
@@ -2368,6 +2375,35 @@ export const STRINGS_RU = {
             showNearestFolderNoteInSidebar: {
                 name: 'Правая боковая панель: показывать ближайшую заметку папки',
                 desc: 'Когда выбрана папка, правая боковая панель автоматически показывает ближайшую родительскую заметку папки.'
+            },
+            enablePropertyNotes: {
+                name: 'Включить заметки свойств',
+                desc: 'Значение свойства, являющееся ссылкой, обрабатывается как ссылка на заметку, на которую оно указывает, — так же, как заметки папок работают для папок.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'Названия свойств открывают заметки свойств',
+                desc: 'Значения свойств, ссылающиеся на заметку, подчёркиваются. Нажатие на имя или клавишу Enter открывает эту заметку; нажатие в другом месте строки только выбирает значение.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'Открывать заметки свойств в',
+                desc: 'Где открываются заметки свойств.',
+                options: {
+                    currentTab: 'Текущая вкладка',
+                    newTab: 'Новая вкладка',
+                    rightSidebar: 'Правая боковая панель'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Открывать заметку свойства при навигации',
+                desc: 'Открывает связанную заметку при нажатии на значение свойства или активации ярлыка свойства. Перемещение по дереву с помощью клавиш стрелок никогда не открывает заметки.'
+            },
+            autoRevealPropertyNote: {
+                name: 'Показывать заметку свойства в дереве',
+                desc: 'При открытии заметки свойства вне навигатора выбирает в дереве навигации значение свойства, которое она определяет. Требуется включённое автоматическое отображение.'
+            },
+            propertyNoteFolder: {
+                name: 'Папка заметок свойств',
+                desc: 'Где создаются новые заметки свойств. Оставьте пустым, чтобы использовать расположение Obsidian по умолчанию для новых заметок. Значения, ссылающиеся на путь, например [[Fruits/Apple]], всегда создаются по этому пути.'
             },
             confirmBeforeDelete: {
                 name: 'Подтверждать перед удалением',

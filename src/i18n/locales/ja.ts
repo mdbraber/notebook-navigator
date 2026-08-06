@@ -382,7 +382,8 @@ export const STRINGS_JA = {
         property: {
             addKey: 'プロパティキーを設定',
             renameKey: 'プロパティの名前を変更',
-            deleteKey: 'プロパティを削除'
+            deleteKey: 'プロパティを削除',
+            createPropertyNote: 'プロパティノートを作成'
         },
         navigation: {
             addSeparator: '区切り線を追加',
@@ -772,6 +773,9 @@ export const STRINGS_JA = {
             openInDefaultApp: 'デフォルトアプリで開けませんでした：{error}',
             openInDefaultAppNotAvailable: 'このプラットフォームではデフォルトアプリで開く機能は利用できません',
             folderNoteAlreadyExists: 'フォルダノートはすでに存在します',
+            propertyNoteAlreadyExists: 'この値のプロパティノートはすでに存在します',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'フォルダ「{name}」は既に存在します',
             folderNotesDisabled: 'ファイルを変換するには設定でフォルダノートを有効にしてください',
             folderNoteAlreadyLinked: 'このファイルは既にフォルダノートとして機能しています',
@@ -994,6 +998,7 @@ export const STRINGS_JA = {
             folders: 'フォルダノート',
             folderNotes: 'フォルダノート',
             folderNoteFiles: 'フォルダノートファイル',
+            propertyNotes: 'プロパティノート',
             foldersAndFolderNotes: 'フォルダとフォルダノート',
             tagsAndProperties: 'タグとプロパティ',
             tags: 'タグ表示',
@@ -1491,7 +1496,9 @@ export const STRINGS_JA = {
                 desc: '最近のファイルセクションで非表示にするファイルの種類を選択します。',
                 options: {
                     none: 'なし',
-                    folderNotes: 'フォルダノート'
+                    folderNotes: 'フォルダノート',
+                    propertyNotes: 'プロパティノート',
+                    allNotes: 'フォルダノートとプロパティノート'
                 }
             },
             recentNotesCount: {
@@ -2369,6 +2376,35 @@ export const STRINGS_JA = {
             showNearestFolderNoteInSidebar: {
                 name: '右サイドバー: 最も近いフォルダノートを表示',
                 desc: 'フォルダを選択すると、右サイドバーに最も近い上位フォルダノートが自動的に表示されます。'
+            },
+            enablePropertyNotes: {
+                name: 'プロパティノートを有効化',
+                desc: 'リンクであるプロパティ値は、フォルダノートがフォルダに対して機能するのと同じように、リンク先のノートへのリンクとして扱われます。'
+            },
+            enablePropertyNoteLinks: {
+                name: 'プロパティ名でプロパティノートを開く',
+                desc: 'ノートにリンクするプロパティ値には下線が付きます。名前をクリックするかEnterキーを押すとそのノートが開きます。行の他の部分をクリックすると値が選択されるだけです。'
+            },
+            propertyNoteOpenLocation: {
+                name: 'プロパティノートを開く場所',
+                desc: 'プロパティノートが開く場所です。',
+                options: {
+                    currentTab: '現在のタブ',
+                    newTab: '新しいタブ',
+                    rightSidebar: '右サイドバー'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'ナビゲーション時にプロパティノートを開く',
+                desc: 'プロパティ値をクリックするか、プロパティショートカットを有効にすると、リンクされたノートが開きます。矢印キーでツリーを移動しても、ノートが開くことはありません。'
+            },
+            autoRevealPropertyNote: {
+                name: 'プロパティノートをツリーで表示',
+                desc: 'ナビゲーターの外部からプロパティノートを開いたとき、そのノートが定義するプロパティ値をナビゲーションツリーで選択します。自動表示を有効にする必要があります。'
+            },
+            propertyNoteFolder: {
+                name: 'プロパティノートのフォルダ',
+                desc: '新しいプロパティノートが作成される場所です。空のままにすると、Obsidianの新規ノートのデフォルトの場所が使用されます。[[Fruits/Apple]]のようにパスにリンクする値は、常にそのパスに作成されます。'
             },
             confirmBeforeDelete: {
                 name: '削除前に確認',

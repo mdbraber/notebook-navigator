@@ -384,7 +384,8 @@ export const STRINGS_UK = {
         property: {
             addKey: 'Налаштувати ключі властивостей',
             renameKey: 'Перейменувати властивість',
-            deleteKey: 'Видалити властивість'
+            deleteKey: 'Видалити властивість',
+            createPropertyNote: 'Створити нотатку властивості'
         },
         navigation: {
             addSeparator: 'Додати роздільник',
@@ -770,6 +771,9 @@ export const STRINGS_UK = {
             openInDefaultApp: 'Не вдалося відкрити у стандартному додатку: {error}',
             openInDefaultAppNotAvailable: 'Відкриття у стандартному додатку недоступне на цій платформі',
             folderNoteAlreadyExists: 'Нотатка папки вже існує',
+            propertyNoteAlreadyExists: 'Нотатка властивості для цього значення вже існує',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'Папка "{name}" вже існує',
             folderNotesDisabled: 'Увімкніть нотатки папок у налаштуваннях для конвертації файлів',
             folderNoteAlreadyLinked: 'Цей файл вже працює як нотатка папки',
@@ -992,6 +996,7 @@ export const STRINGS_UK = {
             folders: 'Папки',
             folderNotes: 'Нотатки папок',
             folderNoteFiles: 'Файли нотаток папок',
+            propertyNotes: 'Нотатки властивостей',
             foldersAndFolderNotes: 'Папки та нотатки папок',
             tagsAndProperties: 'Теги та властивості',
             tags: 'Теги',
@@ -1489,7 +1494,9 @@ export const STRINGS_UK = {
                 desc: 'Оберіть типи файлів для приховування в розділі останніх файлів.',
                 options: {
                     none: 'Жодного',
-                    folderNotes: 'Нотатки папок'
+                    folderNotes: 'Нотатки папок',
+                    propertyNotes: 'Нотатки властивостей',
+                    allNotes: 'Нотатки папок та нотатки властивостей'
                 }
             },
             recentNotesCount: {
@@ -2368,6 +2375,35 @@ export const STRINGS_UK = {
             showNearestFolderNoteInSidebar: {
                 name: 'Права бічна панель: показувати найближчу нотатку папки',
                 desc: 'Коли вибрано папку, права бічна панель автоматично показує найближчу батьківську нотатку папки.'
+            },
+            enablePropertyNotes: {
+                name: 'Увімкнути нотатки властивостей',
+                desc: 'Значення властивості, що є посиланням, обробляється як посилання на нотатку, на яку воно вказує, так само, як нотатки папок працюють для папок.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'Назви властивостей відкривають нотатки властивостей',
+                desc: "Значення властивостей, що посилаються на нотатку, підкреслюються. Натискання на ім'я або клавішу Enter відкриває цю нотатку; натискання в іншому місці рядка лише вибирає значення."
+            },
+            propertyNoteOpenLocation: {
+                name: 'Відкривати нотатки властивостей у',
+                desc: 'Де відкриваються нотатки властивостей.',
+                options: {
+                    currentTab: 'Поточна вкладка',
+                    newTab: 'Нова вкладка',
+                    rightSidebar: 'Права бічна панель'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Відкривати нотатку властивості під час навігації',
+                desc: "Відкриває пов'язану нотатку, коли ви натискаєте значення властивості або активуєте ярлик властивості. Переміщення по дереву за допомогою клавіш стрілок ніколи не відкриває нотатки."
+            },
+            autoRevealPropertyNote: {
+                name: 'Показувати нотатку властивості в дереві',
+                desc: 'Коли ви відкриваєте нотатку властивості поза навігатором, у дереві навігації вибирається значення властивості, яке вона визначає. Потрібно ввімкнути автоматичне показування.'
+            },
+            propertyNoteFolder: {
+                name: 'Папка нотаток властивостей',
+                desc: 'Де створюються нові нотатки властивостей. Залиште порожнім для використання розташування Obsidian за замовчуванням для нових нотаток. Значення, що посилаються на шлях, наприклад [[Fruits/Apple]], завжди створюються за цим шляхом.'
             },
             confirmBeforeDelete: {
                 name: 'Підтверджувати перед видаленням',

@@ -383,7 +383,8 @@ export const STRINGS_PT = {
         property: {
             addKey: 'Configurar chaves de propriedade',
             renameKey: 'Renomear propriedade',
-            deleteKey: 'Eliminar propriedade'
+            deleteKey: 'Eliminar propriedade',
+            createPropertyNote: 'Criar nota de propriedade'
         },
         navigation: {
             addSeparator: 'Adicionar separador',
@@ -773,6 +774,9 @@ export const STRINGS_PT = {
             openInDefaultApp: 'Falha ao abrir na aplicação predefinida: {error}',
             openInDefaultAppNotAvailable: 'Abrir na aplicação predefinida não está disponível nesta plataforma',
             folderNoteAlreadyExists: 'A nota de pasta já existe',
+            propertyNoteAlreadyExists: 'Já existe uma nota de propriedade para este valor',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'A pasta "{name}" já existe',
             folderNotesDisabled: 'Ative as notas de pasta nas definições para converter ficheiros',
             folderNoteAlreadyLinked: 'Este ficheiro já funciona como nota de pasta',
@@ -995,6 +999,7 @@ export const STRINGS_PT = {
             folders: 'Pastas',
             folderNotes: 'Notas de pasta',
             folderNoteFiles: 'Ficheiros de notas de pasta',
+            propertyNotes: 'Notas de propriedade',
             foldersAndFolderNotes: 'Pastas e notas de pasta',
             tagsAndProperties: 'Etiquetas e propriedades',
             tags: 'Etiquetas',
@@ -1492,7 +1497,9 @@ export const STRINGS_PT = {
                 desc: 'Escolher os tipos de ficheiros a ocultar na secção de ficheiros recentes.',
                 options: {
                     none: 'Nenhum',
-                    folderNotes: 'Notas de pasta'
+                    folderNotes: 'Notas de pasta',
+                    propertyNotes: 'Notas de propriedade',
+                    allNotes: 'Notas de pasta e notas de propriedade'
                 }
             },
             recentNotesCount: {
@@ -2373,6 +2380,35 @@ export const STRINGS_PT = {
             showNearestFolderNoteInSidebar: {
                 name: 'Barra lateral direita: Mostrar nota de pasta mais próxima',
                 desc: 'Quando uma pasta é selecionada, a barra lateral direita mostra automaticamente a nota de pasta ancestral mais próxima.'
+            },
+            enablePropertyNotes: {
+                name: 'Ativar notas de propriedade',
+                desc: 'Um valor de propriedade que é uma ligação é tratado como uma ligação para a nota a que aponta, da mesma forma que as notas de pasta funcionam para as pastas.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'Nomes de propriedades abrem notas de propriedade',
+                desc: 'Os valores de propriedade que ligam a uma nota são sublinhados. Clicar no nome ou premir Enter abre essa nota; clicar noutro local da linha apenas seleciona o valor.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'Abrir notas de propriedade em',
+                desc: 'Onde as notas de propriedade abrem.',
+                options: {
+                    currentTab: 'Separador atual',
+                    newTab: 'Novo separador',
+                    rightSidebar: 'Barra lateral direita'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Abrir nota de propriedade ao navegar',
+                desc: 'Abre a nota associada ao clicar num valor de propriedade ou ativar um atalho de propriedade. Navegar pela árvore com as teclas de seta nunca abre notas.'
+            },
+            autoRevealPropertyNote: {
+                name: 'Mostrar a nota de propriedade na árvore',
+                desc: 'Ao abrir uma nota de propriedade fora do navegador, seleciona na árvore de navegação o valor de propriedade que ela define. Requer que a revelação automática esteja ativada.'
+            },
+            propertyNoteFolder: {
+                name: 'Pasta de notas de propriedade',
+                desc: 'Onde são criadas as novas notas de propriedade. Deixe vazio para usar a localização predefinida do Obsidian para novas notas. Valores que apontam para um caminho, como [[Fruits/Apple]], são sempre criados nesse caminho.'
             },
             confirmBeforeDelete: {
                 name: 'Confirmar antes de eliminar',

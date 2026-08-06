@@ -382,7 +382,8 @@ export const STRINGS_IT = {
         property: {
             addKey: 'Configura chiavi proprietà',
             renameKey: 'Rinomina proprietà',
-            deleteKey: 'Elimina proprietà'
+            deleteKey: 'Elimina proprietà',
+            createPropertyNote: 'Crea nota proprietà'
         },
         navigation: {
             addSeparator: 'Aggiungi separatore',
@@ -769,6 +770,9 @@ export const STRINGS_IT = {
             openInDefaultApp: "Impossibile aprire nell'app predefinita: {error}",
             openInDefaultAppNotAvailable: "Apertura nell'app predefinita non disponibile su questa piattaforma",
             folderNoteAlreadyExists: 'La nota cartella esiste già',
+            propertyNoteAlreadyExists: 'Esiste già una nota proprietà per questo valore',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'La cartella "{name}" esiste già',
             folderNotesDisabled: 'Abilita le note cartella nelle impostazioni per convertire i file',
             folderNoteAlreadyLinked: 'Questo file funge già da nota cartella',
@@ -991,6 +995,7 @@ export const STRINGS_IT = {
             folders: 'Cartelle',
             folderNotes: 'Note cartella',
             folderNoteFiles: 'File note cartella',
+            propertyNotes: 'Note proprietà',
             foldersAndFolderNotes: 'Cartelle e note cartella',
             tagsAndProperties: 'Tag e proprietà',
             tags: 'Tag',
@@ -1488,7 +1493,9 @@ export const STRINGS_IT = {
                 desc: 'Scegli quali tipi di file nascondere nella sezione file recenti.',
                 options: {
                     none: 'Nessuno',
-                    folderNotes: 'Note cartella'
+                    folderNotes: 'Note cartella',
+                    propertyNotes: 'Note proprietà',
+                    allNotes: 'Note cartella e note proprietà'
                 }
             },
             recentNotesCount: {
@@ -2370,6 +2377,35 @@ export const STRINGS_IT = {
             showNearestFolderNoteInSidebar: {
                 name: 'Barra laterale destra: Mostra nota cartella più vicina',
                 desc: 'Quando viene selezionata una cartella, la barra laterale destra mostra automaticamente la nota cartella antenata più vicina.'
+            },
+            enablePropertyNotes: {
+                name: 'Abilita note proprietà',
+                desc: 'Un valore di proprietà che è un collegamento viene trattato come un link alla nota a cui punta, allo stesso modo in cui funzionano le note cartella per le cartelle.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'I nomi delle proprietà aprono note proprietà',
+                desc: 'I valori di proprietà che rimandano a una nota vengono sottolineati. Fare clic sul nome o premere Invio apre quella nota; fare clic altrove nella riga seleziona solo il valore.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'Apri note proprietà in',
+                desc: 'Dove si aprono le note proprietà.',
+                options: {
+                    currentTab: 'Scheda corrente',
+                    newTab: 'Nuova scheda',
+                    rightSidebar: 'Barra laterale destra'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Apri nota proprietà durante la navigazione',
+                desc: "Apre la nota collegata quando fai clic su un valore di proprietà o attivi una scorciatoia proprietà. Spostarsi nell'albero con i tasti freccia non apre mai le note."
+            },
+            autoRevealPropertyNote: {
+                name: "Mostra la nota di proprietà nell'albero",
+                desc: "Quando apri una nota di proprietà dall'esterno del navigatore, seleziona nell'albero di navigazione il valore di proprietà che definisce. Richiede che la rivelazione automatica sia attiva."
+            },
+            propertyNoteFolder: {
+                name: 'Cartella note proprietà',
+                desc: 'Dove vengono create le nuove note proprietà. Lascia vuoto per usare la posizione predefinita di Obsidian per le nuove note. I valori che rimandano a un percorso, come [[Fruits/Apple]], vengono sempre creati in quel percorso.'
             },
             confirmBeforeDelete: {
                 name: 'Conferma prima di eliminare',

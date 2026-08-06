@@ -381,7 +381,8 @@ export const STRINGS_KO = {
         property: {
             addKey: '속성 키 구성',
             renameKey: '속성 이름 변경',
-            deleteKey: '속성 삭제'
+            deleteKey: '속성 삭제',
+            createPropertyNote: '속성 노트 만들기'
         },
         navigation: {
             addSeparator: '구분선 추가',
@@ -770,6 +771,9 @@ export const STRINGS_KO = {
             openInDefaultApp: '기본 앱에서 열기 실패: {error}',
             openInDefaultAppNotAvailable: '이 플랫폼에서는 기본 앱에서 열기를 사용할 수 없습니다',
             folderNoteAlreadyExists: '폴더 노트가 이미 존재합니다',
+            propertyNoteAlreadyExists: '이 값에 대한 속성 노트가 이미 존재합니다',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: '폴더 "{name}"이(가) 이미 존재합니다',
             folderNotesDisabled: '파일을 변환하려면 설정에서 폴더 노트를 활성화하세요',
             folderNoteAlreadyLinked: '이 파일은 이미 폴더 노트로 작동하고 있습니다',
@@ -992,6 +996,7 @@ export const STRINGS_KO = {
             folders: '폴더',
             folderNotes: '폴더 노트',
             folderNoteFiles: '폴더 노트 파일',
+            propertyNotes: '속성 노트',
             foldersAndFolderNotes: '폴더 및 폴더 노트',
             tagsAndProperties: '태그 및 속성',
             tags: '태그',
@@ -1489,7 +1494,9 @@ export const STRINGS_KO = {
                 desc: '최근 파일 섹션에서 숨길 파일 유형을 선택합니다.',
                 options: {
                     none: '없음',
-                    folderNotes: '폴더 노트'
+                    folderNotes: '폴더 노트',
+                    propertyNotes: '속성 노트',
+                    allNotes: '폴더 노트 및 속성 노트'
                 }
             },
             recentNotesCount: {
@@ -2367,6 +2374,35 @@ export const STRINGS_KO = {
             showNearestFolderNoteInSidebar: {
                 name: '오른쪽 사이드바: 가장 가까운 폴더 노트 표시',
                 desc: '폴더를 선택하면 오른쪽 사이드바에 가장 가까운 상위 폴더 노트가 자동으로 표시됩니다.'
+            },
+            enablePropertyNotes: {
+                name: '속성 노트 활성화',
+                desc: '링크인 속성 값은 폴더 노트가 폴더에 대해 작동하는 방식과 마찬가지로, 연결된 노트로 이동하는 링크로 취급됩니다.'
+            },
+            enablePropertyNoteLinks: {
+                name: '속성 이름으로 속성 노트 열기',
+                desc: '노트로 연결되는 속성 값에는 밑줄이 표시됩니다. 이름을 클릭하거나 Enter 키를 누르면 해당 노트가 열립니다. 행의 다른 부분을 클릭하면 값만 선택됩니다.'
+            },
+            propertyNoteOpenLocation: {
+                name: '속성 노트 열 위치',
+                desc: '속성 노트가 열리는 위치입니다.',
+                options: {
+                    currentTab: '현재 탭',
+                    newTab: '새 탭',
+                    rightSidebar: '오른쪽 사이드바'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: '탐색 시 속성 노트 열기',
+                desc: '속성 값을 클릭하거나 속성 바로가기를 활성화하면 연결된 노트가 열립니다. 화살표 키로 트리를 이동해도 노트는 절대 열리지 않습니다.'
+            },
+            autoRevealPropertyNote: {
+                name: '트리에서 속성 노트 표시',
+                desc: '내비게이터 외부에서 속성 노트를 열면 해당 노트가 정의하는 속성 값을 내비게이션 트리에서 선택합니다. 자동 표시가 활성화되어 있어야 합니다.'
+            },
+            propertyNoteFolder: {
+                name: '속성 노트 폴더',
+                desc: '새 속성 노트가 생성되는 위치입니다. 비워 두면 Obsidian의 새 노트 기본 위치를 사용합니다. [[Fruits/Apple]]처럼 경로로 연결되는 값은 항상 해당 경로에 생성됩니다.'
             },
             confirmBeforeDelete: {
                 name: '삭제 전 확인',

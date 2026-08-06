@@ -382,7 +382,8 @@ export const STRINGS_VI = {
         property: {
             addKey: 'Cấu hình khóa thuộc tính',
             renameKey: 'Đổi tên thuộc tính',
-            deleteKey: 'Xóa thuộc tính'
+            deleteKey: 'Xóa thuộc tính',
+            createPropertyNote: 'Tạo ghi chú thuộc tính'
         },
         navigation: {
             addSeparator: 'Thêm dấu phân cách',
@@ -774,6 +775,9 @@ export const STRINGS_VI = {
             openInDefaultApp: 'Không thể mở bằng ứng dụng mặc định: {error}',
             openInDefaultAppNotAvailable: 'Mở bằng ứng dụng mặc định không khả dụng trên nền tảng này',
             folderNoteAlreadyExists: 'Ghi chú thư mục đã tồn tại',
+            propertyNoteAlreadyExists: 'Đã tồn tại ghi chú thuộc tính cho giá trị này',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'Thư mục "{name}" đã tồn tại',
             folderNotesDisabled: 'Bật ghi chú thư mục trong cài đặt để chuyển đổi tệp',
             folderNoteAlreadyLinked: 'Tệp này đã hoạt động như ghi chú thư mục',
@@ -996,6 +1000,7 @@ export const STRINGS_VI = {
             folders: 'Thư mục',
             folderNotes: 'Ghi chú thư mục',
             folderNoteFiles: 'Tệp ghi chú thư mục',
+            propertyNotes: 'Ghi chú thuộc tính',
             foldersAndFolderNotes: 'Thư mục và ghi chú thư mục',
             tagsAndProperties: 'Thẻ và thuộc tính',
             tags: 'Thẻ',
@@ -1493,7 +1498,9 @@ export const STRINGS_VI = {
                 desc: 'Chọn loại tệp cần ẩn trong phần tệp gần đây.',
                 options: {
                     none: 'Không',
-                    folderNotes: 'Ghi chú thư mục'
+                    folderNotes: 'Ghi chú thư mục',
+                    propertyNotes: 'Ghi chú thuộc tính',
+                    allNotes: 'Ghi chú thư mục và ghi chú thuộc tính'
                 }
             },
             recentNotesCount: {
@@ -2372,6 +2379,35 @@ export const STRINGS_VI = {
             showNearestFolderNoteInSidebar: {
                 name: 'Thanh bên phải: Hiển thị ghi chú thư mục gần nhất',
                 desc: 'Khi một thư mục được chọn, thanh bên phải tự động hiển thị ghi chú thư mục tổ tiên gần nhất.'
+            },
+            enablePropertyNotes: {
+                name: 'Bật ghi chú thuộc tính',
+                desc: 'Giá trị thuộc tính là một liên kết được coi là liên kết đến ghi chú mà nó trỏ tới, giống như cách ghi chú thư mục hoạt động với thư mục.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'Tên thuộc tính mở ghi chú thuộc tính',
+                desc: 'Các giá trị thuộc tính liên kết đến một ghi chú sẽ được gạch chân. Nhấp vào tên hoặc nhấn Enter sẽ mở ghi chú đó; nhấp vào nơi khác trên hàng chỉ chọn giá trị.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'Mở ghi chú thuộc tính trong',
+                desc: 'Nơi mở ghi chú thuộc tính.',
+                options: {
+                    currentTab: 'Tab hiện tại',
+                    newTab: 'Tab mới',
+                    rightSidebar: 'Thanh bên phải'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Mở ghi chú thuộc tính khi điều hướng',
+                desc: 'Mở ghi chú được liên kết khi bạn nhấp vào giá trị thuộc tính hoặc kích hoạt phím tắt thuộc tính. Di chuyển qua cây bằng phím mũi tên không bao giờ mở ghi chú.'
+            },
+            autoRevealPropertyNote: {
+                name: 'Hiện ghi chú thuộc tính trong cây',
+                desc: 'Khi bạn mở một ghi chú thuộc tính từ bên ngoài bộ điều hướng, chọn giá trị thuộc tính mà ghi chú đó định nghĩa trong cây điều hướng. Yêu cầu bật tự động hiện.'
+            },
+            propertyNoteFolder: {
+                name: 'Thư mục ghi chú thuộc tính',
+                desc: 'Nơi các ghi chú thuộc tính mới được tạo. Để trống để dùng vị trí mặc định của Obsidian cho ghi chú mới. Các giá trị liên kết đến một đường dẫn, như [[Fruits/Apple]], luôn được tạo tại đường dẫn đó.'
             },
             confirmBeforeDelete: {
                 name: 'Xác nhận trước khi xóa',

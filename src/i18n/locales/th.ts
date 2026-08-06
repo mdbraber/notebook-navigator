@@ -382,7 +382,8 @@ export const STRINGS_TH = {
         property: {
             addKey: 'กำหนดค่าคีย์คุณสมบัติ',
             renameKey: 'เปลี่ยนชื่อคุณสมบัติ',
-            deleteKey: 'ลบคุณสมบัติ'
+            deleteKey: 'ลบคุณสมบัติ',
+            createPropertyNote: 'สร้างโน้ตคุณสมบัติ'
         },
         navigation: {
             addSeparator: 'เพิ่มตัวคั่น',
@@ -766,6 +767,9 @@ export const STRINGS_TH = {
             openInDefaultApp: 'เปิดในแอปเริ่มต้นล้มเหลว: {error}',
             openInDefaultAppNotAvailable: 'เปิดในแอปเริ่มต้นไม่พร้อมใช้งานบนแพลตฟอร์มนี้',
             folderNoteAlreadyExists: 'โน้ตโฟลเดอร์มีอยู่แล้ว',
+            propertyNoteAlreadyExists: 'มีโน้ตคุณสมบัติสำหรับค่านี้อยู่แล้ว',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'โฟลเดอร์ "{name}" มีอยู่แล้ว',
             folderNotesDisabled: 'เปิดใช้งานโน้ตโฟลเดอร์ในการตั้งค่าเพื่อแปลงไฟล์',
             folderNoteAlreadyLinked: 'ไฟล์นี้ทำหน้าที่เป็นโน้ตโฟลเดอร์อยู่แล้ว',
@@ -988,6 +992,7 @@ export const STRINGS_TH = {
             folders: 'โฟลเดอร์',
             folderNotes: 'โน้ตโฟลเดอร์',
             folderNoteFiles: 'ไฟล์โน้ตโฟลเดอร์',
+            propertyNotes: 'โน้ตคุณสมบัติ',
             foldersAndFolderNotes: 'โฟลเดอร์และโน้ตโฟลเดอร์',
             tagsAndProperties: 'แท็กและคุณสมบัติ',
             tags: 'แท็ก',
@@ -1485,7 +1490,9 @@ export const STRINGS_TH = {
                 desc: 'เลือกประเภทไฟล์ที่ต้องการซ่อนในส่วนไฟล์ล่าสุด',
                 options: {
                     none: 'ไม่มี',
-                    folderNotes: 'โน้ตโฟลเดอร์'
+                    folderNotes: 'โน้ตโฟลเดอร์',
+                    propertyNotes: 'โน้ตคุณสมบัติ',
+                    allNotes: 'โน้ตโฟลเดอร์และโน้ตคุณสมบัติ'
                 }
             },
             recentNotesCount: {
@@ -2363,6 +2370,35 @@ export const STRINGS_TH = {
             showNearestFolderNoteInSidebar: {
                 name: 'แถบด้านขวา: แสดงโน้ตโฟลเดอร์ที่ใกล้ที่สุด',
                 desc: 'เมื่อเลือกโฟลเดอร์ แถบด้านขวาจะแสดงโน้ตโฟลเดอร์บรรพบุรุษที่ใกล้ที่สุดโดยอัตโนมัติ'
+            },
+            enablePropertyNotes: {
+                name: 'เปิดใช้งานโน้ตคุณสมบัติ',
+                desc: 'ค่าคุณสมบัติที่เป็นลิงก์จะถูกปฏิบัติเหมือนลิงก์ไปยังโน้ตที่ชี้ไป เช่นเดียวกับที่โน้ตโฟลเดอร์ทำงานกับโฟลเดอร์'
+            },
+            enablePropertyNoteLinks: {
+                name: 'ชื่อคุณสมบัติเปิดโน้ตคุณสมบัติ',
+                desc: 'ค่าคุณสมบัติที่เชื่อมโยงไปยังโน้ตจะถูกขีดเส้นใต้ การคลิกที่ชื่อหรือกด Enter จะเปิดโน้ตนั้น ส่วนการคลิกที่อื่นในแถวจะเลือกค่านั้นเท่านั้น'
+            },
+            propertyNoteOpenLocation: {
+                name: 'เปิดโน้ตคุณสมบัติใน',
+                desc: 'ตำแหน่งที่เปิดโน้ตคุณสมบัติ',
+                options: {
+                    currentTab: 'แท็บปัจจุบัน',
+                    newTab: 'แท็บใหม่',
+                    rightSidebar: 'แถบด้านขวา'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'เปิดโน้ตคุณสมบัติเมื่อนำทาง',
+                desc: 'เปิดโน้ตที่เชื่อมโยงเมื่อคุณคลิกค่าคุณสมบัติหรือเปิดใช้งานทางลัดคุณสมบัติ การเลื่อนผ่านโครงสร้างต้นไม้ด้วยปุ่มลูกศรจะไม่เปิดโน้ตเลย'
+            },
+            autoRevealPropertyNote: {
+                name: 'แสดงโน้ตคุณสมบัติในแผนผัง',
+                desc: 'เมื่อคุณเปิดโน้ตคุณสมบัติจากภายนอกตัวนำทาง จะเลือกค่าคุณสมบัติที่โน้ตนั้นกำหนดไว้ในแผนผังการนำทาง ต้องเปิดใช้งานการแสดงอัตโนมัติ'
+            },
+            propertyNoteFolder: {
+                name: 'โฟลเดอร์โน้ตคุณสมบัติ',
+                desc: 'ตำแหน่งที่สร้างโน้ตคุณสมบัติใหม่ เว้นว่างไว้เพื่อใช้ตำแหน่งเริ่มต้นของ Obsidian สำหรับโน้ตใหม่ ค่าที่เชื่อมโยงไปยังเส้นทาง เช่น [[Fruits/Apple]] จะถูกสร้างที่เส้นทางนั้นเสมอ'
             },
             confirmBeforeDelete: {
                 name: 'ยืนยันก่อนลบ',

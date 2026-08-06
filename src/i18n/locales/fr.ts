@@ -384,7 +384,8 @@ export const STRINGS_FR = {
         property: {
             addKey: 'Configurer les clés de propriété',
             renameKey: 'Renommer la propriété',
-            deleteKey: 'Supprimer la propriété'
+            deleteKey: 'Supprimer la propriété',
+            createPropertyNote: 'Créer une note de propriété'
         },
         navigation: {
             addSeparator: 'Ajouter un séparateur',
@@ -776,6 +777,9 @@ export const STRINGS_FR = {
             openInDefaultApp: "Échec de l'ouverture dans l'application par défaut : {error}",
             openInDefaultAppNotAvailable: "L'ouverture dans l'application par défaut n'est pas disponible sur cette plateforme",
             folderNoteAlreadyExists: 'La note de dossier existe déjà',
+            propertyNoteAlreadyExists: 'Une note de propriété existe déjà pour cette valeur',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'Le dossier "{name}" existe déjà',
             folderNotesDisabled: 'Activez les notes de dossier dans les paramètres pour convertir des fichiers',
             folderNoteAlreadyLinked: 'Ce fichier agit déjà comme une note de dossier',
@@ -998,6 +1002,7 @@ export const STRINGS_FR = {
             folders: 'Dossiers',
             folderNotes: 'Notes de dossier',
             folderNoteFiles: 'Fichiers de notes de dossier',
+            propertyNotes: 'Notes de propriété',
             foldersAndFolderNotes: 'Dossiers et notes de dossier',
             tagsAndProperties: 'Tags et propriétés',
             tags: 'Étiquettes',
@@ -1496,7 +1501,9 @@ export const STRINGS_FR = {
                 desc: 'Choisir les types de fichiers à masquer dans la section des fichiers récents.',
                 options: {
                     none: 'Aucun',
-                    folderNotes: 'Notes de dossier'
+                    folderNotes: 'Notes de dossier',
+                    propertyNotes: 'Notes de propriété',
+                    allNotes: 'Notes de dossier et notes de propriété'
                 }
             },
             recentNotesCount: {
@@ -2378,6 +2385,35 @@ export const STRINGS_FR = {
             showNearestFolderNoteInSidebar: {
                 name: 'Barre latérale droite : Afficher la note de dossier la plus proche',
                 desc: "Lorsqu'un dossier est sélectionné, la barre latérale droite affiche automatiquement la note de dossier ancêtre la plus proche."
+            },
+            enablePropertyNotes: {
+                name: 'Activer les notes de propriété',
+                desc: "Une valeur de propriété qui est un lien est traitée comme un lien vers la note qu'elle cible, de la même façon que les notes de dossier fonctionnent pour les dossiers."
+            },
+            enablePropertyNoteLinks: {
+                name: 'Les noms de propriété ouvrent les notes de propriété',
+                desc: 'Les valeurs de propriété qui pointent vers une note sont soulignées. Cliquer sur le nom ou appuyer sur Entrée ouvre cette note ; cliquer ailleurs sur la ligne ne fait que sélectionner la valeur.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'Ouvrir les notes de propriété dans',
+                desc: "Où s'ouvrent les notes de propriété.",
+                options: {
+                    currentTab: 'Onglet actuel',
+                    newTab: 'Nouvel onglet',
+                    rightSidebar: 'Barre latérale droite'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Ouvrir la note de propriété lors de la navigation',
+                desc: "Ouvre la note liée lorsque vous cliquez sur une valeur de propriété ou activez un raccourci de propriété. Se déplacer dans l'arborescence avec les touches fléchées n'ouvre jamais de notes."
+            },
+            autoRevealPropertyNote: {
+                name: "Révéler la note de propriété dans l'arborescence",
+                desc: "Lorsque vous ouvrez une note de propriété depuis l'extérieur du navigateur, sélectionne dans l'arborescence la valeur de propriété qu'elle définit. Nécessite l'activation de la révélation automatique."
+            },
+            propertyNoteFolder: {
+                name: 'Dossier des notes de propriété',
+                desc: "Où les nouvelles notes de propriété sont créées. Laisser vide pour utiliser l'emplacement par défaut d'Obsidian pour les nouvelles notes. Les valeurs qui pointent vers un chemin, comme [[Fruits/Apple]], sont toujours créées à ce chemin."
             },
             confirmBeforeDelete: {
                 name: 'Confirmer avant de supprimer',

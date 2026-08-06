@@ -382,7 +382,8 @@ export const STRINGS_EN = {
         property: {
             addKey: 'Configure property keys',
             renameKey: 'Rename property',
-            deleteKey: 'Delete property'
+            deleteKey: 'Delete property',
+            createPropertyNote: 'Create property note'
         },
         navigation: {
             addSeparator: 'Add separator',
@@ -767,6 +768,9 @@ export const STRINGS_EN = {
             openInDefaultApp: 'Failed to open in default app: {error}',
             openInDefaultAppNotAvailable: 'Open in default app is not available on this platform',
             folderNoteAlreadyExists: 'Folder note already exists',
+            propertyNoteAlreadyExists: 'A property note already exists for this value',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'Folder "{name}" already exists',
             folderNotesDisabled: 'Enable folder notes in settings to convert files',
             folderNoteAlreadyLinked: 'This file already acts as a folder note',
@@ -989,6 +993,7 @@ export const STRINGS_EN = {
             folders: 'Folders',
             folderNotes: 'Folder notes',
             folderNoteFiles: 'Folder note files',
+            propertyNotes: 'Property notes',
             foldersAndFolderNotes: 'Folders & folder notes',
             tagsAndProperties: 'Tags & properties',
             tags: 'Tags',
@@ -1486,7 +1491,9 @@ export const STRINGS_EN = {
                 desc: 'Choose which file types to hide in the recent files section.',
                 options: {
                     none: 'None',
-                    folderNotes: 'Folder notes'
+                    folderNotes: 'Folder notes',
+                    propertyNotes: 'Property notes',
+                    allNotes: 'Folder and property notes'
                 }
             },
             recentNotesCount: {
@@ -2363,6 +2370,35 @@ export const STRINGS_EN = {
             showNearestFolderNoteInSidebar: {
                 name: 'Right sidebar: Show closest folder note',
                 desc: 'When a folder is selected, the right sidebar automatically shows the nearest ancestor folder note.'
+            },
+            enablePropertyNotes: {
+                name: 'Enable property notes',
+                desc: 'Treat a property value that is a wikilink as a link to the note it points at, the way folder notes work for folders.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'Property names open property notes',
+                desc: 'Underline property values that link to a note, and open that note when you click the name or press Enter. Clicking elsewhere on the row only selects the value.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'Open property notes in',
+                desc: 'Where property notes open.',
+                options: {
+                    currentTab: 'Current tab',
+                    newTab: 'New tab',
+                    rightSidebar: 'Right sidebar'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Open property note when navigating',
+                desc: 'Open the linked note when you click a property value or activate a property shortcut. Moving through the tree with arrow keys never opens notes.'
+            },
+            autoRevealPropertyNote: {
+                name: 'Reveal property note in tree',
+                desc: 'When you open a property note from outside the navigator, select the property value it defines in the navigation tree. Requires auto-reveal to be enabled.'
+            },
+            propertyNoteFolder: {
+                name: 'Property note folder',
+                desc: "Where new property notes are created. Leave empty to use Obsidian's default location for new notes. Values that link to a path, like [[Fruits/Apple]], are always created at that path."
             },
             confirmBeforeDelete: {
                 name: 'Confirm before deleting',

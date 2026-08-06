@@ -385,7 +385,8 @@ export const STRINGS_NL = {
         property: {
             addKey: 'Eigenschapssleutels configureren',
             renameKey: 'Eigenschap hernoemen',
-            deleteKey: 'Eigenschap verwijderen'
+            deleteKey: 'Eigenschap verwijderen',
+            createPropertyNote: 'Eigenschapsnotitie maken'
         },
         navigation: {
             addSeparator: 'Scheidingslijn toevoegen',
@@ -775,6 +776,9 @@ export const STRINGS_NL = {
             openInDefaultApp: 'Kan niet openen in standaardapp: {error}',
             openInDefaultAppNotAvailable: 'Openen in standaardapp is niet beschikbaar op dit platform',
             folderNoteAlreadyExists: 'Mapnotitie bestaat al',
+            propertyNoteAlreadyExists: 'Er bestaat al een eigenschapsnotitie voor deze waarde',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'Map "{name}" bestaat al',
             folderNotesDisabled: 'Schakel mapnotities in via instellingen om bestanden te converteren',
             folderNoteAlreadyLinked: 'Dit bestand fungeert al als mapnotitie',
@@ -997,6 +1001,7 @@ export const STRINGS_NL = {
             folders: 'Mappen',
             folderNotes: 'Mapnotities',
             folderNoteFiles: 'Mapnotitiebestanden',
+            propertyNotes: 'Eigenschapsnotities',
             foldersAndFolderNotes: 'Mappen & mapnotities',
             tagsAndProperties: 'Tags & eigenschappen',
             tags: 'Tags',
@@ -1494,7 +1499,9 @@ export const STRINGS_NL = {
                 desc: 'Kies welke soorten bestanden verborgen worden in de sectie recente bestanden.',
                 options: {
                     none: 'Geen',
-                    folderNotes: 'Mapnotities'
+                    folderNotes: 'Mapnotities',
+                    propertyNotes: 'Eigenschapsnotities',
+                    allNotes: 'Mapnotities en eigenschapsnotities'
                 }
             },
             recentNotesCount: {
@@ -2374,6 +2381,35 @@ export const STRINGS_NL = {
             showNearestFolderNoteInSidebar: {
                 name: 'Rechterzijbalk: Dichtstbijzijnde mapnotitie tonen',
                 desc: 'Wanneer een map wordt geselecteerd, toont de rechterzijbalk automatisch de dichtstbijzijnde bovenliggende mapnotitie.'
+            },
+            enablePropertyNotes: {
+                name: 'Eigenschapsnotities inschakelen',
+                desc: 'Een eigenschapswaarde die een link is, wordt behandeld als een link naar de notitie waarnaar deze verwijst, op dezelfde manier als mapnotities werken voor mappen.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'Eigenschapsnamen openen eigenschapsnotities',
+                desc: 'Eigenschapswaarden die naar een notitie linken worden onderstreept. Klikken op de naam of op Enter drukken opent die notitie; klikken elders op de rij selecteert alleen de waarde.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'Eigenschapsnotities openen in',
+                desc: 'Waar eigenschapsnotities worden geopend.',
+                options: {
+                    currentTab: 'Huidig tabblad',
+                    newTab: 'Nieuw tabblad',
+                    rightSidebar: 'Rechterzijbalk'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Eigenschapsnotitie openen bij navigeren',
+                desc: 'Opent de gekoppelde notitie wanneer u op een eigenschapswaarde klikt of een eigenschapssnelkoppeling activeert. Door de boomstructuur bewegen met de pijltoetsen opent nooit notities.'
+            },
+            autoRevealPropertyNote: {
+                name: 'Eigenschapsnotitie in boomstructuur tonen',
+                desc: 'Wanneer u een eigenschapsnotitie buiten de navigator opent, wordt de eigenschapswaarde die deze definieert in de boomstructuur geselecteerd. Vereist dat automatisch tonen is ingeschakeld.'
+            },
+            propertyNoteFolder: {
+                name: 'Map voor eigenschapsnotities',
+                desc: 'Waar nieuwe eigenschapsnotities worden aangemaakt. Laat leeg om de standaardlocatie van Obsidian voor nieuwe notities te gebruiken. Waarden die naar een pad linken, zoals [[Fruits/Apple]], worden altijd op dat pad aangemaakt.'
             },
             confirmBeforeDelete: {
                 name: 'Bevestigen voor verwijderen',

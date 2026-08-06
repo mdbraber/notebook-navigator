@@ -383,7 +383,8 @@ export const STRINGS_ID = {
         property: {
             addKey: 'Konfigurasi kunci properti',
             renameKey: 'Ubah nama properti',
-            deleteKey: 'Hapus properti'
+            deleteKey: 'Hapus properti',
+            createPropertyNote: 'Buat catatan properti'
         },
         navigation: {
             addSeparator: 'Tambah pemisah',
@@ -773,6 +774,9 @@ export const STRINGS_ID = {
             openInDefaultApp: 'Gagal membuka di aplikasi bawaan: {error}',
             openInDefaultAppNotAvailable: 'Buka di aplikasi bawaan tidak tersedia di platform ini',
             folderNoteAlreadyExists: 'Catatan folder sudah ada',
+            propertyNoteAlreadyExists: 'Catatan properti untuk nilai ini sudah ada',
+            propertyNoteInvalidTarget: "Failed to create property note: the link target isn't a valid file name",
+            propertyNoteFolderUnavailable: 'Failed to create property note: the configured folder is unavailable',
             folderAlreadyExists: 'Folder "{name}" sudah ada',
             folderNotesDisabled: 'Aktifkan catatan folder di pengaturan untuk mengkonversi file',
             folderNoteAlreadyLinked: 'File ini sudah berfungsi sebagai catatan folder',
@@ -995,6 +999,7 @@ export const STRINGS_ID = {
             folders: 'Folder',
             folderNotes: 'Catatan folder',
             folderNoteFiles: 'File catatan folder',
+            propertyNotes: 'Catatan properti',
             foldersAndFolderNotes: 'Folder & catatan folder',
             tagsAndProperties: 'Tag & properti',
             tags: 'Tag',
@@ -1492,7 +1497,9 @@ export const STRINGS_ID = {
                 desc: 'Pilih jenis file yang disembunyikan di bagian file terbaru.',
                 options: {
                     none: 'Tidak ada',
-                    folderNotes: 'Catatan folder'
+                    folderNotes: 'Catatan folder',
+                    propertyNotes: 'Catatan properti',
+                    allNotes: 'Catatan folder dan catatan properti'
                 }
             },
             recentNotesCount: {
@@ -2371,6 +2378,35 @@ export const STRINGS_ID = {
             showNearestFolderNoteInSidebar: {
                 name: 'Bilah sisi kanan: Tampilkan catatan folder terdekat',
                 desc: 'Saat folder dipilih, bilah sisi kanan otomatis menampilkan catatan folder leluhur terdekat.'
+            },
+            enablePropertyNotes: {
+                name: 'Aktifkan catatan properti',
+                desc: 'Nilai properti yang berupa tautan diperlakukan sebagai tautan ke catatan yang dirujuknya, sama seperti cara kerja catatan folder untuk folder.'
+            },
+            enablePropertyNoteLinks: {
+                name: 'Nama properti membuka catatan properti',
+                desc: 'Nilai properti yang tertaut ke sebuah catatan akan digarisbawahi. Mengklik nama atau menekan Enter membuka catatan tersebut; mengklik di tempat lain pada baris hanya memilih nilainya.'
+            },
+            propertyNoteOpenLocation: {
+                name: 'Buka catatan properti di',
+                desc: 'Tempat catatan properti dibuka.',
+                options: {
+                    currentTab: 'Tab saat ini',
+                    newTab: 'Tab baru',
+                    rightSidebar: 'Bilah sisi kanan'
+                }
+            },
+            autoOpenPropertyNote: {
+                name: 'Buka catatan properti saat menavigasi',
+                desc: 'Membuka catatan tertaut saat Anda mengklik nilai properti atau mengaktifkan pintasan properti. Berpindah melalui pohon dengan tombol panah tidak pernah membuka catatan.'
+            },
+            autoRevealPropertyNote: {
+                name: 'Tampilkan catatan properti di pohon',
+                desc: 'Saat Anda membuka catatan properti dari luar navigator, pilih nilai properti yang didefinisikannya di pohon navigasi. Memerlukan tampilkan otomatis diaktifkan.'
+            },
+            propertyNoteFolder: {
+                name: 'Folder catatan properti',
+                desc: 'Tempat catatan properti baru dibuat. Biarkan kosong untuk menggunakan lokasi default Obsidian untuk catatan baru. Nilai yang tertaut ke jalur, seperti [[Fruits/Apple]], selalu dibuat di jalur tersebut.'
             },
             confirmBeforeDelete: {
                 name: 'Konfirmasi sebelum menghapus',
