@@ -1217,6 +1217,7 @@ export const STRINGS_ID = {
                     headers: 'Header',
                     groups: 'Grup'
                 },
+                perValueSuffix: '{key} (setiap nilai)',
                 options: {
                     custom: 'Kustom',
                     date: 'Tanggal',

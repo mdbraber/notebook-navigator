@@ -1206,6 +1206,7 @@ export const STRINGS_ZH_TW = {
                     headers: '標題',
                     groups: '分組'
                 },
+                perValueSuffix: '{key}（每個值）',
                 options: {
                     custom: '自訂',
                     date: '日期',

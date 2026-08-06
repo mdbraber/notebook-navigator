@@ -1212,6 +1212,7 @@ export const STRINGS_AR = {
                     headers: 'العناوين',
                     groups: 'المجموعات'
                 },
+                perValueSuffix: '{key} (كل قيمة)',
                 options: {
                     custom: 'مخصص',
                     date: 'التاريخ',

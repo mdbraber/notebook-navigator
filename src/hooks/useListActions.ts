@@ -1852,6 +1852,12 @@ export function useListActions({
                     getSortFieldMenuIcon('property', propertyKey),
                     isManualSortActive
                 );
+                addGroupOptionItem(
+                    createPropertyGroupingOption(propertyKey, effectiveGroupOrder, true),
+                    strings.settings.items.groupNotes.perValueSuffix.replace('{key}', getSortFieldLabel('property', propertyKey)),
+                    getSortFieldMenuIcon('property', propertyKey),
+                    isManualSortActive
+                );
             });
 
             // Without configured property keys the property grouping entries above render nothing, so a

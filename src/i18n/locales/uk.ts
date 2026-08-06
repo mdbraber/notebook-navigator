@@ -1214,6 +1214,7 @@ export const STRINGS_UK = {
                     headers: 'Заголовки',
                     groups: 'Групи'
                 },
+                perValueSuffix: '{key} (кожне значення)',
                 options: {
                     custom: 'Користувацьке',
                     date: 'Дата',

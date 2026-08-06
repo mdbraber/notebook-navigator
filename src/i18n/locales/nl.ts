@@ -1219,6 +1219,7 @@ export const STRINGS_NL = {
                     headers: 'Koppen',
                     groups: 'Groepen'
                 },
+                perValueSuffix: '{key} (elke waarde)',
                 options: {
                     custom: 'Aangepast',
                     date: 'Datum',

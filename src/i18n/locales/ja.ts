@@ -1216,6 +1216,7 @@ export const STRINGS_JA = {
                     headers: 'ヘッダー',
                     groups: 'グループ'
                 },
+                perValueSuffix: '{key}（値ごと）',
                 options: {
                     custom: 'カスタム',
                     date: '日付',

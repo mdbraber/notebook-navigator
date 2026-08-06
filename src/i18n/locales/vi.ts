@@ -1218,6 +1218,7 @@ export const STRINGS_VI = {
                     headers: 'Tiêu đề',
                     groups: 'Nhóm'
                 },
+                perValueSuffix: '{key} (từng giá trị)',
                 options: {
                     custom: 'Tùy chỉnh',
                     date: 'Ngày',

@@ -1215,6 +1215,7 @@ export const STRINGS_TR = {
                     headers: 'Başlıklar',
                     groups: 'Gruplar'
                 },
+                perValueSuffix: '{key} (her değer)',
                 options: {
                     custom: 'Özel',
                     date: 'Tarih',

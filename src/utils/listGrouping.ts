@@ -17,7 +17,12 @@
  */
 
 import { ItemType } from '../types';
-import { createPropertyGroupingOption, getPropertyGroupingKey, getPropertyGroupingOrder } from '../settings/types';
+import {
+    createPropertyGroupingOption,
+    getPropertyGroupingKey,
+    getPropertyGroupingOrder,
+    getPropertyGroupingPerValue
+} from '../settings/types';
 import type { ListNoteGroupingOption, ListSortOverrideValue, NotebookNavigatorSettings, SortOption } from '../settings/types';
 import { DEFAULT_SETTINGS } from '../settings/defaultSettings';
 import type { PropertyGroupingDirection } from '../settings/types';
@@ -119,10 +124,18 @@ export function areListGroupingOptionsEqual(left: ListNoteGroupingOption, right:
         return false;
     }
 
-    return casefold(leftPropertyKey) === casefold(rightPropertyKey) && getPropertyGroupingOrder(left) === getPropertyGroupingOrder(right);
+    return (
+        casefold(leftPropertyKey) === casefold(rightPropertyKey) &&
+        getPropertyGroupingOrder(left) === getPropertyGroupingOrder(right) &&
+        getPropertyGroupingPerValue(left) === getPropertyGroupingPerValue(right)
+    );
 }
 
-/** Compares grouping options ignoring group order direction, so a direction change stays on the same grouping property. */
+/**
+ * Compares grouping options ignoring group order direction, so a direction change stays on the same
+ * grouping property. Per-value grouping still counts as a different kind from its plain sibling since
+ * it partitions the list differently, not just in a different order.
+ */
 export function areListGroupingOptionsSameKind(left: ListNoteGroupingOption, right: ListNoteGroupingOption): boolean {
     if (left === right) {
         return true;
@@ -134,7 +147,9 @@ export function areListGroupingOptionsSameKind(left: ListNoteGroupingOption, rig
         return false;
     }
 
-    return casefold(leftPropertyKey) === casefold(rightPropertyKey);
+    return (
+        casefold(leftPropertyKey) === casefold(rightPropertyKey) && getPropertyGroupingPerValue(left) === getPropertyGroupingPerValue(right)
+    );
 }
 
 const APPEARANCE_RECORD_KEYS = ['folderAppearances', 'tagAppearances', 'propertyAppearances'] as const;

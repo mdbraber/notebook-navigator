@@ -257,11 +257,23 @@ describe('property grouping option encoding', () => {
         expect(areListGroupingOptionsEqual('date', 'date')).toBe(true);
     });
 
+    it('treats per-value grouping as distinct from its plain sibling even with the same key and order', () => {
+        expect(areListGroupingOptionsEqual('property-each-follow:status', 'property-follow:status')).toBe(false);
+        expect(areListGroupingOptionsEqual('property-each:status', 'property-each:status')).toBe(true);
+        expect(areListGroupingOptionsEqual('property-each:Status', 'property-each:status')).toBe(true);
+    });
+
     it('matches grouping options of the same kind regardless of direction', () => {
         expect(areListGroupingOptionsSameKind('property:status', 'property-desc:Status')).toBe(true);
         expect(areListGroupingOptionsSameKind('property:status', 'property:genre')).toBe(false);
         expect(areListGroupingOptionsSameKind('date', 'date')).toBe(true);
         expect(areListGroupingOptionsSameKind('property:status', 'custom')).toBe(false);
+    });
+
+    it('does not treat per-value grouping as the same kind as its plain sibling', () => {
+        expect(areListGroupingOptionsSameKind('property-each-follow:status', 'property-follow:status')).toBe(false);
+        expect(areListGroupingOptionsSameKind('property-each:status', 'property-each-desc:Status')).toBe(true);
+        expect(areListGroupingOptionsSameKind('property-each:status', 'property:genre')).toBe(false);
     });
 });
 

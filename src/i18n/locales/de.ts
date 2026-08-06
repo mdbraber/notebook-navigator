@@ -1220,6 +1220,7 @@ export const STRINGS_DE = {
                     headers: 'Überschriften',
                     groups: 'Gruppen'
                 },
+                perValueSuffix: '{key} (jeder Wert)',
                 options: {
                     custom: 'Benutzerdefiniert',
                     date: 'Datum',

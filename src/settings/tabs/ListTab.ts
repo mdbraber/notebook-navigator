@@ -25,6 +25,7 @@ import {
     createPropertyGroupingOption,
     getPropertyGroupingKey,
     getPropertyGroupingOrder,
+    getPropertyGroupingPerValue,
     MANUAL_SORT_NEW_NOTE_PLACEMENT_OPTIONS,
     normalizeListNoteGroupingOption,
     PROPERTY_SORT_SECONDARY_OPTIONS
@@ -480,8 +481,11 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                     availableKey => casefold(availableKey) === casefold(propertyKey)
                 );
                 // Reconciliation resets unavailable property groupings, so a missing entry only occurs
-                // transiently; display the stock default rather than an empty selection.
-                return matchedKey ? createPropertyGroupingOption(matchedKey, 'follow') : DEFAULT_SETTINGS.noteGrouping;
+                // transiently; display the stock default rather than an empty selection. The per-value
+                // flag carries over so a per-value grouping selects its own entry, not its plain sibling.
+                return matchedKey
+                    ? createPropertyGroupingOption(matchedKey, 'follow', getPropertyGroupingPerValue(grouping))
+                    : DEFAULT_SETTINGS.noteGrouping;
             };
 
             const rebuildOptions = (): void => {
@@ -505,6 +509,12 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                         value: createPropertyGroupingOption(propertyKey, 'follow'),
                         text: getPropertyDropdownOptionLabel(propertyKey)
                     });
+                    // Per-value sibling: splits the property's list values into one group each instead
+                    // of one group for the whole value list. Reuses the property label with a suffix.
+                    groupsGroupEl.createEl('option', {
+                        value: createPropertyGroupingOption(propertyKey, 'follow', true),
+                        text: strings.settings.items.groupNotes.perValueSuffix.replace('{key}', getPropertyDropdownOptionLabel(propertyKey))
+                    });
                 });
                 dropdown.setValue(getSelectedValue());
             };
@@ -515,12 +525,17 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                     return;
                 }
                 // Switching to another property keeps the current group order; coming from a base
-                // mode the order starts at follow-sort.
+                // mode the order starts at follow-sort. The per-value flag comes from the newly
+                // selected entry itself, since this dropdown is the only control that sets it.
                 const propertyKey = getPropertyGroupingKey(normalized);
                 const next =
                     propertyKey === null
                         ? normalized
-                        : createPropertyGroupingOption(propertyKey, getPropertyGroupingOrder(plugin.settings.noteGrouping) ?? 'follow');
+                        : createPropertyGroupingOption(
+                              propertyKey,
+                              getPropertyGroupingOrder(plugin.settings.noteGrouping) ?? 'follow',
+                              getPropertyGroupingPerValue(normalized)
+                          );
                 if (plugin.settings.noteGrouping === next) {
                     return;
                 }
@@ -564,7 +579,9 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                 if (propertyKey === null) {
                     return;
                 }
-                const next = createPropertyGroupingOption(propertyKey, value);
+                // This dropdown only changes order; the per-value flag is set by the mode dropdown
+                // above and must carry over unchanged.
+                const next = createPropertyGroupingOption(propertyKey, value, getPropertyGroupingPerValue(plugin.settings.noteGrouping));
                 if (plugin.settings.noteGrouping === next) {
                     return;
                 }

@@ -1211,6 +1211,7 @@ export const STRINGS_EN = {
                     headers: 'Headers',
                     groups: 'Groups'
                 },
+                perValueSuffix: '{key} (each value)',
                 options: {
                     custom: 'Custom',
                     date: 'Date',

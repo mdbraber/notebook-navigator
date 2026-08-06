@@ -1214,6 +1214,7 @@ export const STRINGS_RU = {
                     headers: 'Заголовки',
                     groups: 'Группы'
                 },
+                perValueSuffix: '{key} (каждое значение)',
                 options: {
                     custom: 'Произвольная',
                     date: 'По дате',

@@ -1219,6 +1219,7 @@ export const STRINGS_PT_BR = {
                     headers: 'Cabeçalhos',
                     groups: 'Grupos'
                 },
+                perValueSuffix: '{key} (cada valor)',
                 options: {
                     custom: 'Personalizado',
                     date: 'Data',

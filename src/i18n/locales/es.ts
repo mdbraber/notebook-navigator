@@ -1218,6 +1218,7 @@ export const STRINGS_ES = {
                     headers: 'Encabezados',
                     groups: 'Grupos'
                 },
+                perValueSuffix: '{key} (cada valor)',
                 options: {
                     custom: 'Personalizada',
                     date: 'Fecha',

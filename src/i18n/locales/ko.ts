@@ -1214,6 +1214,7 @@ export const STRINGS_KO = {
                     headers: '머리글',
                     groups: '그룹'
                 },
+                perValueSuffix: '{key}(값별)',
                 options: {
                     custom: '사용자 지정',
                     date: '날짜',

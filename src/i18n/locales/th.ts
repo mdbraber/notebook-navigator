@@ -1210,6 +1210,7 @@ export const STRINGS_TH = {
                     headers: 'ส่วนหัว',
                     groups: 'กลุ่ม'
                 },
+                perValueSuffix: '{key} (แต่ละค่า)',
                 options: {
                     custom: 'กำหนดเอง',
                     date: 'วันที่',

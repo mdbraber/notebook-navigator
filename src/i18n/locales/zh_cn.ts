@@ -1205,6 +1205,7 @@ export const STRINGS_ZH_CN = {
                     headers: '标题',
                     groups: '分组'
                 },
+                perValueSuffix: '{key}（每个值）',
                 options: {
                     custom: '自定义',
                     date: '日期',

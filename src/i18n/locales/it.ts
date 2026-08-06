@@ -1213,6 +1213,7 @@ export const STRINGS_IT = {
                     headers: 'Intestazioni',
                     groups: 'Gruppi'
                 },
+                perValueSuffix: '{key} (ogni valore)',
                 options: {
                     custom: 'Personalizzato',
                     date: 'Data',

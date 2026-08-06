@@ -1217,6 +1217,7 @@ export const STRINGS_FA = {
                     headers: 'سرصفحه‌ها',
                     groups: 'گروه‌ها'
                 },
+                perValueSuffix: '{key} (هر مقدار)',
                 options: {
                     custom: 'سفارشی',
                     date: 'تاریخ',

@@ -1220,6 +1220,7 @@ export const STRINGS_PL = {
                     headers: 'Nagłówki',
                     groups: 'Grupy'
                 },
+                perValueSuffix: '{key} (każda wartość)',
                 options: {
                     custom: 'Niestandardowe',
                     date: 'Data',
