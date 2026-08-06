@@ -56,11 +56,13 @@
     white-space: nowrap;
 }
 
-.nn-list-title-label--folder-note {
+.nn-list-title-label--folder-note,
+.nn-list-title-label--property-note {
     text-decoration: var(--nn-theme-navitem-folder-note-name-decoration);
 }
 
-.nn-list-title-label--folder-note:hover {
+.nn-list-title-label--folder-note:hover,
+.nn-list-title-label--property-note:hover {
     cursor: pointer;
     text-decoration: var(--nn-theme-navitem-folder-note-name-hover-decoration);
 }

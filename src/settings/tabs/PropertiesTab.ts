@@ -21,7 +21,13 @@ import type { SettingDefinitionItem } from 'obsidian';
 import { strings } from '../../i18n';
 import { isTagSortOrder } from '../types';
 import type { SettingsTabContext } from './SettingsTabContext';
-import { createGroupDefinition, createRenderDefinition, createToggleDefinition } from '../nativeSettingControls';
+import {
+    createDropdownDefinition,
+    createFolderDefinition,
+    createGroupDefinition,
+    createRenderDefinition,
+    createToggleDefinition
+} from '../nativeSettingControls';
 import { addSettingSyncModeToggle } from '../syncModeToggle';
 
 /** Builds native 1.13 setting definitions for property settings. */
@@ -66,6 +72,44 @@ export function createPropertiesSettingDefinitions(context: SettingsTabContext, 
                 searchable: false,
                 visible: () => plugin.settings.showProperties,
                 render: setting => renderPropertyKeysInfoSetting(setting)
+            })
+        ]),
+        createGroupDefinition(strings.settings.sections.propertyNotes, [
+            createToggleDefinition('enablePropertyNotes', {
+                name: strings.settings.items.enablePropertyNotes.name,
+                desc: strings.settings.items.enablePropertyNotes.desc
+            }),
+            createToggleDefinition('enablePropertyNoteLinks', {
+                name: strings.settings.items.enablePropertyNoteLinks.name,
+                desc: strings.settings.items.enablePropertyNoteLinks.desc,
+                visible: () => plugin.settings.enablePropertyNotes
+            }),
+            createToggleDefinition('autoOpenPropertyNote', {
+                name: strings.settings.items.autoOpenPropertyNote.name,
+                desc: strings.settings.items.autoOpenPropertyNote.desc,
+                visible: () => plugin.settings.enablePropertyNotes
+            }),
+            createDropdownDefinition('propertyNoteOpenLocation', {
+                name: strings.settings.items.propertyNoteOpenLocation.name,
+                desc: strings.settings.items.propertyNoteOpenLocation.desc,
+                aliases: Object.values(strings.settings.items.propertyNoteOpenLocation.options),
+                visible: () => plugin.settings.enablePropertyNotes,
+                options: {
+                    'current-tab': strings.settings.items.propertyNoteOpenLocation.options.currentTab,
+                    'new-tab': strings.settings.items.propertyNoteOpenLocation.options.newTab,
+                    'right-sidebar': strings.settings.items.propertyNoteOpenLocation.options.rightSidebar
+                }
+            }),
+            createToggleDefinition('autoRevealPropertyNote', {
+                name: strings.settings.items.autoRevealPropertyNote.name,
+                desc: strings.settings.items.autoRevealPropertyNote.desc,
+                visible: () => plugin.settings.enablePropertyNotes
+            }),
+            createFolderDefinition('propertyNoteFolder', {
+                name: strings.settings.items.propertyNoteFolder.name,
+                desc: strings.settings.items.propertyNoteFolder.desc,
+                visible: () => plugin.settings.enablePropertyNotes,
+                includeRoot: true
             })
         ])
     ];

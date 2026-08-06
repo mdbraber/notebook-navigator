@@ -22,6 +22,13 @@ import type { PaneType, WorkspaceLeaf } from 'obsidian';
 const BACKGROUND_OPEN_MARKER_TTL_MS = 250;
 
 /**
+ * How long a note-open suppression stays available for the workspace event to consume.
+ * Matches BACKGROUND_OPEN_MARKER_TTL_MS - it is a safety net for opens that never produce
+ * an event, not the mechanism itself.
+ */
+const NOTE_OPEN_SUPPRESSION_TTL_MS = 250;
+
+/**
  * Types of operations that can be tracked by the command queue
  */
 export enum OperationType {
@@ -29,6 +36,7 @@ export enum OperationType {
     RENAME_FOLDER = 'rename-folder',
     DELETE_FILES = 'delete-files',
     OPEN_FOLDER_NOTE = 'open-folder-note',
+    OPEN_PROPERTY_NOTE = 'open-property-note',
     OPEN_VERSION_HISTORY = 'open-version-history',
     OPEN_IN_NEW_CONTEXT = 'open-in-new-context',
     OPEN_BACKGROUND_FILE = 'open-background-file',
@@ -76,6 +84,14 @@ interface DeleteFilesOperation extends BaseOperation {
 interface OpenFolderNoteOperation extends BaseOperation {
     type: OperationType.OPEN_FOLDER_NOTE;
     folderPath: string;
+}
+
+/**
+ * Operation for tracking property note opening
+ */
+interface OpenPropertyNoteOperation extends BaseOperation {
+    type: OperationType.OPEN_PROPERTY_NOTE;
+    propertyNotePath: string;
 }
 
 /**
@@ -144,6 +160,7 @@ type Operation =
     | RenameFolderOperation
     | DeleteFilesOperation
     | OpenFolderNoteOperation
+    | OpenPropertyNoteOperation
     | OpenVersionHistoryOperation
     | OpenInNewContextOperation
     | OpenBackgroundFileOperation
@@ -181,6 +198,8 @@ export class CommandQueueService {
     private openActiveFileQueue: Promise<void> = Promise.resolve();
     private latestOpenActiveFileOperationId: string | null = null;
     private backgroundOpenMarkers = new Map<string, BackgroundOpenMarker>();
+    /** Paths of notes opened by the navigator, valued by completion time. */
+    private noteOpenSuppressions = new Map<string, number>();
 
     constructor() {}
 
@@ -190,6 +209,57 @@ export class CommandQueueService {
                 this.backgroundOpenMarkers.delete(operationId);
             }
         }
+    }
+
+    private cleanupNoteOpenSuppressions(now: number): void {
+        for (const [filePath, completedAt] of this.noteOpenSuppressions) {
+            if (now - completedAt > NOTE_OPEN_SUPPRESSION_TTL_MS) {
+                this.noteOpenSuppressions.delete(filePath);
+            }
+        }
+    }
+
+    /**
+     * Records that a folder or property note is being opened, so auto-reveal can skip the
+     * resulting workspace event instead of revealing the note in its own folder.
+     *
+     * Marked before the open starts and re-stamped when it resolves, because the event can land
+     * at any point on either side. leaf.openFile() takes tens of milliseconds when the workspace
+     * has no view for the note, while workspaceActiveFileEvents coalesces file-open /
+     * active-leaf-change on a setTimeout, so the observation routinely lands mid-open. Obsidian
+     * equally does not guarantee file-open fires inside openFile() at all - for a view that must
+     * be created, or a leaf opened inactively, it arrives afterwards. Marking at only one of
+     * those two points leaves the other window unguarded.
+     *
+     * Keyed by the opened note's path, so an unrelated workspace event landing in the same window
+     * cannot claim it, and deliberately not released on a timer - any timed release races the
+     * event. The TTL, measured from the re-stamp, exists only so an open that never produces an
+     * event cannot leak; it is not the mechanism.
+     */
+    private markNoteOpenSuppression(filePath: string): void {
+        const now = Date.now();
+        this.cleanupNoteOpenSuppressions(now);
+        this.noteOpenSuppressions.set(filePath, now);
+    }
+
+    /**
+     * Drops a suppression marked for an open that failed. Nothing was opened, so no workspace
+     * event is coming and the entry would otherwise suppress an unrelated reveal of the same path
+     * until its TTL expired.
+     */
+    private releaseNoteOpenSuppression(filePath: string): void {
+        this.noteOpenSuppressions.delete(filePath);
+    }
+
+    /**
+     * Whether auto-reveal should skip this file because the navigator just opened it as a folder
+     * or property note. Not consumed on read: one open can produce both file-open and
+     * active-leaf-change, and both must be suppressed.
+     */
+    shouldSuppressNoteOpenReveal(filePath: string): boolean {
+        const now = Date.now();
+        this.cleanupNoteOpenSuppressions(now);
+        return this.noteOpenSuppressions.has(filePath);
     }
 
     private getWorkspaceLeafId(leaf: WorkspaceLeaf | null): string | undefined {
@@ -355,6 +425,13 @@ export class CommandQueueService {
      */
     isOpeningFolderNote(): boolean {
         return this.hasActiveOperation(OperationType.OPEN_FOLDER_NOTE);
+    }
+
+    /**
+     * Check if opening a property note
+     */
+    isOpeningPropertyNote(): boolean {
+        return this.hasActiveOperation(OperationType.OPEN_PROPERTY_NOTE);
     }
 
     /**
@@ -569,7 +646,7 @@ export class CommandQueueService {
     /**
      * Execute opening a folder note with context tracking
      */
-    async executeOpenFolderNote(folderPath: string, openFile: () => Promise<void>): Promise<CommandResult> {
+    async executeOpenFolderNote(folderPath: string, openFile: () => Promise<void>, notePath?: string): Promise<CommandResult> {
         const operationId = this.generateOperationId();
         const operation: OpenFolderNoteOperation = {
             id: operationId,
@@ -580,13 +657,55 @@ export class CommandQueueService {
 
         this.activeOperations.set(operationId, operation);
 
+        if (notePath) {
+            this.markNoteOpenSuppression(notePath);
+        }
+
         try {
             await openFile();
-            // Clean up immediately after the file is opened
             this.activeOperations.delete(operationId);
+            if (notePath) {
+                // Re-stamp so the TTL runs from completion rather than from the start of the open.
+                this.markNoteOpenSuppression(notePath);
+            }
             return { success: true };
         } catch (error) {
-            // Clean up on error as well
+            // Nothing was opened, so no workspace event is coming - drop the suppression.
+            if (notePath) {
+                this.releaseNoteOpenSuppression(notePath);
+            }
+            this.activeOperations.delete(operationId);
+            return {
+                success: false,
+                error: error as Error
+            };
+        }
+    }
+
+    /**
+     * Execute opening a property note with context tracking
+     */
+    async executeOpenPropertyNote(propertyNotePath: string, openFile: () => Promise<void>): Promise<CommandResult> {
+        const operationId = this.generateOperationId();
+        const operation: OpenPropertyNoteOperation = {
+            id: operationId,
+            type: OperationType.OPEN_PROPERTY_NOTE,
+            timestamp: Date.now(),
+            propertyNotePath
+        };
+
+        this.activeOperations.set(operationId, operation);
+        this.markNoteOpenSuppression(propertyNotePath);
+
+        try {
+            await openFile();
+            this.activeOperations.delete(operationId);
+            // Re-stamp so the TTL runs from completion rather than from the start of the open.
+            this.markNoteOpenSuppression(propertyNotePath);
+            return { success: true };
+        } catch (error) {
+            // Nothing was opened, so no workspace event is coming - clean up immediately.
+            this.releaseNoteOpenSuppression(propertyNotePath);
             this.activeOperations.delete(operationId);
             return {
                 success: false,

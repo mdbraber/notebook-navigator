@@ -18,11 +18,18 @@
 
 import { Setting } from 'obsidian';
 import { strings } from '../../../i18n';
+import { FolderPathInputSuggest } from '../../../suggest/FolderPathInputSuggest';
+import { normalizeOptionalVaultFolderPath } from '../../../utils/pathUtils';
 import { wireToggleSettingWithDependentSection } from '../../dependentSettings';
 import { createSettingGroupFactory } from '../../settingGroups';
 import { addSettingSyncModeToggle } from '../../syncModeToggle';
-import { isTagSortOrder } from '../../types';
+import { isPropertyNoteOpenLocation, isTagSortOrder } from '../../types';
 import type { SettingsTabContext } from '../SettingsTabContext';
+
+/** Normalizes a stored property note folder path, matching the vault path createPropertyNote resolves against. */
+function normalizePropertyNoteFolderValue(value: string): string {
+    return normalizeOptionalVaultFolderPath(value) ?? '';
+}
 
 /** Legacy settings renderer used only by Obsidian versions before native 1.13 setting definitions. */
 export function renderPropertiesTab(context: SettingsTabContext, heading?: string): void {
@@ -113,4 +120,87 @@ export function renderPropertiesTab(context: SettingsTabContext, heading?: strin
     propertyKeysInfoSetting.setDesc(
         `${strings.settings.items.showProperties.propertyKeysInfoPrefix}${strings.settings.items.showProperties.propertyKeysInfoLinkText}${strings.settings.items.showProperties.propertyKeysInfoSuffix}`
     );
+
+    const propertyNotesGroup = createGroup(strings.settings.sections.propertyNotes);
+
+    const enablePropertyNotesSetting = propertyNotesGroup.addSetting(setting => {
+        setting.setName(strings.settings.items.enablePropertyNotes.name).setDesc(strings.settings.items.enablePropertyNotes.desc);
+    });
+
+    // Both the links toggle and the open location only apply when property notes are on,
+    // matching the native tab's visibility gates.
+    const propertyNotesDependentSettingsEl = wireToggleSettingWithDependentSection(
+        enablePropertyNotesSetting,
+        () => plugin.settings.enablePropertyNotes,
+        async value => {
+            plugin.settings.enablePropertyNotes = value;
+            await plugin.saveSettingsAndUpdate();
+        }
+    );
+
+    new Setting(propertyNotesDependentSettingsEl)
+        .setName(strings.settings.items.enablePropertyNoteLinks.name)
+        .setDesc(strings.settings.items.enablePropertyNoteLinks.desc)
+        .addToggle(toggle =>
+            toggle.setValue(plugin.settings.enablePropertyNoteLinks).onChange(async value => {
+                plugin.settings.enablePropertyNoteLinks = value;
+                await plugin.saveSettingsAndUpdate();
+            })
+        );
+
+    new Setting(propertyNotesDependentSettingsEl)
+        .setName(strings.settings.items.autoOpenPropertyNote.name)
+        .setDesc(strings.settings.items.autoOpenPropertyNote.desc)
+        .addToggle(toggle =>
+            toggle.setValue(plugin.settings.autoOpenPropertyNote).onChange(async value => {
+                plugin.settings.autoOpenPropertyNote = value;
+                await plugin.saveSettingsAndUpdate();
+            })
+        );
+
+    new Setting(propertyNotesDependentSettingsEl)
+        .setName(strings.settings.items.propertyNoteOpenLocation.name)
+        .setDesc(strings.settings.items.propertyNoteOpenLocation.desc)
+        .addDropdown(dropdown => {
+            dropdown
+                .addOption('current-tab', strings.settings.items.propertyNoteOpenLocation.options.currentTab)
+                .addOption('new-tab', strings.settings.items.propertyNoteOpenLocation.options.newTab)
+                .addOption('right-sidebar', strings.settings.items.propertyNoteOpenLocation.options.rightSidebar)
+                .setValue(plugin.settings.propertyNoteOpenLocation)
+                .onChange(async value => {
+                    if (!isPropertyNoteOpenLocation(value)) {
+                        return;
+                    }
+                    plugin.settings.propertyNoteOpenLocation = value;
+                    await plugin.saveSettingsAndUpdate();
+                });
+        });
+
+    new Setting(propertyNotesDependentSettingsEl)
+        .setName(strings.settings.items.autoRevealPropertyNote.name)
+        .setDesc(strings.settings.items.autoRevealPropertyNote.desc)
+        .addToggle(toggle =>
+            toggle.setValue(plugin.settings.autoRevealPropertyNote).onChange(async value => {
+                plugin.settings.autoRevealPropertyNote = value;
+                await plugin.saveSettingsAndUpdate();
+            })
+        );
+
+    const propertyNoteFolderSetting = new Setting(propertyNotesDependentSettingsEl);
+    context.configureDebouncedTextSetting(
+        propertyNoteFolderSetting,
+        strings.settings.items.propertyNoteFolder.name,
+        strings.settings.items.propertyNoteFolder.desc,
+        '',
+        () => normalizePropertyNoteFolderValue(plugin.settings.propertyNoteFolder),
+        value => {
+            plugin.settings.propertyNoteFolder = normalizePropertyNoteFolderValue(value);
+        }
+    );
+    propertyNoteFolderSetting.controlEl.addClass('nn-setting-wide-input');
+    const propertyNoteFolderInputEl = propertyNoteFolderSetting.controlEl.querySelector<HTMLInputElement>('input');
+    if (propertyNoteFolderInputEl) {
+        const propertyNoteFolderSuggest = new FolderPathInputSuggest(context.app, propertyNoteFolderInputEl);
+        propertyNoteFolderInputEl.addEventListener('click', () => propertyNoteFolderSuggest.open());
+    }
 }

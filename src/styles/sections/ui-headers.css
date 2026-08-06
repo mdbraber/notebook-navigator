@@ -133,11 +133,13 @@
     flex: 0 1 auto;
 }
 
-.nn-pane-header .nn-pane-header-folder-note {
+.nn-pane-header .nn-pane-header-folder-note,
+.nn-pane-header .nn-pane-header-property-note {
     text-decoration: var(--nn-theme-navitem-folder-note-name-decoration);
 }
 
-.nn-pane-header .nn-pane-header-folder-note:hover {
+.nn-pane-header .nn-pane-header-folder-note:hover,
+.nn-pane-header .nn-pane-header-property-note:hover {
     cursor: pointer;
     text-decoration: var(--nn-theme-navitem-folder-note-name-hover-decoration);
 }

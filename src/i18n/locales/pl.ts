@@ -2388,7 +2388,7 @@ export const STRINGS_PL = {
                 desc: 'Wartość atrybutu będąca linkiem jest traktowana jako link do notatki, do której prowadzi, w taki sam sposób, w jaki notatki folderów działają dla folderów.'
             },
             enablePropertyNoteLinks: {
-                name: 'Nazwy atrybutów otwierają notatki atrybutów',
+                name: 'Powiąż wartości atrybutów z notatkami',
                 desc: 'Wartości atrybutów prowadzące do notatki są podkreślone. Kliknięcie nazwy lub naciśnięcie Enter otwiera tę notatkę; kliknięcie w innym miejscu wiersza tylko zaznacza wartość.'
             },
             propertyNoteOpenLocation: {
@@ -2405,7 +2405,7 @@ export const STRINGS_PL = {
                 desc: 'Otwiera połączoną notatkę po kliknięciu wartości atrybutu lub aktywowaniu skrótu atrybutu. Poruszanie się po drzewie za pomocą strzałek nigdy nie otwiera notatek.'
             },
             autoRevealPropertyNote: {
-                name: 'Pokaż notatkę właściwości w drzewie',
+                name: 'Automatycznie pokaż notatkę atrybutu w drzewie',
                 desc: 'Po otwarciu notatki właściwości spoza nawigatora zaznacza w drzewie nawigacji wartość właściwości, którą ta notatka definiuje. Wymaga włączonego automatycznego pokazywania.'
             },
             propertyNoteFolder: {

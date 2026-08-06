@@ -1527,9 +1527,13 @@ export class FileSystemOperations {
             let opened = false;
 
             if (commandQueue) {
-                const openResult = await commandQueue.executeOpenFolderNote(targetFolder.path, async () => {
-                    await this.app.workspace.getLeaf().openFile(movedFile);
-                });
+                const openResult = await commandQueue.executeOpenFolderNote(
+                    targetFolder.path,
+                    async () => {
+                        await this.app.workspace.getLeaf().openFile(movedFile);
+                    },
+                    movedFile.path
+                );
 
                 if (openResult.success) {
                     opened = true;

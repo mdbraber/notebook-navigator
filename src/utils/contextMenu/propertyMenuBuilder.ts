@@ -24,8 +24,11 @@ import { setAsyncOnClick, tryCreateSubmenu } from './menuAsyncHelpers';
 import { addShortcutRenameMenuItem } from './shortcutRenameMenuItem';
 import { addStyleMenu } from './styleMenuBuilder';
 import { resolveUXIcon, resolveUXIconForMenu } from '../uxIcons';
-import { normalizePropertyNodeId, parsePropertyNodeId } from '../propertyTree';
+import { normalizePropertyNodeId, parsePropertyNodeId, resolvePropertyTreeNode } from '../propertyTree';
 import { INTERNAL_NOTEBOOK_NAVIGATOR_API } from '../../api/NotebookNavigatorAPI';
+import { getPropertyNoteLinkTarget, resolvePropertyNote } from '../propertyNoteLookup';
+import { createPropertyNote } from '../propertyNotes';
+import { resolveFolderNoteDefaultOpenContext } from '../keyboardOpenContext';
 
 function resolvePropertyMenuLabel(params: { propertyNodeId: string; propertyNodeName?: string; keyNodeName?: string }): string {
     const { propertyNodeId, propertyNodeName, keyNodeName } = params;
@@ -188,6 +191,35 @@ export function buildPropertyMenu(params: PropertyMenuBuilderParams): void {
             handleFileCreation(createdFile);
         });
     });
+
+    // Property note creation - value nodes only. When the note already exists, right-clicking
+    // the value's name retargets the menu to the file menu for that note, which carries delete.
+    if (settings.enablePropertyNotes) {
+        const resolved = resolvePropertyTreeNode({ nodeId: normalizedNodeId, propertyTreeService });
+        const valueNode = resolved && resolved.node.kind === 'value' ? resolved.node : null;
+        const canCreate =
+            valueNode !== null && getPropertyNoteLinkTarget(valueNode) !== null && resolvePropertyNote(valueNode, app) === null;
+
+        if (canCreate && valueNode) {
+            menu.addItem((item: MenuItem) => {
+                setAsyncOnClick(item.setTitle(strings.contextMenu.property.createPropertyNote).setIcon('lucide-pen-box'), async () => {
+                    // Select the value first. Creating the note opens it, and auto-reveal always
+                    // reveals a newly created file - before its metadata is indexed, so the reveal
+                    // falls back to the current selection. Without this the pane jumps to whatever
+                    // was selected before, instead of the value the note was just created for.
+                    ensurePropertySelected();
+                    await createPropertyNote({
+                        app,
+                        commandQueue: services.commandQueue,
+                        node: valueNode,
+                        propertyNoteFolder: settings.propertyNoteFolder,
+                        openContext: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation)
+                    });
+                });
+            });
+        }
+    }
+
     menu.addSeparator();
 
     const openAppearanceModal = async (initialTab: 'icon' | 'color' | 'background'): Promise<void> => {

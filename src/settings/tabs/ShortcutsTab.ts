@@ -69,7 +69,9 @@ export function createShortcutsSettingDefinitions(context: SettingsTabContext): 
                 visible: () => plugin.settings.showRecentNotes,
                 options: {
                     none: strings.settings.items.hideRecentNotes.options.none,
-                    'folder-notes': strings.settings.items.hideRecentNotes.options.folderNotes
+                    'folder-notes': strings.settings.items.hideRecentNotes.options.folderNotes,
+                    'property-notes': strings.settings.items.hideRecentNotes.options.propertyNotes,
+                    'all-notes': strings.settings.items.hideRecentNotes.options.allNotes
                 }
             }),
             createToggleDefinition('pinRecentNotesWithShortcuts', {

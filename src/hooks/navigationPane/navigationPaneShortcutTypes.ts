@@ -50,6 +50,8 @@ export interface NavigationPaneShortcutRenderState {
     handleShortcutSearchActivate: (shortcutKey: string, searchShortcut: SearchShortcut) => void;
     handleShortcutTagActivate: (tagPath: string, shortcutKey: string) => void;
     handleShortcutPropertyActivate: (propertyNodeId: string, shortcutKey: string) => boolean;
+    resolveShortcutPropertyNote: (propertyNodeId: string) => TFile | null;
+    handleShortcutPropertyNoteClick: (propertyNodeId: string, shortcutKey: string, event: React.MouseEvent<HTMLSpanElement>) => void;
     handleShortcutContextMenu: (event: React.MouseEvent<HTMLDivElement>, target: ShortcutContextMenuTarget) => void;
     handleRecentFileContextMenu: (event: React.MouseEvent<HTMLDivElement>, file: TFile) => void;
     handleShortcutRootDragOver: (event: React.DragEvent<HTMLElement>) => void;

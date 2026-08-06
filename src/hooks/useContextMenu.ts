@@ -47,6 +47,8 @@ import {
     EMPTY_LIST_MENU_TYPE
 } from '../utils/contextMenu';
 import { getFolderNote } from '../utils/folderNoteLookup';
+import { resolvePropertyNote } from '../utils/propertyNoteLookup';
+import { resolvePropertyTreeNode } from '../utils/propertyTree';
 
 // Tracks the currently open navigator context menu so it can be closed before opening another
 let activeNavigatorMenu: Menu | null = null;
@@ -148,6 +150,24 @@ export function useContextMenu(elementRef: React.RefObject<HTMLElement | null>, 
                 const folderNote = getFolderNote(menuConfig.item, settings);
                 if (folderNote) {
                     menuConfig = { type: ItemType.FILE, item: folderNote };
+                }
+            }
+
+            // Property note override:
+            // Right-clicking on a property value's name should behave like right-clicking the property note file.
+            if (
+                settings.enablePropertyNotes &&
+                settings.enablePropertyNoteLinks &&
+                menuConfig.type === ItemType.PROPERTY &&
+                targetElement?.closest('.nn-navitem-name')
+            ) {
+                const resolved = resolvePropertyTreeNode({
+                    nodeId: menuConfig.item,
+                    propertyTreeService
+                });
+                const propertyNote = resolved ? resolvePropertyNote(resolved.node, app) : null;
+                if (propertyNote) {
+                    menuConfig = { type: ItemType.FILE, item: propertyNote };
                 }
             }
 

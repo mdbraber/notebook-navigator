@@ -2380,7 +2380,7 @@ export const STRINGS_KO = {
                 desc: '링크인 속성 값은 폴더 노트가 폴더에 대해 작동하는 방식과 마찬가지로, 연결된 노트로 이동하는 링크로 취급됩니다.'
             },
             enablePropertyNoteLinks: {
-                name: '속성 이름으로 속성 노트 열기',
+                name: '속성 값을 노트에 연결',
                 desc: '노트로 연결되는 속성 값에는 밑줄이 표시됩니다. 이름을 클릭하거나 Enter 키를 누르면 해당 노트가 열립니다. 행의 다른 부분을 클릭하면 값만 선택됩니다.'
             },
             propertyNoteOpenLocation: {
@@ -2397,7 +2397,7 @@ export const STRINGS_KO = {
                 desc: '속성 값을 클릭하거나 속성 바로가기를 활성화하면 연결된 노트가 열립니다. 화살표 키로 트리를 이동해도 노트는 절대 열리지 않습니다.'
             },
             autoRevealPropertyNote: {
-                name: '트리에서 속성 노트 표시',
+                name: '트리에서 속성 노트 자동 표시',
                 desc: '내비게이터 외부에서 속성 노트를 열면 해당 노트가 정의하는 속성 값을 내비게이션 트리에서 선택합니다. 자동 표시가 활성화되어 있어야 합니다.'
             },
             propertyNoteFolder: {

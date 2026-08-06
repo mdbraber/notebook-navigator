@@ -17,9 +17,10 @@
  */
 
 import React, { forwardRef, useMemo, useCallback, useEffect, useRef, useImperativeHandle } from 'react';
+import { useServices } from '../context/ServicesContext';
 import { useSettingsState } from '../context/SettingsContext';
 import { useUXPreferences } from '../context/UXPreferencesContext';
-import { useContextMenu } from '../hooks/useContextMenu';
+import { hideNavigatorContextMenu, useContextMenu } from '../hooks/useContextMenu';
 import { getIconService, useIconServiceVersion } from '../services/icons';
 import { ItemType, type CSSPropertiesWithVars } from '../types';
 import type { NoteCountInfo } from '../types/noteCounts';
@@ -27,6 +28,7 @@ import type { PropertyTreeNode } from '../types/storage';
 import { buildNoteCountDisplay, buildSortableNoteCountDisplay } from '../utils/noteCountFormatting';
 import { buildSearchMatchContentClass } from '../utils/searchHighlight';
 import type { InclusionOperator } from '../utils/filterSearch';
+import { resolvePropertyNote } from '../utils/propertyNoteLookup';
 import { resolveUXIcon } from '../utils/uxIcons';
 import { IndentGuideColumns } from './IndentGuideColumns';
 import { ObsidianIcon } from './ObsidianIcon';
@@ -40,6 +42,8 @@ interface PropertyTreeItemProps {
     isSelected: boolean;
     onToggle: () => void;
     onClick: (event: React.MouseEvent) => void;
+    onNameClick?: (event: React.MouseEvent<HTMLSpanElement>) => void;
+    onNameMouseDown?: (event: React.MouseEvent<HTMLSpanElement>) => void;
     onToggleAllSiblings?: () => void;
     countInfo?: NoteCountInfo;
     showFileCount: boolean;
@@ -51,6 +55,7 @@ interface PropertyTreeItemProps {
     inclusionOperator?: InclusionOperator;
     isDraggable: boolean;
     inlineRename?: InlineRenameControl;
+    vaultChangeVersion: number;
 }
 
 export const PropertyTreeItem = React.memo(
@@ -63,6 +68,8 @@ export const PropertyTreeItem = React.memo(
             isSelected,
             onToggle,
             onClick,
+            onNameClick,
+            onNameMouseDown,
             onToggleAllSiblings,
             countInfo,
             showFileCount,
@@ -73,10 +80,12 @@ export const PropertyTreeItem = React.memo(
             searchMatch,
             inclusionOperator,
             isDraggable,
-            inlineRename
+            inlineRename,
+            vaultChangeVersion
         },
         ref
     ) {
+        const { app } = useServices();
         const settings = useSettingsState();
         const uxPreferences = useUXPreferences();
         const includeDescendantNotes = uxPreferences.includeDescendantNotes;
@@ -112,6 +121,13 @@ export const PropertyTreeItem = React.memo(
         const shouldDisplayOperatorIndicator = searchMatch === 'include' && operatorIconName !== null;
         const hasChildren = useMemo(() => propertyNode.children.size > 0, [propertyNode.children.size]);
         const applyColorToName = Boolean(color) && !settings.colorIconOnly;
+        const propertyNoteLinksEnabled = settings.enablePropertyNotes && settings.enablePropertyNoteLinks;
+
+        const hasPropertyNote = useMemo(() => {
+            if (!propertyNoteLinksEnabled) return false;
+            return resolvePropertyNote(propertyNode, app) !== null;
+            // eslint-disable-next-line react-hooks/exhaustive-deps -- vaultChangeVersion refreshes property-note detection.
+        }, [propertyNode, app, propertyNoteLinksEnabled, vaultChangeVersion]);
         const dragFallbackIconId = useMemo(() => {
             return propertyNode.kind === 'value'
                 ? resolveUXIcon(settings.interfaceIcons, 'nav-property-value')
@@ -142,8 +158,11 @@ export const PropertyTreeItem = React.memo(
             if (applyColorToName) {
                 classes.push('nn-has-custom-color');
             }
+            if (hasPropertyNote) {
+                classes.push('nn-has-property-note');
+            }
             return classes.join(' ');
-        }, [applyColorToName]);
+        }, [applyColorToName, hasPropertyNote]);
 
         const contentClassName = useMemo(() => buildSearchMatchContentClass(['nn-navitem-content'], searchMatch), [searchMatch]);
 
@@ -178,6 +197,27 @@ export const PropertyTreeItem = React.memo(
             event.stopPropagation();
             event.preventDefault();
         }, []);
+
+        const handleNameClick = useCallback(
+            (event: React.MouseEvent<HTMLSpanElement>) => {
+                if (onNameClick) {
+                    event.stopPropagation();
+                    onNameClick(event);
+                }
+            },
+            [onNameClick]
+        );
+
+        const handleNameMouseDown = useCallback(
+            (event: React.MouseEvent<HTMLSpanElement>) => {
+                hideNavigatorContextMenu();
+                if (onNameMouseDown) {
+                    event.stopPropagation();
+                    onNameMouseDown(event);
+                }
+            },
+            [onNameMouseDown]
+        );
 
         useEffect(() => {
             if (!chevronRef.current) {
@@ -266,7 +306,12 @@ export const PropertyTreeItem = React.memo(
                     {inlineRename ? (
                         <InlineRenameInput {...inlineRename} className="nn-navitem-inline-rename" />
                     ) : (
-                        <span className={propertyNameClassName} style={applyColorToName ? { color } : undefined}>
+                        <span
+                            className={propertyNameClassName}
+                            style={applyColorToName ? { color } : undefined}
+                            onClick={handleNameClick}
+                            onMouseDown={handleNameMouseDown}
+                        >
                             {propertyNode.name}
                         </span>
                     )}

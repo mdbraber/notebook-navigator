@@ -2389,7 +2389,7 @@ export const STRINGS_DE = {
                 desc: 'Ein Eigenschaftswert, der ein Link ist, wird als Link zur verlinkten Notiz behandelt – genauso wie Ordnernotizen für Ordner funktionieren.'
             },
             enablePropertyNoteLinks: {
-                name: 'Eigenschaftsnamen öffnen Eigenschaftsnotizen',
+                name: 'Eigenschaftswerte mit Notizen verknüpfen',
                 desc: 'Eigenschaftswerte, die zu einer Notiz verlinken, werden unterstrichen. Ein Klick auf den Namen oder das Drücken von Enter öffnet diese Notiz; ein Klick an anderer Stelle in der Zeile wählt nur den Wert aus.'
             },
             propertyNoteOpenLocation: {
@@ -2406,7 +2406,7 @@ export const STRINGS_DE = {
                 desc: 'Öffnet die verlinkte Notiz, wenn Sie einen Eigenschaftswert anklicken oder ein Eigenschafts-Lesezeichen aktivieren. Das Bewegen durch den Baum mit den Pfeiltasten öffnet nie Notizen.'
             },
             autoRevealPropertyNote: {
-                name: 'Eigenschaftsnotiz im Baum anzeigen',
+                name: 'Eigenschaftsnotiz automatisch im Baum anzeigen',
                 desc: 'Wenn Sie eine Eigenschaftsnotiz außerhalb des Navigators öffnen, wird der von ihr definierte Eigenschaftswert im Navigationsbaum ausgewählt. Erfordert aktiviertes automatisches Anzeigen.'
             },
             propertyNoteFolder: {

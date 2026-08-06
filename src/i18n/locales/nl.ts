@@ -2387,7 +2387,7 @@ export const STRINGS_NL = {
                 desc: 'Een eigenschapswaarde die een link is, wordt behandeld als een link naar de notitie waarnaar deze verwijst, op dezelfde manier als mapnotities werken voor mappen.'
             },
             enablePropertyNoteLinks: {
-                name: 'Eigenschapsnamen openen eigenschapsnotities',
+                name: 'Eigenschapswaarden koppelen aan notities',
                 desc: 'Eigenschapswaarden die naar een notitie linken worden onderstreept. Klikken op de naam of op Enter drukken opent die notitie; klikken elders op de rij selecteert alleen de waarde.'
             },
             propertyNoteOpenLocation: {
@@ -2404,7 +2404,7 @@ export const STRINGS_NL = {
                 desc: 'Opent de gekoppelde notitie wanneer u op een eigenschapswaarde klikt of een eigenschapssnelkoppeling activeert. Door de boomstructuur bewegen met de pijltoetsen opent nooit notities.'
             },
             autoRevealPropertyNote: {
-                name: 'Eigenschapsnotitie in boomstructuur tonen',
+                name: 'Eigenschapsnotitie automatisch tonen in boomstructuur',
                 desc: 'Wanneer u een eigenschapsnotitie buiten de navigator opent, wordt de eigenschapswaarde die deze definieert in de boomstructuur geselecteerd. Vereist dat automatisch tonen is ingeschakeld.'
             },
             propertyNoteFolder: {

@@ -447,6 +447,7 @@ Set custom hotkeys for these commands in Obsidian's Hotkeys settings:
 
 - **Pin notes** - Keep important notes at the top of folders and tags
 - **Folder notes** - Set/detach folder notes, pin folder notes, open in new tab option
+- **Property notes** - Open the note a property value links to by clicking its name, like folder notes
 - **Tag operations** - Add/remove/clear tags, rename/delete tags, create note in tag, drag-and-drop tag hierarchy
 - **Custom sort and grouping** - Override sort/group settings per folder or tag
 - **Per-folder/tag appearances** - Title rows, preview rows, compact mode, descendants toggle
@@ -454,6 +455,8 @@ Set custom hotkeys for these commands in Obsidian's Hotkeys settings:
 - **Exclude folders from descendants** - Omit folders when collecting notes from subfolders, per vault profile; excluded folders stay visible and show their notes when selected
 - **Color and icon system** - Folder/tag/property/file colors, icon packs, emoji/Lucide icons, frontmatter read/write, icon mapping by file name and file type category
 - **Name warnings** - Warn about forbidden filesystem characters and characters that break Obsidian links when naming files and folders
+
+**Note:** Property notes are found by resolving the property value as a wikilink, so only wikilink values (e.g. `related: "[[Recipe]]"`) have a property note — a plain-string value such as `status: draft` does not. Clicking the value's name opens its property note, the same way folder notes work for folders; clicking elsewhere on the row only selects the value. Pressing Enter opens the property note too, and navigating to a property value can optionally open its note as well — arrow-key movement never opens a note, in either case. A property note can be created from a property value's context menu when its wikilink has no target: it's created in the configured property note folder, or — for a value that links to a path, like `[[Fruits/Apple]]` — at that exact path, since that's the only place the link resolves to. Opening a property note from outside the navigator can optionally reveal it in the navigation tree: with **Reveal property note in tree** enabled, the tree leaves whichever lens you were browsing — folders or tags — and switches to the property value that note defines, rather than to the folder the note happens to live in. This requires auto-reveal to be enabled, and it applies whenever a property note becomes the active file: opening it from a link, search or the quick switcher, and also switching to a tab that already holds it. Clicks inside the navigator itself, including shortcuts and recent notes, never move the lens. On macOS, Enter renames a folder; property rows have no inline rename, so there Enter opens the property note instead.
 
 ### 10.4 File display
 

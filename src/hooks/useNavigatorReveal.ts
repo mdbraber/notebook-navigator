@@ -51,8 +51,10 @@ import {
     determinePropertyToReveal,
     getPropertyKeyNodeIdFromNodeId,
     isPropertyTreeNodeId,
+    normalizePropertyNodeId,
     type PropertySelectionNodeId
 } from '../utils/propertyTree';
+import { findPropertyNoteValueNode, resolvePropertyNoteLensJump, resolvePropertyRevealTarget } from '../utils/propertyNoteLookup';
 import { expandNavigationTreeItems, isFolderEffectivelyExpanded, isFolderExpansionLocked } from '../utils/navigationExpansion';
 
 interface UseNavigatorRevealOptions {
@@ -104,6 +106,11 @@ export interface RevealPropertyOptions {
     skipScroll?: boolean;
     // Marks how this reveal was triggered
     source?: SelectionRevealSource;
+    // Suppresses the auto-selected first file on the resulting selection dispatch. Defaults to
+    // off; only set by callers that are about to open a property note themselves, so the list
+    // pane's auto-selected first file cannot open afterward and replace it. See
+    // NavigateToPropertyOptions.suppressAutoSelect.
+    suppressAutoSelect?: boolean;
 }
 
 /**
@@ -449,7 +456,8 @@ export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane
                 {
                     preserveNavigationFocus,
                     skipScroll: options?.skipScroll,
-                    source: options?.source
+                    source: options?.source,
+                    suppressAutoSelect: options?.suppressAutoSelect
                 }
             );
             if (!resolvedNodeId) {
@@ -511,7 +519,38 @@ export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane
             const useShortestPath = !isAutoOrStartupReveal || settings.autoRevealShortestPath;
             const shouldCenterNavigation = Boolean(options?.isStartupReveal && settings.startView === 'navigation');
             const navigationAlign: Align = shouldCenterNavigation ? 'center' : 'auto';
-            if (selectionState.selectionType === 'tag') {
+
+            // A property note is not a member of the value it defines, so containment-based reveal
+            // can never find it and every other branch here is containment-based. Resolved before
+            // the tag branch because this deliberately overrides the current lens, and the reducer
+            // honors targetTag ahead of targetProperty.
+            const propertyNoteJump = resolvePropertyNoteLensJump({
+                enabled: settings.showProperties && settings.enablePropertyNotes && settings.autoRevealPropertyNote,
+                revealSource,
+                selectionType: selectionState.selectionType,
+                filePath: file.path,
+                propertyTree: getPropertyTree(),
+                app
+            });
+
+            if (propertyNoteJump) {
+                targetProperty = propertyNoteJump.targetProperty;
+
+                // Always expand through to the value node. The shortest-path downgrade below exists
+                // to avoid disturbing the view the user is already in, which is moot when the point
+                // is to move them to a different tree.
+                if (settings.showAllPropertiesFolder && !expansionState.expandedVirtualFolders.has(PROPERTIES_ROOT_VIRTUAL_FOLDER_ID)) {
+                    const nextExpandedVirtualFolders = new Set(expansionState.expandedVirtualFolders);
+                    nextExpandedVirtualFolders.add(PROPERTIES_ROOT_VIRTUAL_FOLDER_ID);
+                    expansionDispatch({ type: 'SET_EXPANDED_VIRTUAL_FOLDERS', folders: nextExpandedVirtualFolders });
+                }
+
+                if (propertyNoteJump.keyNodeId && !expansionState.expandedProperties.has(propertyNoteJump.keyNodeId)) {
+                    expandPropertyNodeIds([propertyNoteJump.keyNodeId]);
+                }
+            }
+
+            if (!propertyNoteJump && selectionState.selectionType === 'tag') {
                 const resolvedTag = determineTagToReveal(
                     file,
                     selectionState.selectedTag,
@@ -574,7 +613,7 @@ export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane
 
             if (selectionState.selectionType === 'property') {
                 const fileData = getDB().getFile(file.path);
-                const resolvedProperty = settings.showProperties
+                const memberRevealTarget = settings.showProperties
                     ? determinePropertyToReveal(
                           fileData?.properties ?? null,
                           selectionState.selectedProperty,
@@ -582,6 +621,26 @@ export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane
                           includeDescendantNotes
                       )
                     : null;
+                // determinePropertyToReveal only knows membership - which values a file carries.
+                // A property note carries none of the value it defines, so it needs the reverse
+                // lookup as a second opinion. Resolved here rather than inside that function so it
+                // stays untouched, and correct, for every file that is not a property note.
+                const definedValueNode =
+                    settings.showProperties && settings.enablePropertyNotes
+                        ? findPropertyNoteValueNode({
+                              filePath: file.path,
+                              propertyTree: getPropertyTree(),
+                              app,
+                              preferNodeId: selectionState.selectedProperty
+                          })
+                        : null;
+                const resolvedProperty = resolvePropertyRevealTarget({
+                    propertyNotesEnabled: settings.enablePropertyNotes,
+                    selectionType: selectionState.selectionType,
+                    selectedProperty: selectionState.selectedProperty,
+                    memberRevealTarget,
+                    definedValueNodeId: definedValueNode ? normalizePropertyNodeId(definedValueNode.id) : null
+                });
                 targetProperty = resolvedProperty;
 
                 if (resolvedProperty) {
@@ -748,9 +807,11 @@ export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane
             expandTagPaths,
             selectionDispatch,
             getDB,
+            getPropertyTree,
             getRevealTargetFolder,
             navigationPaneRef,
-            handleHiddenFileReveal
+            handleHiddenFileReveal,
+            app
         ]
     );
 
@@ -989,10 +1050,12 @@ export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane
                 return;
             }
 
-            // Don't reveal if we're opening a folder note
-            const isOpeningFolderNote = commandQueue && commandQueue.isOpeningFolderNote();
-
-            if (isOpeningFolderNote) {
+            // Don't reveal a file the navigator just opened as a folder or property note.
+            // Matched by path so an unrelated event cannot claim the suppression, and read
+            // rather than consumed because Obsidian does not guarantee when file-open fires
+            // relative to openFile() - anything the opener releases on a timer can be gone
+            // before this runs.
+            if (commandQueue?.shouldSuppressNoteOpenReveal(file.path)) {
                 return;
             }
 

@@ -354,10 +354,10 @@ export function isNavCountLeaderStyle(value: unknown): value is NavCountLeaderSt
 }
 
 /** Filter options for hidden items in the recent notes section */
-export type RecentNotesHideMode = 'none' | 'folder-notes';
+export type RecentNotesHideMode = 'none' | 'folder-notes' | 'property-notes' | 'all-notes';
 
 export function isRecentNotesHideMode(value: unknown): value is RecentNotesHideMode {
-    return value === 'none' || value === 'folder-notes';
+    return value === 'none' || value === 'folder-notes' || value === 'property-notes' || value === 'all-notes';
 }
 
 /** Where folder notes open when folder-note links are activated. */
@@ -366,6 +366,15 @@ export type FolderNoteOpenLocation = 'current-tab' | 'new-tab' | 'right-sidebar'
 export function isFolderNoteOpenLocation(value: unknown): value is FolderNoteOpenLocation {
     return value === 'current-tab' || value === 'new-tab' || value === 'right-sidebar';
 }
+
+/**
+ * Property notes reuse folder note open-location semantics exactly. Aliasing rather
+ * than redeclaring lets resolveFolderNoteClickOpenContext and
+ * resolveFolderNoteDefaultOpenContext accept both with no change.
+ */
+export type PropertyNoteOpenLocation = FolderNoteOpenLocation;
+
+export const isPropertyNoteOpenLocation = isFolderNoteOpenLocation;
 
 /** Number of calendar week rows shown in the navigation pane */
 export type CalendarWeeksToShow = 1 | 2 | 3 | 4 | 5 | 6;
@@ -730,6 +739,12 @@ export interface NotebookNavigatorSettings {
     propertySortOrder: TagSortOrder;
     showAllPropertiesFolder: boolean;
     scopePropertiesToCurrentContext: boolean;
+    enablePropertyNotes: boolean;
+    enablePropertyNoteLinks: boolean;
+    propertyNoteOpenLocation: PropertyNoteOpenLocation;
+    autoOpenPropertyNote: boolean;
+    autoRevealPropertyNote: boolean;
+    propertyNoteFolder: string;
 
     // List pane tab
     defaultListMode: ListDisplayMode;

@@ -227,7 +227,8 @@ export function useNavigationPaneShortcuts({
         onRevealShortcutFile,
         openFolderNoteInRightSidebar: folderNote => plugin.openFolderNoteInRightSidebar(folderNote),
         tagTree: fileData.tagTree,
-        hydratedShortcuts
+        hydratedShortcuts,
+        propertyTreeService
     });
 
     const shortcutDisplay = useNavigationPaneShortcutDisplay({
@@ -308,6 +309,8 @@ export function useNavigationPaneShortcuts({
             handleShortcutSearchActivate: shortcutActions.handleShortcutSearchActivate,
             handleShortcutTagActivate: shortcutActions.handleShortcutTagActivate,
             handleShortcutPropertyActivate: shortcutActions.handleShortcutPropertyActivate,
+            resolveShortcutPropertyNote: shortcutActions.resolveShortcutPropertyNote,
+            handleShortcutPropertyNoteClick: shortcutActions.handleShortcutPropertyNoteClick,
             handleShortcutContextMenu: shortcutMenus.handleShortcutContextMenu,
             handleRecentFileContextMenu: shortcutMenus.handleRecentFileContextMenu,
             handleShortcutRootDragOver: shortcutDnD.handleShortcutRootDragOver,
@@ -332,9 +335,11 @@ export function useNavigationPaneShortcuts({
             shortcutActions.handleShortcutNoteActivate,
             shortcutActions.handleShortcutNoteMouseDown,
             shortcutActions.handleShortcutPropertyActivate,
+            shortcutActions.handleShortcutPropertyNoteClick,
             shortcutActions.handleShortcutSearchActivate,
             shortcutActions.handleShortcutTagActivate,
             shortcutActions.openShortcutByNumber,
+            shortcutActions.resolveShortcutPropertyNote,
             shortcutDisplay.getFolderShortcutCount,
             shortcutDisplay.getMissingNoteLabel,
             shortcutDisplay.getPropertyShortcutCount,

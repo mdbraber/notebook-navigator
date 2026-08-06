@@ -20,6 +20,7 @@ import React, { useCallback, useMemo } from 'react';
 import { useSelectionState } from '../context/SelectionContext';
 import { useCommandQueue, useServices } from '../context/ServicesContext';
 import { useSettingsState } from '../context/SettingsContext';
+import { usePropertyNoteLink } from '../hooks/usePropertyNoteLink';
 import { useSelectedFolderFileVersion } from '../hooks/useSelectedFolderFileVersion';
 import { ItemType } from '../types';
 import { runAsyncAction } from '../utils/async';
@@ -35,6 +36,7 @@ export const ListPaneTitleArea = React.memo(function ListPaneTitleArea({ desktop
     const commandQueue = useCommandQueue();
     const settings = useSettingsState();
     const selectionState = useSelectionState();
+    const propertyNoteLink = usePropertyNoteLink();
 
     // Folder note interactions only apply when a folder is selected.
     const selectedFolder = selectionState.selectionType === ItemType.FOLDER ? selectionState.selectedFolder : null;
@@ -119,9 +121,23 @@ export const ListPaneTitleArea = React.memo(function ListPaneTitleArea({ desktop
             <div className="nn-list-title-content">
                 <span className="nn-list-title-text">
                     <span
-                        className={`nn-list-title-label${selectedFolderNote ? ' nn-list-title-label--folder-note' : ''}`}
-                        onClick={selectedFolderNote ? handleFolderNoteClick : undefined}
-                        onMouseDown={selectedFolderNote ? handleFolderNoteMouseDown : undefined}
+                        className={`nn-list-title-label${selectedFolderNote ? ' nn-list-title-label--folder-note' : ''}${
+                            !selectedFolderNote && propertyNoteLink.hasPropertyNote ? ' nn-list-title-label--property-note' : ''
+                        }`}
+                        onClick={
+                            selectedFolderNote
+                                ? handleFolderNoteClick
+                                : propertyNoteLink.hasPropertyNote
+                                  ? propertyNoteLink.handleClick
+                                  : undefined
+                        }
+                        onMouseDown={
+                            selectedFolderNote
+                                ? handleFolderNoteMouseDown
+                                : propertyNoteLink.hasPropertyNote
+                                  ? propertyNoteLink.handleMouseDown
+                                  : undefined
+                        }
                     >
                         {desktopTitle}
                     </span>

@@ -28,6 +28,7 @@ import { getIconService, useIconServiceVersion } from '../services/icons';
 import { ServiceIcon } from './ServiceIcon';
 import { useListActions } from '../hooks/useListActions';
 import type { BreadcrumbSegment } from '../hooks/useListPaneTitle';
+import { usePropertyNoteLink } from '../hooks/usePropertyNoteLink';
 import { useSelectedFolderFileVersion } from '../hooks/useSelectedFolderFileVersion';
 import { ItemType } from '../types';
 import { getFolderNote, openFolderNoteFile } from '../utils/folderNotes';
@@ -73,6 +74,7 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
     const { app, plugin } = useServices();
     const commandQueue = useCommandQueue();
     const settings = useSettingsState();
+    const propertyNoteLink = usePropertyNoteLink();
     const uxPreferences = useUXPreferences();
     const includeDescendantNotes = uxPreferences.includeDescendantNotes;
     const selectionState = useSelectionState();
@@ -221,20 +223,33 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
 
     const breadcrumbContent = useMemo((): React.ReactNode => {
         if (!shouldRenderBreadcrumbSegments) {
-            if (!selectedFolderNote) {
-                return desktopTitle;
+            if (selectedFolderNote) {
+                // Desktop header title becomes clickable when a folder note exists.
+                return (
+                    <span
+                        className="nn-pane-header-folder-note"
+                        onClick={handleSelectedFolderNoteClick}
+                        onMouseDown={handleSelectedFolderNoteMouseDown}
+                    >
+                        {desktopTitle}
+                    </span>
+                );
             }
 
-            // Desktop header title becomes clickable when a folder note exists.
-            return (
-                <span
-                    className="nn-pane-header-folder-note"
-                    onClick={handleSelectedFolderNoteClick}
-                    onMouseDown={handleSelectedFolderNoteMouseDown}
-                >
-                    {desktopTitle}
-                </span>
-            );
+            if (propertyNoteLink.hasPropertyNote) {
+                // Desktop header title becomes clickable when a property note exists.
+                return (
+                    <span
+                        className="nn-pane-header-property-note"
+                        onClick={propertyNoteLink.handleClick}
+                        onMouseDown={propertyNoteLink.handleMouseDown}
+                    >
+                        {desktopTitle}
+                    </span>
+                );
+            }
+
+            return desktopTitle;
         }
 
         const parts: React.ReactNode[] = [];
@@ -242,14 +257,33 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
             const key = `${segment.label}-${index}`;
             // The last breadcrumb segment maps to the active selection.
             const isCurrentFolderNoteSegment = segment.isLast && Boolean(selectedFolderNote);
+            const isCurrentPropertyNoteSegment = segment.isLast && !selectedFolderNote && propertyNoteLink.hasPropertyNote;
 
             if (segment.isLast || segment.targetType === 'none' || !segment.targetPath) {
+                const noteClassName = isCurrentFolderNoteSegment
+                    ? ' nn-pane-header-folder-note'
+                    : isCurrentPropertyNoteSegment
+                      ? ' nn-pane-header-property-note'
+                      : '';
+
                 parts.push(
                     <span
                         key={key}
-                        className={`nn-path-current${isCurrentFolderNoteSegment ? ' nn-pane-header-folder-note' : ''}`}
-                        onClick={isCurrentFolderNoteSegment ? handleSelectedFolderNoteClick : undefined}
-                        onMouseDown={isCurrentFolderNoteSegment ? handleSelectedFolderNoteMouseDown : undefined}
+                        className={`nn-path-current${noteClassName}`}
+                        onClick={
+                            isCurrentFolderNoteSegment
+                                ? handleSelectedFolderNoteClick
+                                : isCurrentPropertyNoteSegment
+                                  ? propertyNoteLink.handleClick
+                                  : undefined
+                        }
+                        onMouseDown={
+                            isCurrentFolderNoteSegment
+                                ? handleSelectedFolderNoteMouseDown
+                                : isCurrentPropertyNoteSegment
+                                  ? propertyNoteLink.handleMouseDown
+                                  : undefined
+                        }
                     >
                         {segment.label}
                     </span>
@@ -295,7 +329,8 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
         shouldRenderBreadcrumbSegments,
         selectedFolderNote,
         handleSelectedFolderNoteClick,
-        handleSelectedFolderNoteMouseDown
+        handleSelectedFolderNoteMouseDown,
+        propertyNoteLink
     ]);
 
     const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);

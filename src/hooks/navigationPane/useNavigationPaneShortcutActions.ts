@@ -20,17 +20,24 @@ import React, { useCallback } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { App, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
 import type { CommandQueueService } from '../../services/CommandQueueService';
+import type { PropertyTreeService } from '../../services/PropertyTreeService';
 import type { NavigationSelectionState, SelectionAction } from '../../context/SelectionContext';
 import type { UIAction } from '../../context/UIStateContext';
 import type { NotebookNavigatorSettings } from '../../settings/types';
 import type { SearchShortcut, ShortcutEntry } from '../../types/shortcuts';
 import { isFolderShortcut, isNoteShortcut, isPropertyShortcut, isSearchShortcut, isTagShortcut } from '../../types/shortcuts';
-import { resolvePropertyShortcutNodeId } from '../../utils/propertyTree';
+import { normalizePropertyNodeId, resolvePropertyShortcutNodeId, resolvePropertyTreeNode } from '../../utils/propertyTree';
+import { resolvePropertyNote } from '../../utils/propertyNoteLookup';
+import { openPropertyNoteFile } from '../../utils/propertyNotes';
 import { resolveCanonicalTagPath } from '../../utils/tagUtils';
 import { runAsyncAction } from '../../utils/async';
 import { openFileInContext } from '../../utils/openFileInContext';
 import { getFolderNote, openFolderNoteFile, type FolderNoteOpenContext } from '../../utils/folderNotes';
-import { resolveFolderNoteClickOpenContext, shouldOpenNoteClickInNewTab } from '../../utils/keyboardOpenContext';
+import {
+    resolveFolderNoteClickOpenContext,
+    resolveFolderNoteDefaultOpenContext,
+    shouldOpenNoteClickInNewTab
+} from '../../utils/keyboardOpenContext';
 import { ItemType } from '../../types';
 import type { NavigateToFolderOptions, RevealPropertyOptions, RevealTagOptions } from '../useNavigatorReveal';
 
@@ -71,6 +78,7 @@ interface UseNavigationPaneShortcutActionsProps {
     openFolderNoteInRightSidebar: (folderNote: TFile) => Promise<void>;
     tagTree: Map<string, import('../../types/storage').TagTreeNode>;
     hydratedShortcuts: HydratedShortcutActionItem[];
+    propertyTreeService: PropertyTreeService | null;
 }
 
 export function useNavigationPaneShortcutActions({
@@ -93,7 +101,8 @@ export function useNavigationPaneShortcutActions({
     onRevealShortcutFile,
     openFolderNoteInRightSidebar,
     tagTree,
-    hydratedShortcuts
+    hydratedShortcuts,
+    propertyTreeService
 }: UseNavigationPaneShortcutActionsProps) {
     const focusListPaneAfterRightSidebarFolderNoteSelection = useCallback(
         (openContext: FolderNoteOpenContext) => {
@@ -366,7 +375,25 @@ export function useNavigationPaneShortcutActions({
     const handleShortcutPropertyActivate = useCallback(
         (propertyNodeId: string, shortcutKey: string) => {
             setActiveShortcut(shortcutKey);
-            const didReveal = onRevealProperty(propertyNodeId, { skipScroll: settings.skipAutoScroll, source: 'shortcut' });
+
+            // Resolved before onRevealProperty so its selection dispatch can suppress the list
+            // pane's auto-selected first file - without that, the auto-selected file opens in a
+            // post-render effect one render after SET_KEYBOARD_NAVIGATION resets, replacing the
+            // property note we are about to open.
+            //
+            // Deliberately does not reuse resolveShortcutPropertyNote: that helper gates on
+            // enablePropertyNotes && enablePropertyNoteLinks, but auto-open must work with
+            // links off - it governs mouse/shortcut activation independently of the name
+            // affordance and Enter-to-open.
+            const resolved = resolvePropertyTreeNode({ nodeId: propertyNodeId, propertyTreeService });
+            const propertyNote =
+                settings.enablePropertyNotes && settings.autoOpenPropertyNote && resolved ? resolvePropertyNote(resolved.node, app) : null;
+
+            const didReveal = onRevealProperty(propertyNodeId, {
+                skipScroll: settings.skipAutoScroll,
+                source: 'shortcut',
+                suppressAutoSelect: Boolean(propertyNote)
+            });
             if (!didReveal) {
                 scheduleShortcutRelease();
                 return false;
@@ -381,18 +408,85 @@ export function useNavigationPaneShortcutActions({
             }
 
             selectionDispatch({ type: 'SET_KEYBOARD_NAVIGATION', isKeyboardNavigation: true });
+
+            if (propertyNote) {
+                runAsyncAction(() =>
+                    openPropertyNoteFile({
+                        app,
+                        commandQueue,
+                        propertyNote,
+                        context: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation)
+                    })
+                );
+            }
+
             scheduleShortcutRelease();
             return true;
         },
         [
+            app,
+            commandQueue,
             onRevealProperty,
+            propertyTreeService,
             rootContainerRef,
             scheduleShortcutRelease,
             selectionDispatch,
             setActiveShortcut,
+            settings.autoOpenPropertyNote,
+            settings.enablePropertyNotes,
+            settings.propertyNoteOpenLocation,
             settings.skipAutoScroll,
             uiDispatch,
             uiState.singlePane
+        ]
+    );
+
+    const resolveShortcutPropertyNote = useCallback(
+        (propertyNodeId: string): TFile | null => {
+            if (!settings.enablePropertyNotes || !settings.enablePropertyNoteLinks) {
+                return null;
+            }
+
+            const resolved = resolvePropertyTreeNode({ nodeId: propertyNodeId, propertyTreeService });
+            return resolved ? resolvePropertyNote(resolved.node, app) : null;
+        },
+        [app, propertyTreeService, settings.enablePropertyNotes, settings.enablePropertyNoteLinks]
+    );
+
+    const handleShortcutPropertyNoteClick = useCallback(
+        (propertyNodeId: string, shortcutKey: string, event: React.MouseEvent<HTMLSpanElement>) => {
+            setActiveShortcut(shortcutKey);
+
+            const propertyNote = resolveShortcutPropertyNote(propertyNodeId);
+            const normalizedNodeId = propertyNote ? normalizePropertyNodeId(propertyNodeId) : null;
+            if (!propertyNote || !normalizedNodeId) {
+                handleShortcutPropertyActivate(propertyNodeId, shortcutKey);
+                return;
+            }
+
+            selectionDispatch({
+                type: 'SET_SELECTED_PROPERTY',
+                nodeId: normalizedNodeId,
+                autoSelectedFile: null
+            });
+
+            const openContext = resolveFolderNoteClickOpenContext(event, settings.propertyNoteOpenLocation, settings.multiSelectModifier);
+            focusListPaneAfterRightSidebarFolderNoteSelection(openContext);
+
+            runAsyncAction(() => openPropertyNoteFile({ app, commandQueue, propertyNote, context: openContext }));
+            scheduleShortcutRelease();
+        },
+        [
+            app,
+            commandQueue,
+            focusListPaneAfterRightSidebarFolderNoteSelection,
+            handleShortcutPropertyActivate,
+            resolveShortcutPropertyNote,
+            scheduleShortcutRelease,
+            selectionDispatch,
+            setActiveShortcut,
+            settings.multiSelectModifier,
+            settings.propertyNoteOpenLocation
         ]
     );
 
@@ -463,6 +557,8 @@ export function useNavigationPaneShortcutActions({
         handleShortcutSearchActivate,
         handleShortcutTagActivate,
         handleShortcutPropertyActivate,
+        resolveShortcutPropertyNote,
+        handleShortcutPropertyNoteClick,
         openShortcutByNumber
     };
 }

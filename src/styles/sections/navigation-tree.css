@@ -256,13 +256,15 @@
     font-weight: var(--nn-theme-navitem-custom-color-name-font-weight);
 }
 
-/* Folder with folder note */
-.nn-navitem-name.nn-has-folder-note {
+/* Folder with folder note, or property value with a resolvable property note */
+.nn-navitem-name.nn-has-folder-note,
+.nn-navitem-name.nn-has-property-note {
     text-decoration: var(--nn-theme-navitem-folder-note-name-decoration);
 }
 
-/* Folder with folder note - show pointer cursor on hover */
-.nn-navitem-name.nn-has-folder-note:hover {
+/* Folder with folder note, or property value with a resolvable property note - show pointer cursor on hover */
+.nn-navitem-name.nn-has-folder-note:hover,
+.nn-navitem-name.nn-has-property-note:hover {
     cursor: pointer;
     text-decoration: var(--nn-theme-navitem-folder-note-name-hover-decoration);
 }
@@ -445,13 +447,15 @@ button.nn-icon-button.nn-navitem-hover-action-button {
     text-decoration: line-through;
 }
 
-/* Underline only the label, not the trailing description, for shortcuts with folder notes. */
-.nn-shortcut-item .nn-navitem-name.nn-has-folder-note .nn-shortcut-label {
+/* Underline only the label, not the trailing description, for shortcuts with folder or property notes. */
+.nn-shortcut-item .nn-navitem-name.nn-has-folder-note .nn-shortcut-label,
+.nn-shortcut-item .nn-navitem-name.nn-has-property-note .nn-shortcut-label {
     text-decoration: var(--nn-theme-navitem-folder-note-name-decoration);
 }
 
-/* Pointer cursor on hover for clickable folder note shortcuts */
-.nn-shortcut-item .nn-navitem-name.nn-has-folder-note:hover .nn-shortcut-label {
+/* Pointer cursor on hover for clickable folder or property note shortcuts */
+.nn-shortcut-item .nn-navitem-name.nn-has-folder-note:hover .nn-shortcut-label,
+.nn-shortcut-item .nn-navitem-name.nn-has-property-note:hover .nn-shortcut-label {
     cursor: pointer;
     text-decoration: var(--nn-theme-navitem-folder-note-name-hover-decoration);
 }

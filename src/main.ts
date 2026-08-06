@@ -698,7 +698,7 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
         // Initialize recent data management
         this.preferencesController.initializeRecentDataManager();
 
-        this.recentNotesService = new RecentNotesService(this);
+        this.recentNotesService = new RecentNotesService(this, this.app, () => this.propertyTreeService?.getPropertyTree() ?? null);
 
         // Initialize workspace and homepage coordination
         this.workspaceCoordinator = new WorkspaceCoordinator(this);

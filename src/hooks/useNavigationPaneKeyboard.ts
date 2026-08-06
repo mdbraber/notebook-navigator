@@ -45,8 +45,10 @@ import { matchesShortcut, KeyboardShortcutAction } from '../utils/keyboardShortc
 import { runAsyncAction } from '../utils/async';
 import { getNavigationIndex } from '../utils/navigationIndex';
 import { getFolderNote, openFolderNoteFile } from '../utils/folderNotes';
+import { resolvePropertyNote, shouldOpenPropertyNoteOnEnter } from '../utils/propertyNoteLookup';
+import { openPropertyNoteFile } from '../utils/propertyNotes';
 import { isEnterKey, resolveFolderNoteDefaultOpenContext, resolveKeyboardEnterAction } from '../utils/keyboardOpenContext';
-import { buildPropertyKeyNodeId } from '../utils/propertyTree';
+import { buildPropertyKeyNodeId, resolvePropertyTreeNode } from '../utils/propertyTree';
 import {
     getNavigationExpansionTargetForItem,
     isFolderEffectivelyExpanded,
@@ -112,7 +114,7 @@ export function useNavigationPaneKeyboard({
     pathToIndex,
     onStartRename
 }: UseNavigationPaneKeyboardProps) {
-    const { app, commandQueue, plugin } = useServices();
+    const { app, commandQueue, plugin, propertyTreeService } = useServices();
     const fileSystemOps = useFileSystemOps();
     const settings = useSettingsState();
     const uxPreferences = useUXPreferences();
@@ -320,6 +322,37 @@ export function useNavigationPaneKeyboard({
                             context: openContext,
                             active: false,
                             openInRightSidebar: folderNoteFile => plugin.openFolderNoteInRightSidebar(folderNoteFile)
+                        })
+                    );
+                    return;
+                }
+            }
+
+            const selectedPropertyNodeId = selectionState.selectedProperty;
+            if (
+                shouldOpenPropertyNoteOnEnter({
+                    isEnterKey: isEnterKey(e),
+                    propertyNoteLinksEnabled: settings.enablePropertyNotes && settings.enablePropertyNoteLinks,
+                    selectionType: selectionState.selectionType,
+                    selectedProperty: selectedPropertyNodeId
+                }) &&
+                selectedPropertyNodeId
+            ) {
+                const resolved = resolvePropertyTreeNode({
+                    nodeId: selectedPropertyNodeId,
+                    propertyTreeService
+                });
+                const propertyNote = resolved ? resolvePropertyNote(resolved.node, app) : null;
+                if (propertyNote) {
+                    e.preventDefault();
+
+                    runAsyncAction(() =>
+                        openPropertyNoteFile({
+                            app,
+                            commandQueue,
+                            propertyNote,
+                            context: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation),
+                            active: false
                         })
                     );
                     return;
@@ -585,6 +618,7 @@ export function useNavigationPaneKeyboard({
             app,
             commandQueue,
             plugin,
+            propertyTreeService,
             fileSystemOps,
             virtualizer,
             includeDescendantNotes,

@@ -174,6 +174,137 @@ describe('CommandQueueService', () => {
         unsubscribe();
     });
 
+    it('tracks isOpeningPropertyNote for the duration of a property note open', async () => {
+        const commandQueue = new CommandQueueService();
+        const openGate = createDeferredVoid();
+        const openFile = vi.fn(async () => openGate.promise);
+
+        expect(commandQueue.isOpeningPropertyNote()).toBe(false);
+
+        const task = commandQueue.executeOpenPropertyNote('notes/apple.md', openFile);
+        await Promise.resolve();
+
+        expect(commandQueue.isOpeningPropertyNote()).toBe(true);
+
+        openGate.resolve();
+        const result = await task;
+
+        expect(result).toEqual({ success: true });
+        // The operation itself ends with the open. Outliving it is the suppression's job, and
+        // that is keyed by path and expires on a TTL rather than racing a timer.
+        expect(commandQueue.isOpeningPropertyNote()).toBe(false);
+        expect(commandQueue.shouldSuppressNoteOpenReveal('notes/apple.md')).toBe(true);
+    });
+
+    it('suppresses auto-reveal when the workspace event arrives after the open resolves', async () => {
+        const commandQueue = new CommandQueueService();
+
+        await commandQueue.executeOpenPropertyNote('notes/apple.md', async () => {});
+
+        // Obsidian does not always fire file-open inside openFile(). When a view must be created,
+        // or the leaf is opened inactively (the Enter path passes active: false), the event lands
+        // afterwards and auto-reveal observes it a macrotask later still. The suppression has to
+        // survive that, or the navigator reveals the note in its own folder.
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(commandQueue.shouldSuppressNoteOpenReveal('notes/apple.md')).toBe(true);
+    });
+
+    it('suppresses auto-reveal when the workspace event arrives while the open is still in flight', async () => {
+        const commandQueue = new CommandQueueService();
+        const openGate = createDeferredVoid();
+
+        // The real failure mode. leaf.openFile() is not instant - opening a note the workspace has
+        // no view for takes tens of milliseconds - while workspaceActiveFileEvents coalesces
+        // file-open / active-leaf-change on a setTimeout(0). So auto-reveal routinely observes the
+        // event in the middle of the open, not after it. Marking the suppression only once the
+        // open resolves leaves that whole window unguarded, and the navigator reveals the note by
+        // its own frontmatter, replacing the selection the click just made.
+        const task = commandQueue.executeOpenPropertyNote('notes/apple.md', () => openGate.promise);
+        await Promise.resolve();
+
+        expect(commandQueue.shouldSuppressNoteOpenReveal('notes/apple.md')).toBe(true);
+
+        openGate.resolve();
+        await task;
+
+        expect(commandQueue.shouldSuppressNoteOpenReveal('notes/apple.md')).toBe(true);
+    });
+
+    it('suppresses a late workspace event for folder note opens too', async () => {
+        const commandQueue = new CommandQueueService();
+
+        await commandQueue.executeOpenFolderNote('Fruits', async () => {}, 'Fruits/Fruits.md');
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(commandQueue.shouldSuppressNoteOpenReveal('Fruits/Fruits.md')).toBe(true);
+    });
+
+    it('suppresses an in-flight folder note open too', async () => {
+        const commandQueue = new CommandQueueService();
+        const openGate = createDeferredVoid();
+
+        const task = commandQueue.executeOpenFolderNote('Fruits', () => openGate.promise, 'Fruits/Fruits.md');
+        await Promise.resolve();
+
+        expect(commandQueue.shouldSuppressNoteOpenReveal('Fruits/Fruits.md')).toBe(true);
+
+        openGate.resolve();
+        await task;
+    });
+
+    it('does not suppress a different file', async () => {
+        const commandQueue = new CommandQueueService();
+
+        await commandQueue.executeOpenPropertyNote('notes/apple.md', async () => {});
+
+        // An unrelated event landing in the same window must not claim the suppression, or the
+        // real note-open event that follows would reveal.
+        expect(commandQueue.shouldSuppressNoteOpenReveal('notes/unrelated.md')).toBe(false);
+        expect(commandQueue.shouldSuppressNoteOpenReveal('notes/apple.md')).toBe(true);
+    });
+
+    it('suppresses every event from one open, not just the first', async () => {
+        const commandQueue = new CommandQueueService();
+
+        await commandQueue.executeOpenPropertyNote('notes/apple.md', async () => {});
+
+        // One open can produce both file-open and active-leaf-change. Coalescing usually merges
+        // them, but when it does not, both observations must be suppressed.
+        expect(commandQueue.shouldSuppressNoteOpenReveal('notes/apple.md')).toBe(true);
+        expect(commandQueue.shouldSuppressNoteOpenReveal('notes/apple.md')).toBe(true);
+    });
+
+    it('expires the suppression when no workspace event ever arrives', async () => {
+        const commandQueue = new CommandQueueService();
+
+        await commandQueue.executeOpenPropertyNote('notes/apple.md', async () => {});
+        await vi.advanceTimersByTimeAsync(1000);
+
+        expect(commandQueue.shouldSuppressNoteOpenReveal('notes/apple.md')).toBe(false);
+    });
+
+    it('does not suppress when the open throws', async () => {
+        const commandQueue = new CommandQueueService();
+
+        await commandQueue.executeOpenPropertyNote('notes/apple.md', async () => {
+            throw new Error('boom');
+        });
+
+        expect(commandQueue.shouldSuppressNoteOpenReveal('notes/apple.md')).toBe(false);
+    });
+
+    it('clears isOpeningPropertyNote when the property note open throws', async () => {
+        const commandQueue = new CommandQueueService();
+        const error = new Error('boom');
+        const openFile = vi.fn().mockRejectedValue(error);
+
+        const result = await commandQueue.executeOpenPropertyNote('notes/apple.md', openFile);
+
+        expect(result).toEqual({ success: false, error });
+        expect(commandQueue.isOpeningPropertyNote()).toBe(false);
+    });
+
     it('clears active operation snapshots', async () => {
         const commandQueue = new CommandQueueService();
         const file = createTestTFile('notes/delete.md');

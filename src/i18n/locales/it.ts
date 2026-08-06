@@ -2383,7 +2383,7 @@ export const STRINGS_IT = {
                 desc: 'Un valore di proprietà che è un collegamento viene trattato come un link alla nota a cui punta, allo stesso modo in cui funzionano le note cartella per le cartelle.'
             },
             enablePropertyNoteLinks: {
-                name: 'I nomi delle proprietà aprono note proprietà',
+                name: 'Collega i valori di proprietà alle note',
                 desc: 'I valori di proprietà che rimandano a una nota vengono sottolineati. Fare clic sul nome o premere Invio apre quella nota; fare clic altrove nella riga seleziona solo il valore.'
             },
             propertyNoteOpenLocation: {
@@ -2400,7 +2400,7 @@ export const STRINGS_IT = {
                 desc: "Apre la nota collegata quando fai clic su un valore di proprietà o attivi una scorciatoia proprietà. Spostarsi nell'albero con i tasti freccia non apre mai le note."
             },
             autoRevealPropertyNote: {
-                name: "Mostra la nota di proprietà nell'albero",
+                name: "Auto-mostra nota di proprietà nell'albero",
                 desc: "Quando apri una nota di proprietà dall'esterno del navigatore, seleziona nell'albero di navigazione il valore di proprietà che definisce. Richiede che la rivelazione automatica sia attiva."
             },
             propertyNoteFolder: {

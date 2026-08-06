@@ -255,6 +255,8 @@ export function NavigationPaneTreeRow({
                     isSelected={isSelected}
                     onToggle={() => tree.handlePropertyToggle(propertyNode.id)}
                     onClick={event => tree.handlePropertyClick(propertyNode, event)}
+                    onNameClick={event => tree.handlePropertyNameClick(propertyNode, event)}
+                    onNameMouseDown={event => tree.handlePropertyNameMouseDown(propertyNode, event)}
                     onToggleAllSiblings={() => tree.handlePropertyToggleAllSiblings(propertyNode)}
                     color={item.color}
                     backgroundColor={getSolidBackground(item.backgroundColor)}
@@ -265,6 +267,7 @@ export function NavigationPaneTreeRow({
                     isDraggable={!isMobile}
                     countInfo={propertyCounts.get(propertyNode.id)}
                     showFileCount={settings.showNoteCount}
+                    vaultChangeVersion={vaultChangeVersion}
                     inlineRename={
                         renameTarget
                             ? {

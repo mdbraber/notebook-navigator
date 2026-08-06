@@ -16,16 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type { App } from 'obsidian';
 import { TFile, TFolder } from 'obsidian';
 import type { ISettingsProvider } from '../interfaces/ISettingsProvider';
 import { DEFAULT_SETTINGS } from '../settings/defaultSettings';
+import type { PropertyTreeNode } from '../types/storage';
 import { isFolderNote } from '../utils/folderNoteLookup';
+import { findPropertyNoteValueNode } from '../utils/propertyNoteLookup';
 
 /**
  * Manages the recent notes list stored in vault-local storage
  */
 export class RecentNotesService {
-    constructor(private readonly settingsProvider: ISettingsProvider) {}
+    constructor(
+        private readonly settingsProvider: ISettingsProvider,
+        private readonly app: App,
+        private readonly getPropertyTree: () => ReadonlyMap<string, PropertyTreeNode> | null
+    ) {}
 
     /**
      * Updates recents when a file is opened
@@ -56,20 +63,44 @@ export class RecentNotesService {
     }
 
     private shouldSkipFile(file: TFile): boolean {
-        if (this.settingsProvider.settings.hideRecentNotes !== 'folder-notes') {
-            return false;
+        const settings = this.settingsProvider.settings;
+        const mode = settings.hideRecentNotes;
+
+        if (mode === 'folder-notes' || mode === 'all-notes') {
+            const parent = file.parent;
+            if (parent instanceof TFolder) {
+                const isFolder = isFolderNote(file, parent, {
+                    enableFolderNotes: true,
+                    folderNoteName: settings.folderNoteName,
+                    folderNoteNamePattern: settings.folderNoteNamePattern
+                });
+                if (isFolder) {
+                    return true;
+                }
+            }
         }
 
-        const parent = file.parent;
-        if (!(parent instanceof TFolder)) {
-            return false;
+        if ((mode === 'property-notes' || mode === 'all-notes') && settings.enablePropertyNotes) {
+            if (this.isPropertyNote(file)) {
+                return true;
+            }
         }
 
-        return isFolderNote(file, parent, {
-            enableFolderNotes: true,
-            folderNoteName: this.settingsProvider.settings.folderNoteName,
-            folderNoteNamePattern: this.settingsProvider.settings.folderNoteNamePattern
-        });
+        return false;
+    }
+
+    /**
+     * Whether the file is the target of any property value's wikilink. Only reached when the user
+     * has opted into hiding property notes, and only once per file open.
+     */
+    private isPropertyNote(file: TFile): boolean {
+        return (
+            findPropertyNoteValueNode({
+                filePath: file.path,
+                propertyTree: this.getPropertyTree(),
+                app: this.app
+            }) !== null
+        );
     }
 
     /**

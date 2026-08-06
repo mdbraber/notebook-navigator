@@ -2376,7 +2376,7 @@ export const STRINGS_EN = {
                 desc: 'Treat a property value that is a wikilink as a link to the note it points at, the way folder notes work for folders.'
             },
             enablePropertyNoteLinks: {
-                name: 'Property names open property notes',
+                name: 'Link property values to notes',
                 desc: 'Underline property values that link to a note, and open that note when you click the name or press Enter. Clicking elsewhere on the row only selects the value.'
             },
             propertyNoteOpenLocation: {
@@ -2393,7 +2393,7 @@ export const STRINGS_EN = {
                 desc: 'Open the linked note when you click a property value or activate a property shortcut. Moving through the tree with arrow keys never opens notes.'
             },
             autoRevealPropertyNote: {
-                name: 'Reveal property note in tree',
+                name: 'Auto-reveal property note in tree',
                 desc: 'When you open a property note from outside the navigator, select the property value it defines in the navigation tree. Requires auto-reveal to be enabled.'
             },
             propertyNoteFolder: {

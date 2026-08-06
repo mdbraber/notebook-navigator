@@ -2391,7 +2391,7 @@ export const STRINGS_FR = {
                 desc: "Une valeur de propriété qui est un lien est traitée comme un lien vers la note qu'elle cible, de la même façon que les notes de dossier fonctionnent pour les dossiers."
             },
             enablePropertyNoteLinks: {
-                name: 'Les noms de propriété ouvrent les notes de propriété',
+                name: 'Lier les valeurs de propriété aux notes',
                 desc: 'Les valeurs de propriété qui pointent vers une note sont soulignées. Cliquer sur le nom ou appuyer sur Entrée ouvre cette note ; cliquer ailleurs sur la ligne ne fait que sélectionner la valeur.'
             },
             propertyNoteOpenLocation: {
@@ -2408,7 +2408,7 @@ export const STRINGS_FR = {
                 desc: "Ouvre la note liée lorsque vous cliquez sur une valeur de propriété ou activez un raccourci de propriété. Se déplacer dans l'arborescence avec les touches fléchées n'ouvre jamais de notes."
             },
             autoRevealPropertyNote: {
-                name: "Révéler la note de propriété dans l'arborescence",
+                name: "Révéler automatiquement la note de propriété dans l'arborescence",
                 desc: "Lorsque vous ouvrez une note de propriété depuis l'extérieur du navigateur, sélectionne dans l'arborescence la valeur de propriété qu'elle définit. Nécessite l'activation de la révélation automatique."
             },
             propertyNoteFolder: {

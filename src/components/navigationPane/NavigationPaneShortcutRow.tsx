@@ -356,6 +356,7 @@ export function NavigationPaneShortcutRow({ item, context, adjacentFilledClassNa
             const contextTarget: ShortcutContextMenuTarget = !isMissing
                 ? { type: 'property', key: item.key, propertyNodeId }
                 : { type: 'missing', key: item.key, kind: 'property' };
+            const propertyNote = isMissing ? null : shortcuts.resolveShortcutPropertyNote(propertyNodeId);
             const shortcutProps = {
                 icon: isMissing ? 'lucide-alert-triangle' : (item.icon ?? resolveUXIcon(settings.interfaceIcons, 'nav-property')),
                 color: isMissing ? undefined : item.color,
@@ -381,7 +382,12 @@ export function NavigationPaneShortcutRow({ item, context, adjacentFilledClassNa
                 },
                 onContextMenu: (event: React.MouseEvent<HTMLDivElement>) => shortcuts.handleShortcutContextMenu(event, contextTarget),
                 dragHandlers: shortcuts.buildShortcutExternalHandlers(item.key),
-                dragHandleConfig: shortcutUiState.shortcutDragHandleConfig
+                dragHandleConfig: shortcutUiState.shortcutDragHandleConfig,
+                hasPropertyNote: Boolean(propertyNote),
+                onLabelClick: propertyNote
+                    ? (event: React.MouseEvent<HTMLSpanElement>) =>
+                          shortcuts.handleShortcutPropertyNoteClick(propertyNodeId, item.key, event)
+                    : undefined
             };
 
             if (shortcutUiState.shouldUseShortcutDnd) {

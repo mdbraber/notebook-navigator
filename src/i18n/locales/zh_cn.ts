@@ -2369,7 +2369,7 @@ export const STRINGS_ZH_CN = {
                 desc: '属性值若是一个链接，会被当作指向其所链接笔记的链接处理，就像文件夹笔记对文件夹的作用一样。'
             },
             enablePropertyNoteLinks: {
-                name: '属性名称打开属性笔记',
+                name: '将属性值链接到笔记',
                 desc: '链接到笔记的属性值会加下划线。点击名称或按 Enter 键会打开该笔记；点击行的其他部分只会选中该值。'
             },
             propertyNoteOpenLocation: {
@@ -2386,7 +2386,7 @@ export const STRINGS_ZH_CN = {
                 desc: '点击属性值或激活属性快捷方式时打开链接的笔记。使用方向键在树中移动时从不打开笔记。'
             },
             autoRevealPropertyNote: {
-                name: '在树中显示属性笔记',
+                name: '自动在树中定位属性笔记',
                 desc: '从导航器外部打开属性笔记时，在导航树中选中该笔记所定义的属性值。需要启用自动显示。'
             },
             propertyNoteFolder: {

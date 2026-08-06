@@ -2384,7 +2384,7 @@ export const STRINGS_ID = {
                 desc: 'Nilai properti yang berupa tautan diperlakukan sebagai tautan ke catatan yang dirujuknya, sama seperti cara kerja catatan folder untuk folder.'
             },
             enablePropertyNoteLinks: {
-                name: 'Nama properti membuka catatan properti',
+                name: 'Tautkan nilai properti ke catatan',
                 desc: 'Nilai properti yang tertaut ke sebuah catatan akan digarisbawahi. Mengklik nama atau menekan Enter membuka catatan tersebut; mengklik di tempat lain pada baris hanya memilih nilainya.'
             },
             propertyNoteOpenLocation: {
@@ -2401,7 +2401,7 @@ export const STRINGS_ID = {
                 desc: 'Membuka catatan tertaut saat Anda mengklik nilai properti atau mengaktifkan pintasan properti. Berpindah melalui pohon dengan tombol panah tidak pernah membuka catatan.'
             },
             autoRevealPropertyNote: {
-                name: 'Tampilkan catatan properti di pohon',
+                name: 'Auto-tampilkan catatan properti di pohon',
                 desc: 'Saat Anda membuka catatan properti dari luar navigator, pilih nilai properti yang didefinisikannya di pohon navigasi. Memerlukan tampilkan otomatis diaktifkan.'
             },
             propertyNoteFolder: {

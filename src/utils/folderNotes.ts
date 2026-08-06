@@ -182,7 +182,7 @@ export async function openFolderNoteFile({
     };
 
     if (commandQueue) {
-        await commandQueue.executeOpenFolderNote(folder.path, openFile);
+        await commandQueue.executeOpenFolderNote(folder.path, openFile, folderNote.path);
         return;
     }
 

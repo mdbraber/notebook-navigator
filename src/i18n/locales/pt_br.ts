@@ -2388,7 +2388,7 @@ export const STRINGS_PT_BR = {
                 desc: 'Um valor de propriedade que é um link é tratado como um link para a nota à qual aponta, da mesma forma que as notas de pasta funcionam para as pastas.'
             },
             enablePropertyNoteLinks: {
-                name: 'Nomes de propriedades abrem notas de propriedade',
+                name: 'Vincular os valores de propriedade a notas',
                 desc: 'Valores de propriedade que apontam para uma nota ficam sublinhados. Clicar no nome ou pressionar Enter abre essa nota; clicar em outra parte da linha apenas seleciona o valor.'
             },
             propertyNoteOpenLocation: {
@@ -2405,7 +2405,7 @@ export const STRINGS_PT_BR = {
                 desc: 'Abre a nota vinculada ao clicar em um valor de propriedade ou ativar um atalho de propriedade. Navegar pela árvore com as teclas de seta nunca abre notas.'
             },
             autoRevealPropertyNote: {
-                name: 'Mostrar a nota de propriedade na árvore',
+                name: 'Revelar automaticamente a nota de propriedade na árvore',
                 desc: 'Ao abrir uma nota de propriedade fora do navegador, seleciona na árvore de navegação o valor de propriedade que ela define. Requer que a revelação automática esteja ativada.'
             },
             propertyNoteFolder: {

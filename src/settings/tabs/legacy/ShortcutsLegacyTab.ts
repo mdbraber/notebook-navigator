@@ -104,6 +104,8 @@ export function renderShortcutsTab(context: SettingsTabContext): void {
             dropdown
                 .addOption('none', strings.settings.items.hideRecentNotes.options.none)
                 .addOption('folder-notes', strings.settings.items.hideRecentNotes.options.folderNotes)
+                .addOption('property-notes', strings.settings.items.hideRecentNotes.options.propertyNotes)
+                .addOption('all-notes', strings.settings.items.hideRecentNotes.options.allNotes)
                 .setValue(plugin.settings.hideRecentNotes)
                 .onChange(async value => {
                     if (!isRecentNotesHideMode(value)) {

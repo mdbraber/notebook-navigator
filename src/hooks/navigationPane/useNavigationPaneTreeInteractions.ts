@@ -39,6 +39,8 @@ import {
 import type { PropertyTreeNode, TagTreeNode } from '../../types/storage';
 import type { InclusionOperator } from '../../utils/filterSearch';
 import { getFolderNote, openFolderNoteFile, type FolderNoteOpenContext } from '../../utils/folderNotes';
+import { resolvePropertyNote } from '../../utils/propertyNoteLookup';
+import { openPropertyNoteFile } from '../../utils/propertyNotes';
 import { runAsyncAction } from '../../utils/async';
 import { resolveFolderNoteClickOpenContext, resolveFolderNoteDefaultOpenContext } from '../../utils/keyboardOpenContext';
 import { findTagNode } from '../../utils/tagTree';
@@ -104,6 +106,8 @@ export interface NavigationPaneTreeInteractionsResult {
     handleTagCollectionClick: (tagCollectionId: string, event: React.MouseEvent<HTMLDivElement>) => void;
     handlePropertyCollectionClick: (event: React.MouseEvent<HTMLDivElement>) => void;
     handlePropertyClick: (propertyNode: PropertyTreeNode, event?: React.MouseEvent, options?: { fromShortcut?: boolean }) => void;
+    handlePropertyNameClick: (propertyNode: PropertyTreeNode, event?: React.MouseEvent) => void;
+    handlePropertyNameMouseDown: (propertyNode: PropertyTreeNode, event: React.MouseEvent) => void;
 }
 
 export function useNavigationPaneTreeInteractions({
@@ -636,6 +640,11 @@ export function useNavigationPaneTreeInteractions({
             const hasChildren = propertyNode.children.size > 0;
             const isExpanded = expansionState.expandedProperties.has(propertyNode.id);
             const selectedPropertyNodeId = selectionState.selectionType === ItemType.PROPERTY ? selectionState.selectedProperty : null;
+            // Resolved before applyTreeSelection so the selection dispatch below can carry
+            // autoSelectedFile: null - without that, the list pane's auto-selected first file
+            // opens in a post-render effect and replaces the property note we are about to open.
+            const propertyNote =
+                settings.enablePropertyNotes && settings.autoOpenPropertyNote ? resolvePropertyNote(propertyNode, app) : null;
             applyTreeSelection({
                 hasChildren,
                 isExpanded,
@@ -645,24 +654,118 @@ export function useNavigationPaneTreeInteractions({
                     selectionDispatch({
                         type: 'SET_SELECTED_PROPERTY',
                         nodeId: propertyNode.id,
-                        source: options?.fromShortcut ? 'shortcut' : undefined
+                        source: options?.fromShortcut ? 'shortcut' : undefined,
+                        ...(propertyNote ? { autoSelectedFile: null } : {})
                     });
                 },
                 onToggleExpand: () => {
                     handlePropertyToggle(propertyNode.id);
                 }
             });
+
+            if (propertyNote) {
+                runAsyncAction(() =>
+                    openPropertyNoteFile({
+                        app,
+                        commandQueue,
+                        propertyNote,
+                        context: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation)
+                    })
+                );
+            }
         },
         [
+            app,
             applyTreeSelection,
+            commandQueue,
             expansionState.expandedProperties,
             handlePropertyToggle,
             onModifySearchWithProperty,
             selectionDispatch,
             selectionState.selectedProperty,
             selectionState.selectionType,
-            settings.multiSelectModifier
+            settings.autoOpenPropertyNote,
+            settings.enablePropertyNotes,
+            settings.multiSelectModifier,
+            settings.propertyNoteOpenLocation
         ]
+    );
+
+    const handlePropertyNameClick = useCallback(
+        (propertyNode: PropertyTreeNode, event?: React.MouseEvent) => {
+            // The name click stops propagation before the row click handler runs, so the
+            // search-filter modifier (Cmd/Alt+click) has to be checked here too, or it gets
+            // silently swallowed by the note-opening branch below instead of filtering.
+            if (getTagSearchModifierOperator(event ?? null, settings.multiSelectModifier)) {
+                handlePropertyClick(propertyNode, event);
+                return;
+            }
+
+            if (!settings.enablePropertyNotes || !settings.enablePropertyNoteLinks) {
+                handlePropertyClick(propertyNode, event);
+                return;
+            }
+
+            const propertyNote = resolvePropertyNote(propertyNode, app);
+            if (!propertyNote) {
+                handlePropertyClick(propertyNode, event);
+                return;
+            }
+
+            // Name clicks stop before the row click handler, so selection and expansion run here.
+            selectionDispatch({
+                type: 'SET_SELECTED_PROPERTY',
+                nodeId: propertyNode.id,
+                autoSelectedFile: null
+            });
+
+            if (settings.autoExpandNavItems && propertyNode.children.size > 0 && !expansionState.expandedProperties.has(propertyNode.id)) {
+                handlePropertyToggle(propertyNode.id);
+            }
+
+            const openContext = event
+                ? resolveFolderNoteClickOpenContext(event, settings.propertyNoteOpenLocation, settings.multiSelectModifier)
+                : resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation);
+            focusListPaneAfterRightSidebarFolderNoteSelection(openContext);
+
+            runAsyncAction(() => openPropertyNoteFile({ app, commandQueue, propertyNote, context: openContext }));
+        },
+        [
+            app,
+            commandQueue,
+            expansionState.expandedProperties,
+            focusListPaneAfterRightSidebarFolderNoteSelection,
+            handlePropertyClick,
+            handlePropertyToggle,
+            selectionDispatch,
+            settings
+        ]
+    );
+
+    const handlePropertyNameMouseDown = useCallback(
+        (propertyNode: PropertyTreeNode, event: React.MouseEvent) => {
+            if (event.button !== 1 || !settings.enablePropertyNotes || !settings.enablePropertyNoteLinks) {
+                return;
+            }
+
+            const propertyNote = resolvePropertyNote(propertyNode, app);
+            if (!propertyNote) {
+                return;
+            }
+
+            // Middle-click always opens in a new tab.
+            event.preventDefault();
+            event.stopPropagation();
+
+            selectionDispatch({
+                type: 'SET_SELECTED_PROPERTY',
+                nodeId: propertyNode.id,
+                autoSelectedFile: null
+            });
+
+            runAsyncAction(() => openPropertyNoteFile({ app, commandQueue, propertyNote, context: 'tab' }));
+        },
+        [app, commandQueue, selectionDispatch, settings]
     );
 
     const handleFolderToggleAllSiblings = useCallback(
@@ -743,7 +846,9 @@ export function useNavigationPaneTreeInteractions({
         handleTagClick,
         handleTagCollectionClick,
         handlePropertyCollectionClick,
-        handlePropertyClick
+        handlePropertyClick,
+        handlePropertyNameClick,
+        handlePropertyNameMouseDown
     };
 
     // Identity-stable facade; calls forward to the latest handlers through a ref
@@ -762,6 +867,8 @@ export function useNavigationPaneTreeInteractions({
         'handleTagClick',
         'handleTagCollectionClick',
         'handlePropertyCollectionClick',
-        'handlePropertyClick'
+        'handlePropertyClick',
+        'handlePropertyNameClick',
+        'handlePropertyNameMouseDown'
     ]);
 }

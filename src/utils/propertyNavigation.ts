@@ -38,6 +38,15 @@ export interface NavigateToPropertyOptions {
     requirePropertyInTree?: boolean;
     skipFocus?: boolean;
     historyIndex?: number;
+    /**
+     * Suppresses the selection provider's auto-selected first file for this dispatch by
+     * passing `autoSelectedFile: null` explicitly (as opposed to leaving it undefined, which
+     * lets the provider resolve one). Defaults to off so every existing caller - auto-reveal,
+     * startup, tag fallback - keeps resolving a first file exactly as it does today. Callers
+     * that are about to open a property note themselves must set this, or the list pane's
+     * auto-selected first file opens in a post-render effect and replaces that note.
+     */
+    suppressAutoSelect?: boolean;
 }
 
 export interface PropertyNavigationEnvironment {
@@ -88,7 +97,8 @@ function selectPropertyAndFocus(
         type: 'SET_SELECTED_PROPERTY',
         nodeId,
         source: options?.source,
-        historyIndex: options?.historyIndex
+        historyIndex: options?.historyIndex,
+        autoSelectedFile: options?.suppressAutoSelect ? null : undefined
     });
 
     if (options?.skipFocus) {

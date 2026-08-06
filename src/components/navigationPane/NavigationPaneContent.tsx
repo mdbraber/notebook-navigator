@@ -390,6 +390,8 @@ export const NavigationPane = React.memo(
             'handleShortcutSearchActivate',
             'handleShortcutTagActivate',
             'handleShortcutPropertyActivate',
+            'resolveShortcutPropertyNote',
+            'handleShortcutPropertyNoteClick',
             'handleShortcutContextMenu',
             'handleRecentFileContextMenu',
             'handleShortcutRootDragOver',

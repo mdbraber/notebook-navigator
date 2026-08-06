@@ -17,7 +17,7 @@
  */
 
 import React from 'react';
-import { App, TFolder } from 'obsidian';
+import { App, TFile, TFolder } from 'obsidian';
 import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DEFAULT_SETTINGS } from '../../src/settings/defaultSettings';
@@ -32,7 +32,13 @@ import {
 import { buildPropertyKeyNodeId, buildPropertyValueNodeId } from '../../src/utils/propertyTree';
 import { createTestTFile } from '../utils/createTestTFile';
 
-function createPropertyValueNode(key: string, valuePath: string, name: string, notes: string[]): PropertyTreeNode {
+function createPropertyValueNode(
+    key: string,
+    valuePath: string,
+    name: string,
+    notes: string[],
+    assignmentValue?: string
+): PropertyTreeNode {
     return {
         id: buildPropertyValueNodeId(key, valuePath),
         kind: 'value',
@@ -41,7 +47,8 @@ function createPropertyValueNode(key: string, valuePath: string, name: string, n
         name,
         displayPath: name,
         children: new Map(),
-        notesWithValue: new Set(notes)
+        notesWithValue: new Set(notes),
+        assignmentValue
     };
 }
 
@@ -421,5 +428,310 @@ describe('useNavigationPaneTreeInteractions', () => {
         result.handleFolderToggleAllSiblings(rootFolder);
 
         expect(expansionDispatch).not.toHaveBeenCalled();
+    });
+});
+
+describe('property note name clicks', () => {
+    function renderPropertyRow(params: { assignmentValue?: string; enabled: boolean; autoOpen?: boolean; resolved: TFile | null }) {
+        const valueNode = createPropertyValueNode('references', 'apple', 'Apple', ['notes/a.md'], params.assignmentValue);
+        const keyNode = createPropertyKeyNode('references', 'References', ['notes/a.md'], [valueNode]);
+
+        const app = new App();
+        app.metadataCache.getFirstLinkpathDest = () => params.resolved;
+        const openFile = vi.fn().mockResolvedValue(undefined);
+        app.workspace.getLeaf = vi.fn().mockReturnValue({ openFile });
+
+        const propertyTree = new Map<string, PropertyTreeNode>([[keyNode.key, keyNode]]);
+        const propertyTreeProvider: IPropertyTreeProvider = {
+            hasNodes: () => true,
+            addTreeUpdateListener: () => () => {},
+            findNode: nodeId => (nodeId === valueNode.id ? valueNode : nodeId === keyNode.id ? keyNode : null),
+            getKeyNode: normalizedKey => (normalizedKey === keyNode.key ? keyNode : null),
+            resolveSelectionNodeId: nodeId => nodeId,
+            collectDescendantNodeIds: () => new Set(),
+            collectFilePaths: () => new Set(),
+            collectFilesForKeys: () => new Set()
+        };
+
+        const selectionDispatch = vi.fn();
+        const onModifySearchWithProperty = vi.fn();
+        let captured: NavigationPaneTreeInteractionsResult | null = null;
+
+        function Harness() {
+            captured = useNavigationPaneTreeInteractions({
+                app,
+                commandQueue: null,
+                settings: {
+                    ...DEFAULT_SETTINGS,
+                    // enablePropertyNotes is the master toggle and stays on for every case in this
+                    // harness; `enabled` here only varies enablePropertyNoteLinks, which governs the
+                    // name affordance and Enter-to-open, independently of autoOpenPropertyNote (which
+                    // governs mouse-driven row clicks and shortcut activation).
+                    enablePropertyNotes: true,
+                    enablePropertyNoteLinks: params.enabled,
+                    autoOpenPropertyNote: params.autoOpen ?? false
+                },
+                uiState: { singlePane: false },
+                expansionState: {
+                    expandedFolders: new Set(),
+                    expandedTags: new Set(),
+                    expandedProperties: new Set(),
+                    expandedVirtualFolders: new Set()
+                },
+                expansionDispatch: vi.fn(),
+                selectionState: createSelectionState(),
+                selectionDispatch,
+                uiDispatch: vi.fn(),
+                propertyTreeService: propertyTreeProvider,
+                tagTree: new Map(),
+                propertyTree,
+                tagsVirtualFolderHasChildren: false,
+                setShortcutsExpanded: vi.fn(),
+                setRecentNotesExpanded: vi.fn(),
+                clearActiveShortcut: vi.fn(),
+                openFolderNoteInRightSidebar: vi.fn(),
+                onModifySearchWithTag: vi.fn(),
+                onModifySearchWithProperty
+            });
+            return null;
+        }
+
+        renderToStaticMarkup(React.createElement(Harness));
+        if (!captured) {
+            throw new Error('Expected hook result');
+        }
+        const result = captured as NavigationPaneTreeInteractionsResult;
+
+        return {
+            nameClick: (event?: React.MouseEvent) => result.handlePropertyNameClick(valueNode, event),
+            rowClick: () => result.handlePropertyClick(valueNode),
+            nameMouseDown: (button = 1) =>
+                result.handlePropertyNameMouseDown(valueNode, {
+                    button,
+                    preventDefault: vi.fn(),
+                    stopPropagation: vi.fn()
+                } as unknown as React.MouseEvent),
+            openFile,
+            selectionDispatch,
+            onModifySearchWithProperty,
+            valueNode
+        };
+    }
+
+    it('opens the note when the name is clicked', async () => {
+        const file = createTestTFile('Apple.md');
+        const { nameClick, openFile } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: true,
+            resolved: file
+        });
+        nameClick();
+        await Promise.resolve();
+        expect(openFile).toHaveBeenCalledWith(file, { active: true });
+    });
+
+    // Regression test: PropertyTreeItem's handleNameClick calls stopPropagation() before
+    // delegating here, so the row click handler never sees a modifier-held name click. The
+    // search-filter modifier (Cmd/Alt+click, per multiSelectModifier) must be honored here too,
+    // matching handlePropertyClick, or Cmd+click on the name silently opens the note instead of
+    // filtering - the one place users are most likely to click.
+    it('filters instead of opening when the name is clicked with the search modifier held', async () => {
+        const file = createTestTFile('Apple.md');
+        const { nameClick, openFile, onModifySearchWithProperty, valueNode } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: true,
+            resolved: file
+        });
+        nameClick({
+            metaKey: true,
+            ctrlKey: true,
+            shiftKey: false,
+            preventDefault: vi.fn(),
+            stopPropagation: vi.fn()
+        } as unknown as React.MouseEvent);
+        await Promise.resolve();
+        expect(onModifySearchWithProperty).toHaveBeenCalledWith(valueNode.key, valueNode.valuePath, 'AND');
+        expect(openFile).not.toHaveBeenCalled();
+    });
+
+    it('selects without opening when the row body is clicked', async () => {
+        const { rowClick, openFile, selectionDispatch, valueNode } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: true,
+            resolved: createTestTFile('Apple.md')
+        });
+        rowClick();
+        await Promise.resolve();
+        expect(openFile).not.toHaveBeenCalled();
+        expect(selectionDispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_SELECTED_PROPERTY', nodeId: valueNode.id }));
+    });
+
+    it('opens on a row body click when auto-open is on', async () => {
+        const file = createTestTFile('Apple.md');
+        const { rowClick, openFile } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: true,
+            autoOpen: true,
+            resolved: file
+        });
+        rowClick();
+        await Promise.resolve();
+        expect(openFile).toHaveBeenCalledWith(file, { active: true });
+    });
+
+    it('still dispatches selection when auto-open fires', async () => {
+        const { rowClick, selectionDispatch, valueNode } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: true,
+            autoOpen: true,
+            resolved: createTestTFile('Apple.md')
+        });
+        rowClick();
+        await Promise.resolve();
+        expect(selectionDispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_SELECTED_PROPERTY', nodeId: valueNode.id }));
+    });
+
+    it('does not open on a row body click when auto-open is off', async () => {
+        const { rowClick, openFile } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: true,
+            autoOpen: false,
+            resolved: createTestTFile('Apple.md')
+        });
+        rowClick();
+        await Promise.resolve();
+        expect(openFile).not.toHaveBeenCalled();
+    });
+
+    it('opens on a row body click even with links off', async () => {
+        // autoOpenPropertyNote is independent of enablePropertyNoteLinks: it governs
+        // mouse-driven navigation, links governs the name affordance and the keyboard.
+        const file = createTestTFile('Apple.md');
+        const { rowClick, openFile } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: false,
+            autoOpen: true,
+            resolved: file
+        });
+        rowClick();
+        await Promise.resolve();
+        expect(openFile).toHaveBeenCalledWith(file, { active: true });
+    });
+
+    it('does not open on a row body click for an unresolvable link', async () => {
+        const { rowClick, openFile } = renderPropertyRow({
+            assignmentValue: '[[Ghost]]',
+            enabled: true,
+            autoOpen: true,
+            resolved: null
+        });
+        rowClick();
+        await Promise.resolve();
+        expect(openFile).not.toHaveBeenCalled();
+    });
+
+    // Without autoSelectedFile: null the provider resolves a first file for the property, and with
+    // autoSelectFirstFileOnFocusChange on the list pane opens it after the property note's open was
+    // initiated - replacing the property note in the same tab. Asserting the exact payload (not
+    // objectContaining) keeps that field pinned instead of merely tolerated.
+    it('also selects the value when the name is clicked, suppressing the auto-selected first file', async () => {
+        const { nameClick, selectionDispatch, valueNode } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: true,
+            resolved: createTestTFile('Apple.md')
+        });
+        nameClick();
+        await Promise.resolve();
+        expect(selectionDispatch).toHaveBeenCalledWith({
+            type: 'SET_SELECTED_PROPERTY',
+            nodeId: valueNode.id,
+            autoSelectedFile: null
+        });
+    });
+
+    it('opens nothing when the links setting is off', async () => {
+        const { nameClick, openFile } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: false,
+            resolved: createTestTFile('Apple.md')
+        });
+        nameClick();
+        await Promise.resolve();
+        expect(openFile).not.toHaveBeenCalled();
+    });
+
+    it('opens nothing and creates nothing when the link does not resolve', async () => {
+        const { nameClick, openFile } = renderPropertyRow({
+            assignmentValue: '[[Ghost]]',
+            enabled: true,
+            resolved: null
+        });
+        nameClick();
+        await Promise.resolve();
+        expect(openFile).not.toHaveBeenCalled();
+    });
+
+    it('opens nothing for a plain string value', async () => {
+        const { nameClick, openFile } = renderPropertyRow({
+            assignmentValue: 'draft',
+            enabled: true,
+            resolved: createTestTFile('Draft.md')
+        });
+        nameClick();
+        await Promise.resolve();
+        expect(openFile).not.toHaveBeenCalled();
+    });
+
+    it('opens the note in a new tab and selects the value on middle-click', async () => {
+        const file = createTestTFile('Apple.md');
+        const { nameMouseDown, openFile, selectionDispatch, valueNode } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: true,
+            resolved: file
+        });
+        nameMouseDown();
+        await Promise.resolve();
+        expect(openFile).toHaveBeenCalledWith(file, { active: true });
+        expect(selectionDispatch).toHaveBeenCalledWith({
+            type: 'SET_SELECTED_PROPERTY',
+            nodeId: valueNode.id,
+            autoSelectedFile: null
+        });
+    });
+
+    it('does nothing on a left mouse-down', async () => {
+        const { nameMouseDown, openFile, selectionDispatch } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: true,
+            resolved: createTestTFile('Apple.md')
+        });
+        nameMouseDown(0);
+        await Promise.resolve();
+        expect(openFile).not.toHaveBeenCalled();
+        expect(selectionDispatch).not.toHaveBeenCalled();
+    });
+
+    it('does nothing on middle-click when the links setting is off', async () => {
+        const { nameMouseDown, openFile, selectionDispatch } = renderPropertyRow({
+            assignmentValue: '[[Apple]]',
+            enabled: false,
+            resolved: createTestTFile('Apple.md')
+        });
+        nameMouseDown();
+        await Promise.resolve();
+        expect(openFile).not.toHaveBeenCalled();
+        expect(selectionDispatch).not.toHaveBeenCalled();
+    });
+
+    it('does nothing on middle-click when the link does not resolve', async () => {
+        const { nameMouseDown, openFile, selectionDispatch } = renderPropertyRow({
+            assignmentValue: '[[Ghost]]',
+            enabled: true,
+            resolved: null
+        });
+        nameMouseDown();
+        await Promise.resolve();
+        expect(openFile).not.toHaveBeenCalled();
+        expect(selectionDispatch).not.toHaveBeenCalled();
     });
 });

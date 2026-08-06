@@ -2382,7 +2382,7 @@ export const STRINGS_TR = {
                 desc: 'Bir bağlantı olan özellik değeri, klasör notlarının klasörler için çalıştığı gibi, işaret ettiği nota bir bağlantı olarak ele alınır.'
             },
             enablePropertyNoteLinks: {
-                name: 'Özellik adları özellik notlarını açar',
+                name: 'Özellik değerlerini notlara bağla',
                 desc: "Bir nota bağlanan özellik değerleri altı çizili gösterilir. Ada tıklamak veya Enter'a basmak o notu açar; satırın başka bir yerine tıklamak yalnızca değeri seçer."
             },
             propertyNoteOpenLocation: {
@@ -2399,7 +2399,7 @@ export const STRINGS_TR = {
                 desc: 'Bir özellik değerine tıkladığınızda veya bir özellik kısayolunu etkinleştirdiğinizde bağlantılı notu açar. Ok tuşlarıyla ağaçta gezinmek notları asla açmaz.'
             },
             autoRevealPropertyNote: {
-                name: 'Özellik notunu ağaçta göster',
+                name: 'Özellik notunu ağaçta otomatik göster',
                 desc: 'Bir özellik notunu gezginin dışından açtığınızda, notun tanımladığı özellik değerini gezinme ağacında seçer. Otomatik gösterimin etkin olmasını gerektirir.'
             },
             propertyNoteFolder: {

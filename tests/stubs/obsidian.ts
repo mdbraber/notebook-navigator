@@ -57,6 +57,12 @@ export class App {
         processFrontMatter: async () => {}
     };
 
+    workspace = {
+        getLeaf: (_split?: boolean): WorkspaceLeaf | null => null,
+        getRightLeaf: (_createIfNotExists?: boolean): WorkspaceLeaf | null => null,
+        revealLeaf: async (_leaf: WorkspaceLeaf): Promise<void> => undefined
+    };
+
     constructor() {
         const files = new Map<string, TFile>();
         const folders = new Map<string, TFolder>();
@@ -235,7 +241,9 @@ export class SettingGroup {
 }
 export class ButtonComponent {}
 export class SliderComponent {}
-export class WorkspaceLeaf {}
+export class WorkspaceLeaf {
+    async openFile(_file: TFile, _options?: { active?: boolean }): Promise<void> {}
+}
 export class FileView {
     file: TFile | null = null;
 }

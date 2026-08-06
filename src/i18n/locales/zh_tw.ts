@@ -2370,7 +2370,7 @@ export const STRINGS_ZH_TW = {
                 desc: '若屬性值是連結，會被視為指向其連結筆記的連結，就像資料夾筆記對資料夾的作用一樣。'
             },
             enablePropertyNoteLinks: {
-                name: '屬性名稱開啟屬性筆記',
+                name: '將屬性值連結到筆記',
                 desc: '連結到筆記的屬性值會加底線。點擊名稱或按 Enter 鍵會開啟該筆記；點擊列的其他部分只會選取該值。'
             },
             propertyNoteOpenLocation: {
@@ -2387,7 +2387,7 @@ export const STRINGS_ZH_TW = {
                 desc: '點擊屬性值或啟用屬性捷徑時，會開啟連結的筆記。使用方向鍵在樹狀結構中移動時從不會開啟筆記。'
             },
             autoRevealPropertyNote: {
-                name: '在樹狀結構中顯示屬性筆記',
+                name: '自動在樹狀結構中定位屬性筆記',
                 desc: '從導覽器外部開啟屬性筆記時，在導覽樹中選取該筆記所定義的屬性值。需要啟用自動顯示。'
             },
             propertyNoteFolder: {

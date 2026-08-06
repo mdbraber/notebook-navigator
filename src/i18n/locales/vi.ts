@@ -2385,7 +2385,7 @@ export const STRINGS_VI = {
                 desc: 'Giá trị thuộc tính là một liên kết được coi là liên kết đến ghi chú mà nó trỏ tới, giống như cách ghi chú thư mục hoạt động với thư mục.'
             },
             enablePropertyNoteLinks: {
-                name: 'Tên thuộc tính mở ghi chú thuộc tính',
+                name: 'Liên kết giá trị thuộc tính với ghi chú',
                 desc: 'Các giá trị thuộc tính liên kết đến một ghi chú sẽ được gạch chân. Nhấp vào tên hoặc nhấn Enter sẽ mở ghi chú đó; nhấp vào nơi khác trên hàng chỉ chọn giá trị.'
             },
             propertyNoteOpenLocation: {
@@ -2402,7 +2402,7 @@ export const STRINGS_VI = {
                 desc: 'Mở ghi chú được liên kết khi bạn nhấp vào giá trị thuộc tính hoặc kích hoạt phím tắt thuộc tính. Di chuyển qua cây bằng phím mũi tên không bao giờ mở ghi chú.'
             },
             autoRevealPropertyNote: {
-                name: 'Hiện ghi chú thuộc tính trong cây',
+                name: 'Tự động hiện ghi chú thuộc tính trong cây',
                 desc: 'Khi bạn mở một ghi chú thuộc tính từ bên ngoài bộ điều hướng, chọn giá trị thuộc tính mà ghi chú đó định nghĩa trong cây điều hướng. Yêu cầu bật tự động hiện.'
             },
             propertyNoteFolder: {
