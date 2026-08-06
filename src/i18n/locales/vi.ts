@@ -1229,6 +1229,10 @@ export const STRINGS_VI = {
                 name: 'Luôn hiển thị tất cả nhãn thẻ và thuộc tính',
                 desc: 'Khi tắt, các nhãn khớp với lựa chọn điều hướng hiện tại sẽ bị ẩn (ví dụ: nhãn thẻ "công thức" bị ẩn khi duyệt thẻ "công thức"). Bật để giữ tất cả các nhãn luôn hiển thị.'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Tô màu tiêu đề nhóm theo từng giá trị',
+                desc: 'Khi nhóm theo từng giá trị của thuộc tính, tiêu đề nhóm lấy biểu tượng và màu của giá trị đó từ cây điều hướng.'
+            },
             stickyGroupHeaders: {
                 name: 'Header nhóm cố định',
                 desc: 'Giữ header phần ngày, thư mục, thuộc tính hoặc đã ghim hiện tại hiển thị khi cuộn.'

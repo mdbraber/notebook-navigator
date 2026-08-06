@@ -1229,6 +1229,10 @@ export const STRINGS_ES = {
                 name: 'Mostrar siempre todas las etiquetas y propiedades',
                 desc: 'Cuando está desactivado, las etiquetas que coinciden con la selección de navegación actual se ocultan (p. ej., la etiqueta "recetas" se oculta al navegar por la etiqueta "recetas"). Activar para mantener todas las etiquetas visibles.'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Colorear encabezados por valor',
+                desc: 'Al agrupar por cada valor de una propiedad, los encabezados toman el icono y el color de ese valor del árbol de navegación.'
+            },
             stickyGroupHeaders: {
                 name: 'Encabezados de grupo fijos',
                 desc: 'Mantén visible el encabezado actual de fecha, carpeta, propiedad o sección anclada al desplazarte.'

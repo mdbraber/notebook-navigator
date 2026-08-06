@@ -45,6 +45,9 @@ export interface ListPaneItem {
     // Folder path associated with a folder-group header.
     // Present only when grouping by folder in the list pane.
     headerFolderPath?: string | null;
+    // Property value node id for a per-value property group header. Lets the header inherit that
+    // value's icon and colour from the navigation tree. Absent for joined groups and the no-value group.
+    headerPropertyNodeId?: string | null;
     // Visible path segments for a folder-group header when folder group paths are shown.
     headerFolderSegments?: ListPaneFolderPathSegment[];
     // Markdown file path that owns a manual sort custom header.

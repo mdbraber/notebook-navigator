@@ -1230,6 +1230,10 @@ export const STRINGS_NL = {
                 name: 'Tag- en eigenschapspillen altijd tonen',
                 desc: 'Wanneer uitgeschakeld, worden pillen die overeenkomen met de huidige navigatieselectie verborgen (bijv. de "recepten"-tagpil wordt verborgen bij het bladeren door de "recepten"-tag). Inschakelen om alle pillen zichtbaar te houden.'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Groepskoppen per waarde kleuren',
+                desc: 'Bij groeperen per waarde van een eigenschap nemen groepskoppen het pictogram en de kleur van die waarde over uit de boomstructuur.'
+            },
             stickyGroupHeaders: {
                 name: 'Plakkerige groepskoppen',
                 desc: 'Houd de huidige datum-, map-, eigenschap- of vastgepinde sectiekop zichtbaar tijdens het scrollen.'

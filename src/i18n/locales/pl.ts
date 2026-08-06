@@ -1231,6 +1231,10 @@ export const STRINGS_PL = {
                 name: 'Zawsze pokazuj wszystkie etykiety tagów i atrybutów',
                 desc: 'Po wyłączeniu etykiety odpowiadające bieżącemu wyborowi nawigacji są ukrywane (np. etykieta tagu „przepisy” jest ukrywana podczas przeglądania tagu „przepisy”). Włącz, aby wszystkie etykiety były zawsze widoczne.'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Koloruj nagłówki grup dla każdej wartości',
+                desc: 'Przy grupowaniu według każdej wartości atrybutu nagłówki grup przejmują ikonę i kolor tej wartości z drzewa nawigacji.'
+            },
             stickyGroupHeaders: {
                 name: 'Przyklejone nagłówki grup',
                 desc: 'Bieżący nagłówek sekcji daty, folderu, atrybutu lub przypiętej pozostaje widoczny podczas przewijania.'

@@ -1222,6 +1222,10 @@ export const STRINGS_EN = {
                 name: 'Always show all tag and property pills',
                 desc: 'When disabled, pills matching the current navigation selection are hidden (e.g. the "recipes" tag pill is hidden when browsing the "recipes" tag). Enable to keep all pills visible.'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Colour per-value group headers',
+                desc: "When grouping by each value of a property, group headers take that value's icon and colour from the navigation tree."
+            },
             stickyGroupHeaders: {
                 name: 'Sticky group headers',
                 desc: 'Keep the current date, folder, property, or pinned section header visible while scrolling.'

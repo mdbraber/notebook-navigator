@@ -331,7 +331,7 @@ export function determinePropertyToReveal(
     return orderedCandidates[0] ?? null;
 }
 
-function normalizePropertyTreeKey(value: string): string {
+export function normalizePropertyTreeKey(value: string): string {
     return casefold(value);
 }
 

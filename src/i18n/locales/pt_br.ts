@@ -1230,6 +1230,10 @@ export const STRINGS_PT_BR = {
                 name: 'Sempre mostrar todas as etiquetas e propriedades',
                 desc: 'Quando desativado, as etiquetas que correspondem à seleção de navegação atual ficam ocultas (por exemplo, a etiqueta "receitas" fica oculta ao navegar na etiqueta "receitas"). Ative para manter todas as etiquetas visíveis.'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Colorir cabeçalhos por valor',
+                desc: 'Ao agrupar por cada valor de uma propriedade, os cabeçalhos assumem o ícone e a cor desse valor da árvore de navegação.'
+            },
             stickyGroupHeaders: {
                 name: 'Cabeçalhos de grupo fixos',
                 desc: 'Mantém o cabeçalho atual de data, pasta, propriedade ou seção fixada visível ao rolar.'

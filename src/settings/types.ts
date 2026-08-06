@@ -788,6 +788,7 @@ export interface NotebookNavigatorSettings {
     // reconciliation resets to the default grouping when the key is removed from the configured list.
     noteGrouping: ListNoteGroupingOption;
     showSelectedNavigationPills: boolean;
+    inheritPropertyValueHeaderAppearance: boolean;
     stickyGroupHeaders: boolean;
     showFolderGroupPaths: boolean;
     showGroupHeaderItemCounts: boolean;

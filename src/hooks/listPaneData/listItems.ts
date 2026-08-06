@@ -31,8 +31,9 @@ import {
     isPropertySortOption
 } from '../../utils/sortUtils';
 import { getPropertyGroupingKey, getPropertyGroupingPerValue } from '../../settings/types';
-import { resolvePropertyDisplayText } from '../../utils/propertyUtils';
+import { resolvePropertyDisplayText, normalizePropertyTreeValuePath } from '../../utils/propertyUtils';
 import { resolvePropertyGroupingDirection } from '../../utils/listGrouping';
+import { buildPropertyValueNodeId, normalizePropertyTreeKey } from '../../utils/propertyTree';
 import { partitionPinnedFiles } from '../../utils/fileFinder';
 import {
     formatManualSortGroupHeaderLabel,
@@ -343,6 +344,7 @@ function buildListItemsInternal(
         data,
         key,
         headerFolderPath,
+        headerPropertyNodeId,
         headerFolderSegments,
         headerKind,
         collapseKey,
@@ -351,7 +353,14 @@ function buildListItemsInternal(
         groupFiles
     }: Pick<
         ListPaneItem,
-        'data' | 'key' | 'headerFolderPath' | 'headerFolderSegments' | 'headerKind' | 'collapseKey' | 'manualSortHeaderFilePath'
+        | 'data'
+        | 'key'
+        | 'headerFolderPath'
+        | 'headerPropertyNodeId'
+        | 'headerFolderSegments'
+        | 'headerKind'
+        | 'collapseKey'
+        | 'manualSortHeaderFilePath'
     > & {
         manualSortHeader?: ManualSortGroupHeaderData;
         groupFiles?: readonly TFile[];
@@ -380,6 +389,7 @@ function buildListItemsInternal(
             type: ListPaneItemType.HEADER,
             data,
             headerFolderPath,
+            headerPropertyNodeId,
             headerFolderSegments,
             manualSortHeaderFilePath,
             groupFilePaths: collectGroupItemCounts ? undefined : groupFiles ? groupFiles.map(file => file.path) : [],
@@ -607,12 +617,13 @@ function buildListItemsInternal(
                 return directionMultiplier * (left.bucketKey < right.bucketKey ? -1 : 1);
             });
 
-        const renderPropertyGroup = (label: string, groupFiles: TFile[], groupId: string): void => {
+        const renderPropertyGroup = (label: string, groupFiles: TFile[], groupId: string, propertyNodeId: string | null): void => {
             pushHeaderItem({
                 data: label,
                 collapseKey: createCollapseKey(groupId),
                 key: `header-${groupId}`,
                 headerKind: 'property',
+                headerPropertyNodeId: propertyNodeId,
                 groupFiles
             });
             groupFiles.forEach(file => {
@@ -623,12 +634,22 @@ function buildListItemsInternal(
         // Group ids use the bucket key rather than the display label so collapse state and item
         // counts stay stable if the label formatting changes.
         orderedPropertyGroups.forEach(group => {
-            renderPropertyGroup(group.label, group.files, `property-value:${group.bucketKey}`);
+            // Only a per-value group maps to a single tree node; a joined bucket has no single value.
+            // The id must be built the way the tree builds it: the key casefolded, and the value run
+            // through normalizePropertyTreeValuePath, which resolves a wikilink to its display text
+            // and casefolds it. Using group.label here would produce `…=Topics` against the tree's
+            // `…=topics` and the appearance lookup would silently never match.
+            const normalizedValuePath = normalizePropertyTreeValuePath(group.bucketKey);
+            const propertyNodeId =
+                propertyGroupingPerValue && normalizedValuePath
+                    ? buildPropertyValueNodeId(normalizePropertyTreeKey(propertyGroupingKey), normalizedValuePath)
+                    : null;
+            renderPropertyGroup(group.label, group.files, `property-value:${group.bucketKey}`, propertyNodeId);
         });
 
         // Files without the property collect into one trailing group, matching the Bases "None" group placement.
         if (ungroupedFiles.length > 0) {
-            renderPropertyGroup(strings.listPane.propertyGroupNoValue, ungroupedFiles, 'property-none');
+            renderPropertyGroup(strings.listPane.propertyGroupNoValue, ungroupedFiles, 'property-none', null);
         }
     } else {
         const baseFolderPath = selectedFolder?.path ?? null;

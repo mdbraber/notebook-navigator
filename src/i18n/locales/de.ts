@@ -1231,6 +1231,10 @@ export const STRINGS_DE = {
                 name: 'Tag- und Eigenschaftspillen immer anzeigen',
                 desc: 'Wenn deaktiviert, werden Pillen ausgeblendet, die der aktuellen Navigationsauswahl entsprechen (z.\u00a0B. wird die „Rezepte"-Tag-Pille beim Durchsuchen des „Rezepte"-Tags ausgeblendet). Aktivieren, um alle Pillen sichtbar zu halten.'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Gruppenköpfe pro Wert einfärben',
+                desc: 'Beim Gruppieren nach jedem Wert einer Eigenschaft übernehmen die Gruppenköpfe Symbol und Farbe dieses Werts aus dem Navigationsbaum.'
+            },
             stickyGroupHeaders: {
                 name: 'Gruppenüberschriften fixieren',
                 desc: 'Hält die aktuelle Datums-, Ordner-, Eigenschafts- oder Anheftbereichsüberschrift beim Scrollen sichtbar.'

@@ -1217,6 +1217,10 @@ export const STRINGS_ZH_TW = {
                 name: '始終顯示所有標籤和屬性標記',
                 desc: '停用時，與目前導覽選擇相符的標記會被隱藏（例如，瀏覽「食譜」標籤時，「食譜」標籤標記會被隱藏）。啟用後所有標記始終可見。'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: '為每個值的分組標題著色',
+                desc: '依屬性的每個值分組時，分組標題會從導覽樹取得該值的圖示與顏色。'
+            },
             stickyGroupHeaders: {
                 name: '固定群組標題',
                 desc: '捲動時保持目前的日期、資料夾、屬性或釘選區段的標題可見。'

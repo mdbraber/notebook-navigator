@@ -1224,6 +1224,10 @@ export const STRINGS_IT = {
                 name: 'Mostra sempre tutti i badge di tag e proprietà',
                 desc: 'Quando disattivato, i badge corrispondenti alla selezione di navigazione corrente vengono nascosti (ad es. il badge del tag "ricette" viene nascosto durante la navigazione nel tag "ricette"). Attiva per mantenere tutti i badge visibili.'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Colora le intestazioni per valore',
+                desc: "Raggruppando per ogni valore di una proprietà, le intestazioni prendono icona e colore di quel valore dall'albero di navigazione."
+            },
             stickyGroupHeaders: {
                 name: 'Intestazioni di gruppo fisse',
                 desc: "Mantieni visibile l'intestazione corrente di data, cartella, proprietà o sezione fissate mentre scorri."

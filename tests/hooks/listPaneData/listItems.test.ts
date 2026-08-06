@@ -35,6 +35,7 @@ import { createTestTFile } from '../../utils/createTestTFile';
 import { ItemType, ListPaneItemType, PINNED_SECTION_HEADER_KEY } from '../../../src/types';
 import { buildListGroupCollapseKey, buildListGroupCollapseKeyPrefix } from '../../../src/utils/listGroupCollapse';
 import { formatTextCount } from '../../../src/utils/wordCountUtils';
+import { buildPropertyValueNodeId } from '../../../src/utils/propertyTree';
 import type { ListPaneItem } from '../../../src/types/virtualization';
 
 interface FileMetadataRecord {
@@ -2369,5 +2370,31 @@ describe('per-value property grouping', () => {
         // orderedFiles keeps both appearances on purpose - that is what makes arrow keys walk each copy.
         expect(orderedFiles.map(file => file.path)).toEqual(['Dune.md', 'Dune.md']);
         expect(orderedFileIndexMap.get('Dune.md')).toBe(0);
+    });
+
+    it('tags per-value headers with the property value node id the tree would use', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]'] } }, [multi]);
+        const header = items.find(item => item.type === ListPaneItemType.HEADER);
+
+        // The tree casefolds value paths (normalizePropertyTreeValuePath), so the id carries
+        // `topics`, not the display-cased `Topics`. Building it from the label would never match.
+        expect(header?.headerPropertyNodeId).toBe(buildPropertyValueNodeId('topics', 'topics'));
+    });
+
+    it('builds the node id from the raw value, not the display label', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Fruits/Apple|Apple]]'] } }, [multi]);
+        const header = items.find(item => item.type === ListPaneItemType.HEADER);
+
+        // Display text is the alias `Apple`; the tree's value path is the casefolded display text.
+        expect(header?.data).toBe('Apple');
+        expect(header?.headerPropertyNodeId).toBe(buildPropertyValueNodeId('topics', 'apple'));
+    });
+
+    it('leaves the node id unset for joined groups and for the no-value group', () => {
+        const joined = build('property:topics', { 'Dune.md': { topics: ['[[Topics]]'] } }, [multi]);
+        expect(joined.find(item => item.type === ListPaneItemType.HEADER)?.headerPropertyNodeId ?? null).toBeNull();
+
+        const withNoValue = build('property-each:topics', {}, [single]);
+        expect(withNoValue.find(item => item.type === ListPaneItemType.HEADER)?.headerPropertyNodeId ?? null).toBeNull();
     });
 });

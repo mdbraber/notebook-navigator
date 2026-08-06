@@ -1232,6 +1232,10 @@ export const STRINGS_FR = {
                 name: 'Toujours afficher toutes les pastilles de tags et propriétés',
                 desc: 'Lorsque désactivé, les pastilles correspondant à la sélection de navigation actuelle sont masquées (par ex. la pastille du tag « recettes » est masquée lors de la navigation dans le tag « recettes »). Activer pour garder toutes les pastilles visibles.'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Colorer les en-têtes par valeur',
+                desc: "Lors du regroupement par chaque valeur d'une propriété, les en-têtes reprennent l'icône et la couleur de cette valeur depuis l'arborescence."
+            },
             stickyGroupHeaders: {
                 name: 'En-têtes de groupe épinglés',
                 desc: "Garder visible l'en-tête de section actuel (date, dossier, propriété ou épinglé) lors du défilement."

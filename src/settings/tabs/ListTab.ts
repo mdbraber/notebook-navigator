@@ -293,6 +293,10 @@ function createListAppearanceDefinitionGroup(context: SettingsTabContext): Setti
         createToggleDefinition('showSelectedNavigationPills', {
             name: strings.settings.items.showSelectedNavigationPills.name,
             desc: strings.settings.items.showSelectedNavigationPills.desc
+        }),
+        createToggleDefinition('inheritPropertyValueHeaderAppearance', {
+            name: strings.settings.items.inheritPropertyValueHeaderAppearance.name,
+            desc: strings.settings.items.inheritPropertyValueHeaderAppearance.desc
         })
     );
 

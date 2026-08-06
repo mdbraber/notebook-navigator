@@ -1228,6 +1228,10 @@ export const STRINGS_ID = {
                 name: 'Selalu tampilkan semua pil tag dan properti',
                 desc: 'Saat dinonaktifkan, pil yang cocok dengan pilihan navigasi saat ini disembunyikan (misalnya, pil tag "resep" disembunyikan saat menelusuri tag "resep"). Aktifkan untuk menampilkan semua pil.'
             },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Warnai header per nilai',
+                desc: 'Saat mengelompokkan per nilai properti, header grup mengambil ikon dan warna nilai tersebut dari pohon navigasi.'
+            },
             stickyGroupHeaders: {
                 name: 'Header grup tetap',
                 desc: 'Jaga header bagian tanggal, folder, properti, atau yang disematkan saat ini tetap terlihat saat menggulir.'
