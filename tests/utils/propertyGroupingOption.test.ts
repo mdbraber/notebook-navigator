@@ -54,12 +54,18 @@ describe('per-value property grouping options', () => {
         }
     });
 
-    it('does not mistake property-each for the plain or desc form', () => {
-        // Every prefix starts with "property", so a naive startsWith order would classify
-        // property-each-desc: as the plain ascending form with key "each-desc:topics".
+    it('correctly parses the three per-value forms (property-each, property-each-desc, property-each-follow)', () => {
+        expect(getPropertyGroupingKey('property-each:topics')).toBe('topics');
+        expect(getPropertyGroupingPerValue('property-each:topics')).toBe(true);
+        expect(getPropertyGroupingOrder('property-each:topics')).toBe('asc');
+
         expect(getPropertyGroupingKey('property-each-desc:topics')).toBe('topics');
         expect(getPropertyGroupingPerValue('property-each-desc:topics')).toBe(true);
         expect(getPropertyGroupingOrder('property-each-desc:topics')).toBe('desc');
+
+        expect(getPropertyGroupingKey('property-each-follow:topics')).toBe('topics');
+        expect(getPropertyGroupingPerValue('property-each-follow:topics')).toBe(true);
+        expect(getPropertyGroupingOrder('property-each-follow:topics')).toBe('follow');
     });
 
     it('keeps keys that contain a colon intact', () => {

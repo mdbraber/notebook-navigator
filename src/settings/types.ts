@@ -459,16 +459,17 @@ function isListNoteGroupingBaseOption(value: unknown): value is ListNoteGrouping
     return value === 'custom' || value === 'date' || value === 'folder';
 }
 
-// Ordered longest-prefix-first. Every prefix starts with `property`, so a shorter prefix tested
-// first would swallow a longer one and put the remainder into the key.
-const PROPERTY_GROUPING_PREFIXES: readonly { prefix: string; order: PropertyGroupingOrder; perValue: boolean }[] = [
+// The six prefixes are mutually prefix-independent: each one diverges from the others
+// at an early position, so no prefix is a prefix of another. This makes the table order
+// for readability only; any order would yield identical parse results.
+const PROPERTY_GROUPING_PREFIXES = [
     { prefix: PROPERTY_GROUPING_EACH_FOLLOW_PREFIX, order: 'follow', perValue: true },
     { prefix: PROPERTY_GROUPING_EACH_DESC_PREFIX, order: 'desc', perValue: true },
     { prefix: PROPERTY_GROUPING_EACH_PREFIX, order: 'asc', perValue: true },
     { prefix: PROPERTY_GROUPING_FOLLOW_PREFIX, order: 'follow', perValue: false },
     { prefix: PROPERTY_GROUPING_DESC_PREFIX, order: 'desc', perValue: false },
     { prefix: PROPERTY_GROUPING_PREFIX, order: 'asc', perValue: false }
-];
+] as const;
 
 function parsePropertyGroupingOption(value: unknown): { propertyKey: string; order: PropertyGroupingOrder; perValue: boolean } | null {
     if (typeof value !== 'string') {
@@ -507,7 +508,7 @@ export function createPropertyGroupingOption(
     const match = PROPERTY_GROUPING_PREFIXES.find(candidate => candidate.order === order && candidate.perValue === perValue);
     // The table covers every order/perValue pair, so this cannot be reached.
     const prefix = match?.prefix ?? PROPERTY_GROUPING_PREFIX;
-    return `${prefix}${propertyKey.trim()}` as ListNoteGroupingOption;
+    return `${prefix}${propertyKey.trim()}`;
 }
 
 /** Validates a base grouping mode, mapping the legacy `none` value to `custom`. */
