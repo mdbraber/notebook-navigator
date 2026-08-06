@@ -30,7 +30,8 @@ import {
     isDateSortOption,
     isPropertySortOption
 } from '../../utils/sortUtils';
-import { getPropertyGroupingKey } from '../../settings/types';
+import { getPropertyGroupingKey, getPropertyGroupingPerValue } from '../../settings/types';
+import { resolvePropertyDisplayText } from '../../utils/propertyUtils';
 import { resolvePropertyGroupingDirection } from '../../utils/listGrouping';
 import { partitionPinnedFiles } from '../../utils/fileFinder';
 import {
@@ -118,6 +119,11 @@ interface BuildListItemsResult extends ListGroupItemCountData {
 
 const EMPTY_GROUP_ITEM_COUNT_BY_KEY = new Map<string, number>();
 const EMPTY_MANUAL_SORT_GROUP_HEADER_FILE_BY_MEMBER_PATH = new Map<string, TFile>();
+
+// Joins the parts of a multi-value property into one bucket key. A NUL cannot appear in a trimmed
+// frontmatter value, so lists with different element boundaries such as ["a b", "c"] and ["a", "b c"]
+// cannot collide on the same key.
+const JOINED_BUCKET_SEPARATOR = String.fromCharCode(0);
 
 function splitFolderPath(path: string): string[] {
     return path.split('/').filter(Boolean);
@@ -530,6 +536,7 @@ function buildListItemsInternal(
         // trimmed part values, so lists with different element boundaries such as ["a b", "c"] and
         // ["a", "b c"] stay in separate groups.
         const propertyGroupingDirection = resolvePropertyGroupingDirection(groupingMode, sortOption);
+        const propertyGroupingPerValue = getPropertyGroupingPerValue(groupingMode);
         const propertyGroups = new Map<string, { label: string; numericValue: number | null; files: TFile[] }>();
         const ungroupedFiles: TFile[] = [];
 
@@ -543,19 +550,28 @@ function buildListItemsInternal(
                 return;
             }
 
-            const bucketKey = groupingValue.parts.join('\u0000');
-            const group = propertyGroups.get(bucketKey);
-            if (group) {
-                group.files.push(file);
-                return;
-            }
+            // Per-value grouping emits one bucket per part, so a note carrying several values
+            // appears under each of them. The joined form keeps its single bucket, where the
+            // separator cannot occur in trimmed parts so lists with different element boundaries
+            // such as ["a b", "c"] and ["a", "b c"] stay apart.
+            const bucketParts = propertyGroupingPerValue
+                ? Array.from(new Set(groupingValue.parts))
+                : [groupingValue.parts.join(JOINED_BUCKET_SEPARATOR)];
 
-            // The first file to create a bucket decides whether the group carries a numeric key,
-            // matching how the first encountered value becomes the group key in Obsidian Bases.
-            propertyGroups.set(bucketKey, {
-                label: groupingValue.parts.join(', '),
-                numericValue: groupingValue.numericValue,
-                files: [file]
+            bucketParts.forEach(bucketKey => {
+                const group = propertyGroups.get(bucketKey);
+                if (group) {
+                    group.files.push(file);
+                    return;
+                }
+
+                // The first file to create a bucket decides whether the group carries a numeric key,
+                // matching how the first encountered value becomes the group key in Obsidian Bases.
+                propertyGroups.set(bucketKey, {
+                    label: propertyGroupingPerValue ? resolvePropertyDisplayText(bucketKey) : groupingValue.parts.join(', '),
+                    numericValue: groupingValue.numericValue,
+                    files: [file]
+                });
             });
         });
 

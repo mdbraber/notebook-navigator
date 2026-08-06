@@ -2248,3 +2248,100 @@ describe('buildListItems property grouping', () => {
         expect(soloHeader?.groupFilePaths).toEqual([singleList.path, scalar.path]);
     });
 });
+
+describe('per-value property grouping', () => {
+    // buildListItems reads grouping values straight from the metadata cache, so the stub returns
+    // frontmatter per path rather than going through the database records.
+    function createFrontmatterApp(frontmatterByPath: Record<string, Record<string, unknown>>): App {
+        const app = new App();
+        app.metadataCache.getFileCache = (file: TFile) => {
+            const frontmatter = frontmatterByPath[file.path];
+            return frontmatter ? { frontmatter } : null;
+        };
+        return app;
+    }
+
+    function headerLabels(items: ListPaneItem[]): string[] {
+        return items
+            .filter(item => item.type === ListPaneItemType.HEADER && typeof item.data === 'string')
+            .map(item => item.data as string);
+    }
+
+    function filePathsUnderHeaders(items: ListPaneItem[]): Record<string, string[]> {
+        const byHeader: Record<string, string[]> = {};
+        let current: string | null = null;
+        for (const item of items) {
+            if (item.type === ListPaneItemType.HEADER && typeof item.data === 'string') {
+                current = item.data;
+                byHeader[current] = [];
+            } else if (item.type === ListPaneItemType.FILE && item.data instanceof TFile && current !== null) {
+                byHeader[current].push(item.data.path);
+            }
+        }
+        return byHeader;
+    }
+
+    const multi = createTestTFile('Dune.md');
+    const single = createTestTFile('PKM.md');
+
+    function build(groupBy: string, frontmatter: Record<string, Record<string, unknown>>, files: TFile[]) {
+        const db = createDb({});
+        return buildListItems({
+            app: createFrontmatterApp(frontmatter),
+            dayKey: '2026-03-07',
+            fileVisibility: FILE_VISIBILITY.DOCUMENTS,
+            files,
+            getDB: () => db,
+            getFileTimestamps: () => ({ created: 0, modified: 0 }),
+            hiddenFileState: new Map(),
+            hiddenTags: [],
+            listConfig: { ...createListConfig({}), groupBy: groupBy as ListPaneConfig['groupBy'] },
+            searchMetaMap: new Map(),
+            selectedFolder: null,
+            selectionType: ItemType.FOLDER,
+            showHiddenItems: false,
+            sortOption: 'title-asc'
+        });
+    }
+
+    it('puts a note under every value it carries', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+
+        expect(headerLabels(items)).toEqual(['Projects', 'Topics']);
+        expect(filePathsUnderHeaders(items)).toEqual({ Projects: ['Dune.md'], Topics: ['Dune.md'] });
+    });
+
+    it('keeps the joined bucket for the original option', () => {
+        const items = build('property:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+
+        expect(headerLabels(items)).toEqual(['[[Topics]], [[Projects]]']);
+    });
+
+    it('labels wikilink values with their display text and plain values verbatim', () => {
+        const items = build('property-each:status', { 'PKM.md': { status: 'draft' } }, [single]);
+
+        expect(headerLabels(items)).toEqual(['draft']);
+    });
+
+    it('shows a note once when it repeats a value', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Topics]]'] } }, [multi]);
+
+        expect(headerLabels(items)).toEqual(['Topics']);
+        expect(filePathsUnderHeaders(items).Topics).toEqual(['Dune.md']);
+    });
+
+    it('still collects notes without the property into one trailing group', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]'] } }, [multi, single]);
+        const labels = headerLabels(items);
+
+        expect(labels[0]).toBe('Topics');
+        expect(labels).toHaveLength(2);
+        expect(filePathsUnderHeaders(items)[labels[1]]).toEqual(['PKM.md']);
+    });
+
+    it('orders per-value groups descending for the -desc form', () => {
+        const items = build('property-each-desc:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+
+        expect(headerLabels(items)).toEqual(['Topics', 'Projects']);
+    });
+});
