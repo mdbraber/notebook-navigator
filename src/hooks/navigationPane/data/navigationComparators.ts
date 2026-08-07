@@ -17,12 +17,12 @@
  */
 
 import type { TagSortOrder } from '../../../settings/types';
-import type { PropertyTreeNode, TagTreeNode } from '../../../types/storage';
+import type { PropertyTreeNode, PropertyNodeComparator, TagTreeNode } from '../../../types/storage';
 import { naturalCompare } from '../../../utils/sortUtils';
 import { getTotalNoteCount } from '../../../utils/tagTree';
+export type { PropertyNodeComparator } from '../../../types/storage';
 
 export type TagComparator = (a: TagTreeNode, b: TagTreeNode) => number;
-export type PropertyNodeComparator = (a: PropertyTreeNode, b: PropertyTreeNode) => number;
 type NavigationComparator<T> = (a: T, b: T) => number;
 
 function reverseComparator<T>(comparator: NavigationComparator<T>): NavigationComparator<T> {

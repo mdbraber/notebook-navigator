@@ -56,3 +56,5 @@ export interface PropertyTreeNode {
     /** Set of file paths that have this exact key/value (key nodes include any value for the key). */
     notesWithValue: Set<string>;
 }
+
+export type PropertyNodeComparator = (a: PropertyTreeNode, b: PropertyTreeNode) => number;

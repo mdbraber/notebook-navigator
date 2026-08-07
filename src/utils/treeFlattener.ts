@@ -19,7 +19,7 @@
 import { TFolder } from 'obsidian';
 import { compareByAlphaSortOrder, naturalCompare, resolveFolderChildSortOrder } from './sortUtils';
 import { NavigationPaneItemType } from '../types';
-import { PropertyTreeNode, TagTreeNode } from '../types/storage';
+import { PropertyTreeNode, TagTreeNode, type PropertyNodeComparator } from '../types/storage';
 import type { FolderTreeItem, TagTreeItem, PropertyValueTreeItem } from '../types/virtualization';
 import { isFolderInExcludedFolder } from './fileFilters';
 import { matchesHiddenTagPattern, HiddenTagMatcher } from './tagPrefixMatcher';
@@ -476,8 +476,8 @@ interface FlattenPropertyHierarchyParams {
     level: number;
     /** Levels of nesting below the roots. A backstop against pathological data, not a style choice. */
     maxDepth: number;
-    comparator: (a: PropertyTreeNode, b: PropertyTreeNode) => number;
-    getChildComparator?: (parentNodeId: string) => ((a: PropertyTreeNode, b: PropertyTreeNode) => number) | undefined;
+    comparator: PropertyNodeComparator;
+    getChildComparator?: (parentNodeId: string) => PropertyNodeComparator | undefined;
 }
 
 /**
