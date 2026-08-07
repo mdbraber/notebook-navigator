@@ -385,7 +385,8 @@ export const STRINGS_PL = {
             addKey: 'Konfiguruj klucze atrybutów',
             renameKey: 'Zmień nazwę atrybutu',
             deleteKey: 'Usuń atrybut',
-            createPropertyNote: 'Utwórz notatkę atrybutu'
+            createPropertyNote: 'Utwórz notatkę atrybutu',
+            hierarchical: 'Hierarchiczny'
         },
         navigation: {
             addSeparator: 'Dodaj separator',
@@ -2324,6 +2325,11 @@ export const STRINGS_PL = {
             scopePropertiesToCurrentContext: {
                 name: 'Filtruj atrybuty według wyboru',
                 desc: 'Pokaż tylko atrybuty występujące w notatkach w wybranym folderze lub tagu.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'Maksymalna głębokość hierarchii',
+                desc: 'Ile poziomów zagnieżdża atrybut hierarchiczny poniżej swoich wartości najwyższego poziomu. Limit bezpieczeństwa; większość sejfów nigdy go nie osiąga.',
+                resetTooltip: 'Przywróć domyślną maksymalną głębokość hierarchii'
             },
             hiddenTags: {
                 name: 'Ukryj tagi (profil sejfu)',

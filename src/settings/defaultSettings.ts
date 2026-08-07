@@ -297,6 +297,8 @@ export const DEFAULT_SETTINGS: NotebookNavigatorSettings = {
     propertySortOrder: 'alpha-asc',
     showAllPropertiesFolder: true,
     scopePropertiesToCurrentContext: false,
+    propertyHierarchicalKeys: {},
+    propertyHierarchyMaxDepth: 10,
     enablePropertyNotes: false,
     enablePropertyNoteLinks: true,
     propertyNoteOpenLocation: 'current-tab',

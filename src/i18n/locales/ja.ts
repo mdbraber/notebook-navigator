@@ -384,7 +384,8 @@ export const STRINGS_JA = {
             addKey: 'プロパティキーを設定',
             renameKey: 'プロパティの名前を変更',
             deleteKey: 'プロパティを削除',
-            createPropertyNote: 'プロパティノートを作成'
+            createPropertyNote: 'プロパティノートを作成',
+            hierarchical: '階層化'
         },
         navigation: {
             addSeparator: '区切り線を追加',
@@ -2318,6 +2319,11 @@ export const STRINGS_JA = {
             scopePropertiesToCurrentContext: {
                 name: '選択内容でプロパティを絞り込む',
                 desc: '選択したフォルダーまたはタグ内のノートに含まれるプロパティのみ表示します。'
+            },
+            propertyHierarchyMaxDepth: {
+                name: '階層の最大深度',
+                desc: '階層プロパティが上位の値の下に何階層までネストするかを設定します。安全のための上限であり、ほとんどのボールトはこの上限に達しません。',
+                resetTooltip: '階層の最大深度をデフォルトにリセット'
             },
             hiddenTags: {
                 name: 'タグを非表示 (ボルトプロファイル)',

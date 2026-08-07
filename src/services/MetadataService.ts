@@ -385,6 +385,18 @@ export class MetadataService {
         return this.propertyService.getPropertyChildSortOrderOverride(nodeId);
     }
 
+    async setPropertyHierarchicalKey(key: string): Promise<void> {
+        return this.propertyService.setPropertyHierarchicalKey(key);
+    }
+
+    async removePropertyHierarchicalKey(key: string): Promise<void> {
+        return this.propertyService.removePropertyHierarchicalKey(key);
+    }
+
+    getPropertyHierarchicalKey(key: string): boolean {
+        return this.propertyService.getPropertyHierarchicalKey(key);
+    }
+
     // ========== Navigation Separator Methods ==========
 
     getNavigationSeparators(): Record<string, boolean> {

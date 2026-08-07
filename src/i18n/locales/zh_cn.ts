@@ -383,7 +383,8 @@ export const STRINGS_ZH_CN = {
             addKey: '配置属性键',
             renameKey: '重命名属性',
             deleteKey: '删除属性',
-            createPropertyNote: '创建属性笔记'
+            createPropertyNote: '创建属性笔记',
+            hierarchical: '层级显示'
         },
         navigation: {
             addSeparator: '添加分隔符',
@@ -2305,6 +2306,11 @@ export const STRINGS_ZH_CN = {
             scopePropertiesToCurrentContext: {
                 name: '按选择筛选属性',
                 desc: '仅显示所选文件夹或标签中笔记包含的属性。'
+            },
+            propertyHierarchyMaxDepth: {
+                name: '最大层级深度',
+                desc: '层级属性在其顶层值下方嵌套的层级数。这是一个安全上限；大多数仓库都不会达到该上限。',
+                resetTooltip: '将最大层级深度重置为默认值'
             },
             hiddenTags: {
                 name: '隐藏标签 (库配置)',

@@ -386,7 +386,8 @@ export const STRINGS_PT_BR = {
             addKey: 'Configurar chaves de propriedade',
             renameKey: 'Renomear propriedade',
             deleteKey: 'Excluir propriedade',
-            createPropertyNote: 'Criar nota de propriedade'
+            createPropertyNote: 'Criar nota de propriedade',
+            hierarchical: 'Hierárquico'
         },
         navigation: {
             addSeparator: 'Adicionar separador',
@@ -2324,6 +2325,11 @@ export const STRINGS_PT_BR = {
             scopePropertiesToCurrentContext: {
                 name: 'Filtrar propriedades por seleção',
                 desc: 'Mostrar apenas propriedades que aparecem em notas na pasta ou tag selecionada.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'Profundidade máxima da hierarquia',
+                desc: 'Quantos níveis uma propriedade hierárquica aninha abaixo dos seus valores de nível superior. Um limite de segurança; a maioria dos cofres nunca o atinge.',
+                resetTooltip: 'Redefinir a profundidade máxima da hierarquia para o padrão'
             },
             hiddenTags: {
                 name: 'Ocultar tags (perfil do cofre)',

@@ -385,7 +385,8 @@ export const STRINGS_TR = {
             addKey: 'Özellik anahtarlarını yapılandır',
             renameKey: 'Özelliği yeniden adlandır',
             deleteKey: 'Özelliği sil',
-            createPropertyNote: 'Özellik notu oluştur'
+            createPropertyNote: 'Özellik notu oluştur',
+            hierarchical: 'Hiyerarşik'
         },
         navigation: {
             addSeparator: 'Ayırıcı ekle',
@@ -2318,6 +2319,11 @@ export const STRINGS_TR = {
             scopePropertiesToCurrentContext: {
                 name: 'Özellikleri seçime göre filtrele',
                 desc: 'Yalnızca seçili klasör veya etiketteki notlarda bulunan özellikleri göster.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'Maksimum hiyerarşi derinliği',
+                desc: 'Hiyerarşik bir özelliğin üst düzey değerlerinin altında kaç düzey iç içe yerleştirdiği. Bir güvenlik sınırıdır; çoğu kasa buna asla ulaşmaz.',
+                resetTooltip: 'Maksimum hiyerarşi derinliğini varsayılana sıfırla'
             },
             hiddenTags: {
                 name: 'Etiketleri gizle (kasa profili)',

@@ -385,7 +385,8 @@ export const STRINGS_ES = {
             addKey: 'Configurar claves de propiedad',
             renameKey: 'Renombrar propiedad',
             deleteKey: 'Eliminar propiedad',
-            createPropertyNote: 'Crear nota de propiedad'
+            createPropertyNote: 'Crear nota de propiedad',
+            hierarchical: 'Jerárquico'
         },
         navigation: {
             addSeparator: 'Agregar separador',
@@ -2323,6 +2324,11 @@ export const STRINGS_ES = {
             scopePropertiesToCurrentContext: {
                 name: 'Filtrar propiedades por selección',
                 desc: 'Mostrar solo propiedades que aparecen en notas dentro de la carpeta o etiqueta seleccionada.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'Profundidad máxima de la jerarquía',
+                desc: 'Cuántos niveles anida una propiedad jerárquica por debajo de sus valores de nivel superior. Un límite de seguridad; la mayoría de las bóvedas nunca lo alcanzan.',
+                resetTooltip: 'Restablecer la profundidad máxima de la jerarquía al valor predeterminado'
             },
             hiddenTags: {
                 name: 'Ocultar etiquetas (perfil de bóveda)',

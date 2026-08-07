@@ -384,7 +384,8 @@ export const STRINGS_VI = {
             addKey: 'Cấu hình khóa thuộc tính',
             renameKey: 'Đổi tên thuộc tính',
             deleteKey: 'Xóa thuộc tính',
-            createPropertyNote: 'Tạo ghi chú thuộc tính'
+            createPropertyNote: 'Tạo ghi chú thuộc tính',
+            hierarchical: 'Phân cấp'
         },
         navigation: {
             addSeparator: 'Thêm dấu phân cách',
@@ -2321,6 +2322,11 @@ export const STRINGS_VI = {
             scopePropertiesToCurrentContext: {
                 name: 'Lọc thuộc tính theo lựa chọn',
                 desc: 'Chỉ hiển thị thuộc tính xuất hiện trong ghi chú thuộc thư mục hoặc thẻ đã chọn.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'Độ sâu phân cấp tối đa',
+                desc: 'Số cấp mà một thuộc tính phân cấp lồng bên dưới các giá trị cấp cao nhất của nó. Giới hạn an toàn; hầu hết các vault không bao giờ đạt đến mức này.',
+                resetTooltip: 'Đặt lại độ sâu phân cấp tối đa về mặc định'
             },
             hiddenTags: {
                 name: 'Ẩn thẻ (hồ sơ vault)',

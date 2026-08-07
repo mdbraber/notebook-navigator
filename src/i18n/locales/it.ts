@@ -384,7 +384,8 @@ export const STRINGS_IT = {
             addKey: 'Configura chiavi proprietà',
             renameKey: 'Rinomina proprietà',
             deleteKey: 'Elimina proprietà',
-            createPropertyNote: 'Crea nota proprietà'
+            createPropertyNote: 'Crea nota proprietà',
+            hierarchical: 'Gerarchico'
         },
         navigation: {
             addSeparator: 'Aggiungi separatore',
@@ -2319,6 +2320,11 @@ export const STRINGS_IT = {
             scopePropertiesToCurrentContext: {
                 name: 'Filtra proprietà per selezione',
                 desc: 'Mostra solo le proprietà presenti nelle note nella cartella o tag selezionato.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'Profondità massima della gerarchia',
+                desc: 'Quanti livelli annida una proprietà gerarchica sotto i suoi valori di primo livello. Un limite di sicurezza; la maggior parte dei vault non lo raggiunge mai.',
+                resetTooltip: 'Ripristina la profondità massima della gerarchia al valore predefinito'
             },
             hiddenTags: {
                 name: 'Nascondi tag (profilo vault)',

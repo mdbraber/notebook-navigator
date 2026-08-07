@@ -386,7 +386,8 @@ export const STRINGS_FR = {
             addKey: 'Configurer les clés de propriété',
             renameKey: 'Renommer la propriété',
             deleteKey: 'Supprimer la propriété',
-            createPropertyNote: 'Créer une note de propriété'
+            createPropertyNote: 'Créer une note de propriété',
+            hierarchical: 'Hiérarchique'
         },
         navigation: {
             addSeparator: 'Ajouter un séparateur',
@@ -2327,6 +2328,11 @@ export const STRINGS_FR = {
             scopePropertiesToCurrentContext: {
                 name: 'Filtrer les propriétés par sélection',
                 desc: "Afficher uniquement les propriétés présentes dans les notes du dossier ou de l'étiquette sélectionnée."
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'Profondeur maximale de la hiérarchie',
+                desc: "Nombre de niveaux qu'une propriété hiérarchique imbrique sous ses valeurs de premier niveau. Une limite de sécurité ; la plupart des coffres ne l'atteignent jamais.",
+                resetTooltip: 'Réinitialiser la profondeur maximale de la hiérarchie à la valeur par défaut'
             },
             hiddenTags: {
                 name: 'Masquer les étiquettes (profil du coffre)',

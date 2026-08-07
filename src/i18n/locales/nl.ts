@@ -387,7 +387,8 @@ export const STRINGS_NL = {
             addKey: 'Eigenschapssleutels configureren',
             renameKey: 'Eigenschap hernoemen',
             deleteKey: 'Eigenschap verwijderen',
-            createPropertyNote: 'Eigenschapsnotitie maken'
+            createPropertyNote: 'Eigenschapsnotitie maken',
+            hierarchical: 'Hiërarchisch'
         },
         navigation: {
             addSeparator: 'Scheidingslijn toevoegen',
@@ -2323,6 +2324,11 @@ export const STRINGS_NL = {
             scopePropertiesToCurrentContext: {
                 name: 'Eigenschappen filteren op selectie',
                 desc: 'Alleen eigenschappen tonen die voorkomen in notities in de geselecteerde map of tag.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'Maximale hiërarchiediepte',
+                desc: 'Hoeveel niveaus een hiërarchische eigenschap nest onder de waarden op het hoogste niveau. Een veiligheidslimiet; de meeste kluizen bereiken deze nooit.',
+                resetTooltip: 'Maximale hiërarchiediepte herstellen naar standaard'
             },
             hiddenTags: {
                 name: 'Tags verbergen (kluisprofiel)',

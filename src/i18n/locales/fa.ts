@@ -384,7 +384,8 @@ export const STRINGS_FA = {
             addKey: 'پیکربندی کلیدهای ویژگی',
             renameKey: 'تغییر نام ویژگی',
             deleteKey: 'حذف ویژگی',
-            createPropertyNote: 'ایجاد یادداشت ویژگی'
+            createPropertyNote: 'ایجاد یادداشت ویژگی',
+            hierarchical: 'سلسله‌مراتبی'
         },
         navigation: {
             addSeparator: 'افزودن جداکننده',
@@ -2320,6 +2321,11 @@ export const STRINGS_FA = {
             scopePropertiesToCurrentContext: {
                 name: 'فیلتر ویژگی‌ها بر اساس انتخاب',
                 desc: 'فقط ویژگی‌هایی را نشان دهید که در یادداشت‌های پوشه یا برچسب انتخاب‌شده وجود دارند.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'حداکثر عمق سلسله‌مراتب',
+                desc: 'ویژگی سلسله‌مراتبی چند سطح زیر مقادیر سطح بالای خود تودرتو می‌شود. یک محدودیت ایمنی؛ بیشتر Vaultها هرگز به آن نمی‌رسند.',
+                resetTooltip: 'بازنشانی حداکثر عمق سلسله‌مراتب به پیش‌فرض'
             },
             hiddenTags: {
                 name: 'مخفی کردن برچسب‌ها (پروفایل خزانه)',

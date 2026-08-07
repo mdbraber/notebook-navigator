@@ -769,6 +769,10 @@ export interface NotebookNavigatorSettings {
     propertySortOrder: TagSortOrder;
     showAllPropertiesFolder: boolean;
     scopePropertiesToCurrentContext: boolean;
+    /** Normalized property keys whose values render as a nested hierarchy. */
+    propertyHierarchicalKeys: Record<string, boolean>;
+    /** Levels of nesting a hierarchical property renders below its roots. A backstop. */
+    propertyHierarchyMaxDepth: number;
     enablePropertyNotes: boolean;
     enablePropertyNoteLinks: boolean;
     propertyNoteOpenLocation: PropertyNoteOpenLocation;

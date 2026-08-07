@@ -384,7 +384,8 @@ export const STRINGS_ZH_TW = {
             addKey: '設定屬性鍵',
             renameKey: '重新命名屬性',
             deleteKey: '刪除屬性',
-            createPropertyNote: '建立屬性筆記'
+            createPropertyNote: '建立屬性筆記',
+            hierarchical: '階層顯示'
         },
         navigation: {
             addSeparator: '新增分隔線',
@@ -2306,6 +2307,11 @@ export const STRINGS_ZH_TW = {
             scopePropertiesToCurrentContext: {
                 name: '依選擇篩選屬性',
                 desc: '僅顯示所選資料夾或標籤中筆記包含的屬性。'
+            },
+            propertyHierarchyMaxDepth: {
+                name: '最大階層深度',
+                desc: '階層屬性在其頂層值下方巢狀的層級數。這是一個安全上限；大多數儲存庫都不會達到該上限。',
+                resetTooltip: '將最大階層深度重設為預設值'
             },
             hiddenTags: {
                 name: '隱藏標籤（保險庫設定檔）',

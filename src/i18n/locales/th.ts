@@ -384,7 +384,8 @@ export const STRINGS_TH = {
             addKey: 'กำหนดค่าคีย์คุณสมบัติ',
             renameKey: 'เปลี่ยนชื่อคุณสมบัติ',
             deleteKey: 'ลบคุณสมบัติ',
-            createPropertyNote: 'สร้างโน้ตคุณสมบัติ'
+            createPropertyNote: 'สร้างโน้ตคุณสมบัติ',
+            hierarchical: 'แบบลำดับชั้น'
         },
         navigation: {
             addSeparator: 'เพิ่มตัวคั่น',
@@ -2312,6 +2313,11 @@ export const STRINGS_TH = {
             scopePropertiesToCurrentContext: {
                 name: 'กรองคุณสมบัติตามการเลือก',
                 desc: 'แสดงเฉพาะคุณสมบัติที่ปรากฏในโน้ตภายในโฟลเดอร์หรือแท็กที่เลือก'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'ความลึกสูงสุดของลำดับชั้น',
+                desc: 'จำนวนระดับที่คุณสมบัติแบบลำดับชั้นซ้อนอยู่ใต้ค่าระดับบนสุด เป็นขีดจำกัดด้านความปลอดภัย คลังส่วนใหญ่ไม่เคยไปถึงระดับนี้',
+                resetTooltip: 'รีเซ็ตความลึกสูงสุดของลำดับชั้นเป็นค่าเริ่มต้น'
             },
             hiddenTags: {
                 name: 'ซ่อนแท็ก (โปรไฟล์ห้องนิรภัย)',

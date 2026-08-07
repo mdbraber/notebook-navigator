@@ -26,9 +26,10 @@ import {
     createConfiguredPropertyNodeValidator,
     getPropertyKeyNodeIdFromNodeId,
     normalizePropertyKeyNodeId,
-    normalizePropertyNodeId
+    normalizePropertyNodeId,
+    normalizePropertyTreeKey
 } from '../../utils/propertyTree';
-import { casefold } from '../../utils/recordUtils';
+import { casefold, ensureRecord, isBooleanRecordValue, sanitizeRecord } from '../../utils/recordUtils';
 import { getActivePropertyFields } from '../../utils/vaultProfiles';
 import { BaseMetadataService, type MetadataCleanupResult } from './BaseMetadataService';
 
@@ -212,6 +213,49 @@ export class PropertyMetadataService extends BaseMetadataService {
         }
 
         return this.getEntityChildSortOrderOverride(ItemType.PROPERTY, keyNodeId);
+    }
+
+    async setPropertyHierarchicalKey(key: string): Promise<void> {
+        const normalizedKey = normalizePropertyTreeKey(key);
+        if (!normalizedKey) {
+            return Promise.resolve();
+        }
+
+        return this.saveAndUpdate(settings => {
+            const record = ensureRecord(settings.propertyHierarchicalKeys, isBooleanRecordValue);
+            const next = sanitizeRecord(record, isBooleanRecordValue);
+            next[normalizedKey] = true;
+            settings.propertyHierarchicalKeys = next;
+        });
+    }
+
+    async removePropertyHierarchicalKey(key: string): Promise<void> {
+        const normalizedKey = normalizePropertyTreeKey(key);
+        if (!normalizedKey) {
+            return Promise.resolve();
+        }
+
+        const current = this.settingsProvider.settings.propertyHierarchicalKeys;
+        if (!current || !Object.prototype.hasOwnProperty.call(current, normalizedKey)) {
+            return Promise.resolve();
+        }
+
+        return this.saveAndUpdate(settings => {
+            const record = ensureRecord(settings.propertyHierarchicalKeys, isBooleanRecordValue);
+            const next = sanitizeRecord(record, isBooleanRecordValue);
+            delete next[normalizedKey];
+            settings.propertyHierarchicalKeys = next;
+        });
+    }
+
+    getPropertyHierarchicalKey(key: string): boolean {
+        const normalizedKey = normalizePropertyTreeKey(key);
+        if (!normalizedKey) {
+            return false;
+        }
+
+        const record = this.settingsProvider.settings.propertyHierarchicalKeys;
+        return record ? record[normalizedKey] === true : false;
     }
 
     private createPropertyNodeValidator(

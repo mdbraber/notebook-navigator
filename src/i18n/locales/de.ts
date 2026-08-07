@@ -385,7 +385,8 @@ export const STRINGS_DE = {
             addKey: 'Eigenschaftsschlüssel konfigurieren',
             renameKey: 'Eigenschaft umbenennen',
             deleteKey: 'Eigenschaft löschen',
-            createPropertyNote: 'Eigenschaftsnotiz erstellen'
+            createPropertyNote: 'Eigenschaftsnotiz erstellen',
+            hierarchical: 'Hierarchisch'
         },
         navigation: {
             addSeparator: 'Trennlinie hinzufügen',
@@ -2325,6 +2326,11 @@ export const STRINGS_DE = {
             scopePropertiesToCurrentContext: {
                 name: 'Eigenschaften nach Auswahl filtern',
                 desc: 'Nur Eigenschaften anzeigen, die in Notizen im ausgewählten Ordner oder dem ausgewählten Tag vorkommen.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'Maximale Hierarchietiefe',
+                desc: 'Wie viele Ebenen eine hierarchische Eigenschaft unterhalb ihrer obersten Werte verschachtelt. Eine Sicherheitsgrenze; die meisten Tresore erreichen sie nie.',
+                resetTooltip: 'Maximale Hierarchietiefe auf Standard zurücksetzen'
             },
             hiddenTags: {
                 name: 'Tags verstecken (Tresorprofil)',

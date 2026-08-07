@@ -427,6 +427,20 @@ export function buildPropertyMenu(params: PropertyMenuBuilderParams): void {
         });
     }
 
+    if (propertyKey !== null) {
+        const isHierarchical = metadataService.getPropertyHierarchicalKey(propertyKey);
+        menu.addItem((item: MenuItem) => {
+            item.setTitle(strings.contextMenu.property.hierarchical).setIcon('lucide-list-tree').setChecked(isHierarchical);
+            setAsyncOnClick(item, async () => {
+                if (isHierarchical) {
+                    await metadataService.removePropertyHierarchicalKey(propertyKey);
+                    return;
+                }
+                await metadataService.setPropertyHierarchicalKey(propertyKey);
+            });
+        });
+    }
+
     const canManagePropertyKey = propertyNode?.kind === 'key' && propertyNode.notesWithValue.size > 0;
     const addedMenuExtensions =
         services.plugin.api?.[INTERNAL_NOTEBOOK_NAVIGATOR_API].menus.applyPropertyMenuExtensions({ menu, nodeId: normalizedNodeId }) ?? 0;

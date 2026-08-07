@@ -385,7 +385,8 @@ export const STRINGS_ID = {
             addKey: 'Konfigurasi kunci properti',
             renameKey: 'Ubah nama properti',
             deleteKey: 'Hapus properti',
-            createPropertyNote: 'Buat catatan properti'
+            createPropertyNote: 'Buat catatan properti',
+            hierarchical: 'Hierarkis'
         },
         navigation: {
             addSeparator: 'Tambah pemisah',
@@ -2320,6 +2321,11 @@ export const STRINGS_ID = {
             scopePropertiesToCurrentContext: {
                 name: 'Filter properti berdasarkan pilihan',
                 desc: 'Hanya tampilkan properti yang muncul di catatan dalam folder atau tag yang dipilih.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'Kedalaman hierarki maksimum',
+                desc: 'Berapa banyak level yang disusun bertingkat oleh properti hierarkis di bawah nilai tingkat atasnya. Batas keamanan; sebagian besar vault tidak pernah mencapainya.',
+                resetTooltip: 'Atur ulang kedalaman hierarki maksimum ke default'
             },
             hiddenTags: {
                 name: 'Sembunyikan tag (profil vault)',

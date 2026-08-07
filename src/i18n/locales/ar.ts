@@ -384,7 +384,8 @@ export const STRINGS_AR = {
             addKey: 'تكوين مفاتيح الخصائص',
             renameKey: 'إعادة تسمية الخاصية',
             deleteKey: 'حذف الخاصية',
-            createPropertyNote: 'إنشاء ملاحظة خاصية'
+            createPropertyNote: 'إنشاء ملاحظة خاصية',
+            hierarchical: 'هرمي'
         },
         navigation: {
             addSeparator: 'إضافة فاصل',
@@ -2314,6 +2315,11 @@ export const STRINGS_AR = {
             scopePropertiesToCurrentContext: {
                 name: 'تصفية الخصائص حسب التحديد',
                 desc: 'إظهار الخصائص التي تظهر في الملاحظات ضمن المجلد أو الوسم المحدد فقط.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: 'الحد الأقصى لعمق التسلسل الهرمي',
+                desc: 'عدد المستويات التي تتداخل بها الخاصية الهرمية أسفل قيمها ذات المستوى الأعلى. حد أمان؛ معظم الخزائن لا تصل إليه أبدًا.',
+                resetTooltip: 'إعادة تعيين الحد الأقصى لعمق التسلسل الهرمي إلى الافتراضي'
             },
             hiddenTags: {
                 name: 'إخفاء الوسوم (ملف الخزنة)',

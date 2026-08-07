@@ -383,7 +383,8 @@ export const STRINGS_KO = {
             addKey: '속성 키 구성',
             renameKey: '속성 이름 변경',
             deleteKey: '속성 삭제',
-            createPropertyNote: '속성 노트 만들기'
+            createPropertyNote: '속성 노트 만들기',
+            hierarchical: '계층형'
         },
         navigation: {
             addSeparator: '구분선 추가',
@@ -2316,6 +2317,11 @@ export const STRINGS_KO = {
             scopePropertiesToCurrentContext: {
                 name: '선택 항목으로 속성 필터링',
                 desc: '선택한 폴더 또는 태그 내 노트에 있는 속성만 표시합니다.'
+            },
+            propertyHierarchyMaxDepth: {
+                name: '최대 계층 깊이',
+                desc: '계층형 속성이 최상위 값 아래로 몇 단계까지 중첩되는지 설정합니다. 안전 제한이며 대부분의 보관함은 이 값에 도달하지 않습니다.',
+                resetTooltip: '최대 계층 깊이를 기본값으로 재설정'
             },
             hiddenTags: {
                 name: '태그 숨기기 (볼트 프로필)',

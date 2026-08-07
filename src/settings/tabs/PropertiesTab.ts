@@ -21,6 +21,7 @@ import type { SettingDefinitionItem } from 'obsidian';
 import { strings } from '../../i18n';
 import { isTagSortOrder } from '../types';
 import type { SettingsTabContext } from './SettingsTabContext';
+import { DEFAULT_SETTINGS } from '../defaultSettings';
 import {
     createDropdownDefinition,
     createFolderDefinition,
@@ -29,6 +30,7 @@ import {
     createToggleDefinition
 } from '../nativeSettingControls';
 import { addSettingSyncModeToggle } from '../syncModeToggle';
+import { renderSliderSetting } from './SliderSetting';
 
 /** Builds native 1.13 setting definitions for property settings. */
 export function createPropertiesSettingDefinitions(context: SettingsTabContext, heading?: string): SettingDefinitionItem[] {
@@ -66,6 +68,26 @@ export function createPropertiesSettingDefinitions(context: SettingsTabContext, 
                 name: strings.settings.items.scopePropertiesToCurrentContext.name,
                 desc: strings.settings.items.scopePropertiesToCurrentContext.desc,
                 visible: () => plugin.settings.showProperties
+            }),
+            createRenderDefinition({
+                name: strings.settings.items.propertyHierarchyMaxDepth.name,
+                desc: strings.settings.items.propertyHierarchyMaxDepth.desc,
+                visible: () => plugin.settings.showProperties,
+                render: setting =>
+                    renderSliderSetting(setting, {
+                        name: strings.settings.items.propertyHierarchyMaxDepth.name,
+                        desc: strings.settings.items.propertyHierarchyMaxDepth.desc,
+                        value: plugin.settings.propertyHierarchyMaxDepth,
+                        defaultValue: DEFAULT_SETTINGS.propertyHierarchyMaxDepth,
+                        min: 1,
+                        max: 20,
+                        step: 1,
+                        resetTooltip: strings.settings.items.propertyHierarchyMaxDepth.resetTooltip,
+                        onChange: async value => {
+                            plugin.settings.propertyHierarchyMaxDepth = value;
+                            await plugin.saveSettingsAndUpdate();
+                        }
+                    })
             }),
             createRenderDefinition({
                 name: strings.settings.items.showProperties.propertyKeysInfoLinkText,
