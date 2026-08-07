@@ -374,7 +374,9 @@ export function useListPaneSelectionCoordinator({
     const selectAdjacentFile = useCallback(
         (direction: 'next' | 'previous') => {
             const currentFile = resolvePrimarySelectedFile(app, selectionState);
-            const targetFile = getAdjacentFile(orderedFiles, currentFile, direction);
+            // Steps from the row the cursor is on, not from the note's first appearance: a note repeated
+            // by per-value grouping would otherwise resolve to its own next copy and never move.
+            const targetFile = getAdjacentFile(orderedFiles, currentFile, direction, rowCursorRef.current);
             if (!targetFile) {
                 return false;
             }
@@ -473,6 +475,13 @@ export function useListPaneSelectionCoordinator({
         const isKeyboardNavigation = selectionState.isKeyboardNavigation;
 
         if (isRevealOperation || isKeyboardNavigation) {
+            if (isRevealOperation) {
+                // A reveal selects from outside the list pane, so the remembered row no longer describes
+                // where the user is and may hold a different copy of a note repeated by per-value
+                // grouping. Clearing it makes the next arrow press resolve from the revealed note's first
+                // appearance. Only reveals clear it: keyboard navigation is what stores the row.
+                rowCursorRef.current = null;
+            }
             if (isKeyboardNavigation) {
                 selectionDispatch({ type: 'SET_KEYBOARD_NAVIGATION', isKeyboardNavigation: false });
             }

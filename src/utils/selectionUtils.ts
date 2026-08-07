@@ -303,13 +303,24 @@ export function orderFilesByReference(files: readonly TFile[], orderedFiles?: re
 /**
  * Resolve the adjacent file in a visible file order.
  * Returns the first or last file when there is no current selection.
+ *
+ * `rowCursor` is the row the caller's cursor sits on, or null when the caller has no cursor to offer.
+ * Per-value property grouping lets the same path hold several rows, so resolving the current file by its
+ * first appearance would step onto the note's own next copy instead of leaving it. Callers outside the
+ * list pane pass null and keep the first-appearance behaviour, which is correct for their deduplicated
+ * file lists.
  */
-export function getAdjacentFile(files: TFile[], targetFile: TFile | null, direction: 'next' | 'previous'): TFile | null {
+export function getAdjacentFile(
+    files: TFile[],
+    targetFile: TFile | null,
+    direction: 'next' | 'previous',
+    rowCursor: number | null
+): TFile | null {
     if (files.length === 0) {
         return null;
     }
 
-    const currentIndex = findFileIndex(files, targetFile);
+    const currentIndex = resolveRowCursorFileIndex(files, targetFile, rowCursor);
     const targetIndex =
         currentIndex === -1 ? (direction === 'next' ? 0 : files.length - 1) : direction === 'next' ? currentIndex + 1 : currentIndex - 1;
 
