@@ -319,6 +319,27 @@ export class PropertyMetadataService extends BaseMetadataService {
         return changed;
     }
 
+    private pruneHierarchicalPropertyKeys(targetSettings: NotebookNavigatorSettings, existingPropertyKeys: ReadonlySet<string>): boolean {
+        const record = targetSettings.propertyHierarchicalKeys;
+        const keys = record ? Object.keys(record) : [];
+        if (keys.length === 0) {
+            return false;
+        }
+
+        const nextKeys = keys.filter(key => existingPropertyKeys.has(key));
+        if (nextKeys.length === keys.length) {
+            return false;
+        }
+
+        const next = sanitizeRecord<boolean>(undefined);
+        nextKeys.forEach(key => {
+            next[key] = true;
+        });
+
+        targetSettings.propertyHierarchicalKeys = next;
+        return true;
+    }
+
     async cleanupPropertyMetadata(
         targetSettings: NotebookNavigatorSettings = this.settingsProvider.settings,
         collapsedPinnedContextsOverride?: CollapsedPinnedContexts
@@ -354,9 +375,10 @@ export class PropertyMetadataService extends BaseMetadataService {
             this.cleanupMetadata(targetSettings, 'propertyAppearances', validator)
         ]);
         const propertyKeyChanges = this.pruneConfiguredPropertyKeys(targetSettings, existingPropertyKeys);
+        const hierarchicalKeyChanges = this.pruneHierarchicalPropertyKeys(targetSettings, existingPropertyKeys);
 
         return {
-            settingsChanged: propertyKeyChanges || results.some(changed => changed),
+            settingsChanged: propertyKeyChanges || hierarchicalKeyChanges || results.some(changed => changed),
             localChanged: collapsedPinnedContextChanges
         };
     }

@@ -325,3 +325,64 @@ describe('PropertyMetadataService sort overrides', () => {
         expect(provider.saveSettingsAndUpdate).toHaveBeenCalledTimes(0);
     });
 });
+
+describe('PropertyMetadataService hierarchical keys', () => {
+    const app = new App();
+
+    it('sets a hierarchical key and reports it as true', async () => {
+        const settings = createSettings();
+        const provider = new TestSettingsProvider(settings);
+        const service = new PropertyMetadataService(app, provider);
+
+        await service.setPropertyHierarchicalKey('status');
+
+        expect(service.getPropertyHierarchicalKey('status')).toBe(true);
+    });
+
+    it('removes a hierarchical key by deleting the entry rather than writing false', async () => {
+        const settings = createSettings();
+        const provider = new TestSettingsProvider(settings);
+        const service = new PropertyMetadataService(app, provider);
+
+        await service.setPropertyHierarchicalKey('status');
+        await service.removePropertyHierarchicalKey('status');
+
+        expect(service.getPropertyHierarchicalKey('status')).toBe(false);
+        // Inspecting the record's own keys, not just the resolved boolean, so a stored
+        // `false` value (instead of a deleted entry) would fail this assertion.
+        expect(Object.keys(settings.propertyHierarchicalKeys)).toEqual([]);
+        expect(provider.saveSettingsAndUpdate).toHaveBeenCalledTimes(2);
+    });
+
+    it('normalizes mixed-case keys so a property round-trips through the same lowercase entry', async () => {
+        const settings = createSettings();
+        const provider = new TestSettingsProvider(settings);
+        const service = new PropertyMetadataService(app, provider);
+
+        await service.setPropertyHierarchicalKey('Status');
+
+        expect(Object.keys(settings.propertyHierarchicalKeys)).toEqual(['status']);
+        expect(service.getPropertyHierarchicalKey('status')).toBe(true);
+        expect(service.getPropertyHierarchicalKey('STATUS')).toBe(true);
+
+        await service.removePropertyHierarchicalKey('STATUS');
+        expect(Object.keys(settings.propertyHierarchicalKeys)).toEqual([]);
+    });
+
+    it('prunes hierarchical keys for properties that no longer exist while keeping ones that do', async () => {
+        const settings = createSettings();
+        settings.propertyHierarchicalKeys = {
+            status: true,
+            priority: true
+        };
+
+        const provider = new TestSettingsProvider(settings);
+        const service = new PropertyMetadataService(app, provider);
+        const validators = createValidators([createMarkdownFileWithProperty('Note.md', 'Status', 'ToDo')]);
+
+        const changes = await service.cleanupWithValidators(validators, settings);
+
+        expect(changes.settingsChanged).toBe(true);
+        expect(settings.propertyHierarchicalKeys).toEqual({ status: true });
+    });
+});
