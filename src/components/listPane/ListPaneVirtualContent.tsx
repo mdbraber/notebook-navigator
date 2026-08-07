@@ -38,6 +38,11 @@ import type { HiddenTagVisibility } from '../../utils/tagPrefixMatcher';
 import type { FileItemPillDecorationModel } from '../../utils/fileItemPillDecoration';
 import type { FileItemPillOrderModel } from '../../utils/fileItemPillOrder';
 import { resolveUXIcon } from '../../utils/uxIcons';
+import { getPropertyKeyNodeIdFromNodeId, resolvePropertyTreeNode } from '../../utils/propertyTree';
+import { resolvePropertyNote } from '../../utils/propertyNoteLookup';
+import { openPropertyNoteFile } from '../../utils/propertyNotes';
+import { useFileCache } from '../../context/StorageContext';
+import { resolveFileItemPropertyDecorationColors, resolveFileItemTagDecorationColors } from '../../utils/fileItemPillDecoration';
 import { hasSolidFileRowBackground } from '../../utils/colorUtils';
 import { getManualSortGroupHeaderPropertyKey, shouldShowManualSortGroupHeaderProgress } from '../../utils/manualSort';
 import type { ManualSortGroupHeaderData } from '../../utils/manualSort';
@@ -85,10 +90,12 @@ export interface HeaderRenderModel {
     folderIconId: string | null;
     folderColor: string | null;
     applyFolderColorToLabel: boolean;
-    propertyValueIconId: string | null;
-    propertyValueColor: string | null;
-    propertyValueBackground: string | null;
-    applyPropertyValueColorToLabel: boolean;
+    valueIconId: string | null;
+    valueColor: string | null;
+    valueBackground: string | null;
+    applyValueColorToLabel: boolean;
+    /** Note this header's property value links to, making its label clickable like a folder note. */
+    propertyNoteTarget: TFile | null;
 }
 
 interface HeaderRenderModels {
@@ -109,6 +116,8 @@ interface ListPaneGroupHeaderProps {
     onListGroupHeaderToggle: (collapseKey: string) => void;
     onFolderGroupHeaderClick: (event: React.MouseEvent<HTMLSpanElement>, target: FolderGroupHeaderTarget) => void;
     onFolderGroupHeaderMouseDown: (event: React.MouseEvent<HTMLSpanElement>, target: FolderGroupHeaderTarget) => void;
+    onPropertyNoteHeaderClick: (event: React.MouseEvent<HTMLSpanElement>, propertyNote: TFile) => void;
+    onPropertyNoteHeaderMouseDown: (event: React.MouseEvent<HTMLSpanElement>, propertyNote: TFile) => void;
     onGroupHeaderContextMenu: (event: React.MouseEvent<HTMLDivElement>, header: HeaderRenderModel) => void;
 }
 
@@ -262,6 +271,8 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
     onListGroupHeaderToggle,
     onFolderGroupHeaderClick,
     onFolderGroupHeaderMouseDown,
+    onPropertyNoteHeaderClick,
+    onPropertyNoteHeaderMouseDown,
     onGroupHeaderContextMenu
 }: ListPaneGroupHeaderProps) {
     const folderGroupHeaderTarget = header.folderGroupHeaderTarget;
@@ -273,12 +284,12 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
     const folderColor = header.folderColor ?? undefined;
     const folderIconStyle = folderColor ? { color: folderColor } : undefined;
     const folderLabelStyle = header.applyFolderColorToLabel && folderColor ? { color: folderColor } : undefined;
-    const propertyValueColor = header.propertyValueColor ?? undefined;
-    const propertyValueIconStyle = propertyValueColor ? { color: propertyValueColor } : undefined;
-    const propertyValueLabelStyle = header.applyPropertyValueColorToLabel && propertyValueColor ? { color: propertyValueColor } : undefined;
-    const propertyValueShellStyle = header.propertyValueBackground ? { backgroundColor: header.propertyValueBackground } : undefined;
+    const valueColor = header.valueColor ?? undefined;
+    const valueIconStyle = valueColor ? { color: valueColor } : undefined;
+    const valueLabelStyle = header.applyValueColorToLabel && valueColor ? { color: valueColor } : undefined;
+    const valueShellStyle = header.valueBackground ? { backgroundColor: header.valueBackground } : undefined;
     // Folder-group and property-value headers never resolve color at the same time, so at most one is set.
-    const headerLabelStyle = folderLabelStyle ?? propertyValueLabelStyle;
+    const headerLabelStyle = folderLabelStyle ?? valueLabelStyle;
     // Shared by the header row and the chevron button. stopPropagation keeps a chevron click from
     // bubbling to the row handler, which would toggle the group twice and leave it unchanged.
     const handleCollapseToggle = useCallback(
@@ -306,9 +317,14 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
         headerClasses.push('nn-list-group-header--manual-sort');
     }
     const handleContextMenu = (event: React.MouseEvent<HTMLDivElement>) => onGroupHeaderContextMenu(event, header);
+    // A property value header whose value is a wikilink resolving to a note gets the same underlined,
+    // clickable treatment a folder header gets when the folder has a folder note.
+    const propertyNoteTarget = header.propertyNoteTarget;
     const textClassName = `nn-list-group-header-text ${
         isClickableFolderGroupHeader ? 'nn-list-group-header-text--folder-note' : ''
-    } ${header.applyFolderColorToLabel || header.applyPropertyValueColorToLabel ? 'nn-list-group-header-text--custom-color' : ''}`;
+    } ${propertyNoteTarget ? 'nn-list-group-header-text--note-link' : ''} ${
+        header.applyFolderColorToLabel || header.applyValueColorToLabel ? 'nn-list-group-header-text--custom-color' : ''
+    }`;
     const folderPathClassName = `${textClassName} nn-list-group-header-path`;
     const renderFolderGroupHeaderText = () => {
         if (hasFolderPathSegments) {
@@ -359,9 +375,17 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
                               event.stopPropagation();
                               onFolderGroupHeaderClick(event, folderGroupHeaderTarget);
                           }
-                        : undefined
+                        : propertyNoteTarget
+                          ? event => onPropertyNoteHeaderClick(event, propertyNoteTarget)
+                          : undefined
                 }
-                onMouseDown={folderGroupHeaderTarget ? event => onFolderGroupHeaderMouseDown(event, folderGroupHeaderTarget) : undefined}
+                onMouseDown={
+                    folderGroupHeaderTarget
+                        ? event => onFolderGroupHeaderMouseDown(event, folderGroupHeaderTarget)
+                        : propertyNoteTarget
+                          ? event => onPropertyNoteHeaderMouseDown(event, propertyNoteTarget)
+                          : undefined
+                }
             >
                 {header.label}
             </span>
@@ -371,7 +395,7 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
     const headerRow = (
         <div
             className={headerClasses.join(' ')}
-            style={propertyValueShellStyle}
+            style={valueShellStyle}
             onClick={header.isCollapsible ? handleCollapseToggle : undefined}
             onContextMenu={hasManualSortGoal ? undefined : handleContextMenu}
         >
@@ -399,13 +423,13 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
                             style={folderIconStyle}
                         />
                     ) : null}
-                    {!header.isPinnedHeader && header.propertyValueIconId ? (
+                    {!header.isPinnedHeader && header.valueIconId ? (
                         <ServiceIcon
-                            iconId={header.propertyValueIconId}
+                            iconId={header.valueIconId}
                             className="nn-list-group-header-icon nn-list-group-header-property-icon"
                             aria-hidden={true}
-                            data-has-color={propertyValueColor ? 'true' : 'false'}
-                            style={propertyValueIconStyle}
+                            data-has-color={valueColor ? 'true' : 'false'}
+                            style={valueIconStyle}
                         />
                     ) : null}
                     {renderFolderGroupHeaderText()}
@@ -485,6 +509,8 @@ interface ListPaneRowProps {
     onListGroupHeaderToggle: (collapseKey: string) => void;
     onFolderGroupHeaderClick: (event: React.MouseEvent<HTMLSpanElement>, target: FolderGroupHeaderTarget) => void;
     onFolderGroupHeaderMouseDown: (event: React.MouseEvent<HTMLSpanElement>, target: FolderGroupHeaderTarget) => void;
+    onPropertyNoteHeaderClick: (event: React.MouseEvent<HTMLSpanElement>, propertyNote: TFile) => void;
+    onPropertyNoteHeaderMouseDown: (event: React.MouseEvent<HTMLSpanElement>, propertyNote: TFile) => void;
     onGroupHeaderContextMenu: (event: React.MouseEvent<HTMLDivElement>, header: HeaderRenderModel) => void;
 }
 
@@ -524,6 +550,8 @@ const ListPaneRow = React.memo(function ListPaneRow({
     onListGroupHeaderToggle,
     onFolderGroupHeaderClick,
     onFolderGroupHeaderMouseDown,
+    onPropertyNoteHeaderClick,
+    onPropertyNoteHeaderMouseDown,
     onGroupHeaderContextMenu
 }: ListPaneRowProps) {
     const virtualItemStyle: VirtualRowStyle = {
@@ -576,6 +604,8 @@ const ListPaneRow = React.memo(function ListPaneRow({
                     onListGroupHeaderToggle={onListGroupHeaderToggle}
                     onFolderGroupHeaderClick={onFolderGroupHeaderClick}
                     onFolderGroupHeaderMouseDown={onFolderGroupHeaderMouseDown}
+                    onPropertyNoteHeaderClick={onPropertyNoteHeaderClick}
+                    onPropertyNoteHeaderMouseDown={onPropertyNoteHeaderMouseDown}
                     onGroupHeaderContextMenu={onGroupHeaderContextMenu}
                 />
             ) : item.type === ListPaneItemType.HEADER_SPACER ? (
@@ -693,6 +723,7 @@ export function ListPaneVirtualContent({
     const { app, commandQueue, plugin } = useServices();
     const fileSystemOps = useFileSystemOps();
     const metadataService = useMetadataService();
+    const { getPropertyTree } = useFileCache();
     const collapseChevronIcons = useMemo(
         () => ({
             collapsed: resolveUXIcon(settings.interfaceIcons, 'nav-tree-expand'),
@@ -709,6 +740,33 @@ export function ListPaneVirtualContent({
             }),
         [settings.manualSortGroupHeaderProperty, settings.manualSortPropertyKey]
     );
+
+    // Notes the property value group headers link to, keyed by value node id. resolvePropertyNote
+    // returns null unless the value is a wikilink resolving to an existing note, so this map only
+    // holds headers that should render as links. Tag headers never appear here: a frontmatter tag is
+    // not a wikilink and has no note to point at.
+    const propertyNoteHeaderTargets = useMemo(() => {
+        const targets = new Map<string, TFile>();
+        if (!settings.enablePropertyNotes || !settings.enablePropertyNoteLinks) {
+            return targets;
+        }
+
+        const propertyTree = getPropertyTree();
+        listItems.forEach(item => {
+            const nodeId = item.type === ListPaneItemType.HEADER ? (item.headerPropertyNodeId ?? null) : null;
+            if (nodeId === null || targets.has(nodeId)) {
+                return;
+            }
+
+            const resolved = resolvePropertyTreeNode({ nodeId, propertyTree });
+            const propertyNote = resolved ? resolvePropertyNote(resolved.node, app) : null;
+            if (propertyNote) {
+                targets.set(nodeId, propertyNote);
+            }
+        });
+
+        return targets;
+    }, [app, getPropertyTree, listItems, settings.enablePropertyNotes, settings.enablePropertyNoteLinks]);
 
     const folderGroupHeaderTargets = useMemo(() => {
         const targets = new Map<string, FolderGroupHeaderTarget>();
@@ -816,24 +874,60 @@ export function ListPaneVirtualContent({
                         }).color ?? null;
                 }
             }
-            let propertyValueIconId: string | null = null;
-            let propertyValueColor: string | null = null;
-            let propertyValueBackground: string | null = null;
+            let valueIconId: string | null = null;
+            let valueColor: string | null = null;
+            let valueBackground: string | null = null;
+            // A group header carries at most one of these: a tag value resolves against the tag tree, any
+            // other single value against its property value node. Both are set only for property groups.
             const propertyValueNodeId = item.headerKind === 'property' ? (item.headerPropertyNodeId ?? null) : null;
-            // Mirrors the folder branch above: the icon follows the pane's icon toggle, and the color is
-            // only worth resolving when it has somewhere to land - the icon, or the label when the color
-            // is not restricted to icons. The background is outside that rule: colorIconOnly only decides
-            // whether the custom color reaches the label, and a navigation tree row keeps its background
-            // whichever way both settings are set.
-            const shouldResolvePropertyValueIcon = settings.showPropertyIcons;
-            const shouldResolvePropertyValueColor = settings.showPropertyIcons || !settings.colorIconOnly;
-            if (propertyValueNodeId !== null && settings.inheritPropertyValueHeaderAppearance) {
-                propertyValueIconId = shouldResolvePropertyValueIcon
-                    ? (metadataService.getPropertyIcon(propertyValueNodeId) ?? null)
-                    : null;
-                const propertyColorData = metadataService.getPropertyColorData(propertyValueNodeId);
-                propertyValueColor = shouldResolvePropertyValueColor ? (propertyColorData.color ?? null) : null;
-                propertyValueBackground = propertyColorData.background ?? null;
+            const headerTagPath = item.headerKind === 'property' ? (item.headerTagPath ?? null) : null;
+            // Mirrors the folder branch above: the icon follows the pane's icon toggle for the tree the
+            // value came from, and the color is only worth resolving when it has somewhere to land - the
+            // icon, or the label when the color is not restricted to icons. The background is outside that
+            // rule: colorIconOnly only decides whether the custom color reaches the label, and a
+            // navigation tree row keeps its background whichever way both settings are set.
+            if (settings.inheritPropertyValueHeaderAppearance) {
+                if (propertyValueNodeId !== null) {
+                    // Same order the property pills resolve in (useFileItemPills): an icon set on the value
+                    // itself wins, otherwise the icon comes from the property key, so a header is derived
+                    // from its property unless explicitly overridden. getPropertyIcon does not inherit the
+                    // key the way getPropertyColorData does, so this lookup has to be explicit. The pills
+                    // stop there; the tree's default value icon is kept as a last resort so a property with
+                    // no icon anywhere still matches its navigation tree row instead of rendering bare.
+                    const propertyKeyNodeId = getPropertyKeyNodeIdFromNodeId(propertyValueNodeId);
+                    valueIconId = settings.showPropertyIcons
+                        ? (metadataService.getPropertyIcon(propertyValueNodeId) ??
+                          (propertyKeyNodeId !== null && propertyKeyNodeId !== propertyValueNodeId
+                              ? metadataService.getPropertyIcon(propertyKeyNodeId)
+                              : undefined) ??
+                          resolveUXIcon(settings.interfaceIcons, 'nav-property-value'))
+                        : null;
+                    // getPropertyColorData covers explicit colours and inherits the key's, but knows nothing
+                    // about the navigation rainbow, which is where a vault using rainbow colouring gets all
+                    // of its colour. Pills layer the rainbow on through this same model, so headers do too.
+                    const propertyColorData = metadataService.getPropertyColorData(propertyValueNodeId);
+                    const resolvedPropertyColors = resolveFileItemPropertyDecorationColors({
+                        model: fileItemPillDecorationModel,
+                        nodeId: propertyValueNodeId,
+                        color: propertyColorData.color,
+                        backgroundColor: propertyColorData.background
+                    });
+                    valueColor = settings.showPropertyIcons || !settings.colorIconOnly ? (resolvedPropertyColors.color ?? null) : null;
+                    valueBackground = resolvedPropertyColors.backgroundColor ?? null;
+                } else if (headerTagPath !== null) {
+                    valueIconId = settings.showTagIcons
+                        ? (metadataService.getTagIcon(headerTagPath) ?? resolveUXIcon(settings.interfaceIcons, 'nav-tag'))
+                        : null;
+                    const tagColorData = metadataService.getTagColorData(headerTagPath);
+                    const resolvedTagColors = resolveFileItemTagDecorationColors({
+                        model: fileItemPillDecorationModel,
+                        tagPath: headerTagPath,
+                        color: tagColorData.color,
+                        backgroundColor: tagColorData.background
+                    });
+                    valueColor = settings.showTagIcons || !settings.colorIconOnly ? (resolvedTagColors.color ?? null) : null;
+                    valueBackground = resolvedTagColors.backgroundColor ?? null;
+                }
             }
             const model: HeaderRenderModel = {
                 index,
@@ -857,10 +951,11 @@ export function ListPaneVirtualContent({
                 folderIconId,
                 folderColor,
                 applyFolderColorToLabel: folderColor !== null && !settings.colorIconOnly,
-                propertyValueIconId,
-                propertyValueColor,
-                propertyValueBackground,
-                applyPropertyValueColorToLabel: propertyValueColor !== null && !settings.colorIconOnly
+                valueIconId,
+                valueColor,
+                valueBackground,
+                applyValueColorToLabel: valueColor !== null && !settings.colorIconOnly,
+                propertyNoteTarget: propertyValueNodeId !== null ? (propertyNoteHeaderTargets.get(propertyValueNodeId) ?? null) : null
             };
             models.push(model);
             modelsByIndex.set(index, model);
@@ -870,10 +965,12 @@ export function ListPaneVirtualContent({
             headerModels: models,
             headerModelByIndex: modelsByIndex
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- the four property records below are read through metadataService, which the rule cannot see into.
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- the property and tag records below are read through metadataService, which the rule cannot see into.
     }, [
         folderDecorationModel,
+        fileItemPillDecorationModel,
         folderGroupHeaderTargets,
+        propertyNoteHeaderTargets,
         listItems,
         metadataService,
         pinnedGroupExpanded,
@@ -884,13 +981,18 @@ export function ListPaneVirtualContent({
         settings.interfaceIcons,
         settings.showFolderIcons,
         settings.showPropertyIcons,
-        // Records the property value icon and color reads resolve from. Without them a color or icon set
-        // on a value in the navigation tree would leave the header stale; the folder branch above is
-        // invalidated the same way, through folderDecorationModel.
+        settings.showTagIcons,
+        // Records the property value and tag icon and color reads resolve from. Without them a color or
+        // icon set on a value in the navigation tree would leave the header stale; the folder branch above
+        // is invalidated the same way, through folderDecorationModel.
         settings.propertyColors,
         settings.propertyBackgroundColors,
         settings.propertyIcons,
-        settings.inheritPropertyColors
+        settings.inheritPropertyColors,
+        settings.tagColors,
+        settings.tagBackgroundColors,
+        settings.tagIcons,
+        settings.inheritTagColors
     ]);
     const dateGroupLabelByIndex = useMemo(() => buildDateGroupLabelsByIndex(listItems), [listItems]);
 
@@ -965,6 +1067,30 @@ export function ListPaneVirtualContent({
             );
         },
         [app, commandQueue, onNavigateToFolder]
+    );
+
+    // Same interaction model as the folder-note handlers above, using the property note open location
+    // rather than the folder note one. No navigation happens: the header's group is already in view.
+    const handlePropertyNoteHeaderClick = useCallback(
+        (event: React.MouseEvent<HTMLSpanElement>, propertyNote: TFile) => {
+            event.stopPropagation();
+            const context = resolveFolderNoteClickOpenContext(event, settings.propertyNoteOpenLocation, settings.multiSelectModifier);
+            runAsyncAction(() => openPropertyNoteFile({ app, commandQueue, propertyNote, context }));
+        },
+        [app, commandQueue, settings.propertyNoteOpenLocation, settings.multiSelectModifier]
+    );
+
+    const handlePropertyNoteHeaderMouseDown = useCallback(
+        (event: React.MouseEvent<HTMLSpanElement>, propertyNote: TFile) => {
+            if (event.button !== 1) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            runAsyncAction(() => openPropertyNoteFile({ app, commandQueue, propertyNote, context: 'tab' }));
+        },
+        [app, commandQueue]
     );
 
     const handleGroupHeaderContextMenu = useCallback(
@@ -1152,6 +1278,8 @@ export function ListPaneVirtualContent({
                         onListGroupHeaderToggle={onListGroupHeaderToggle}
                         onFolderGroupHeaderClick={handleFolderGroupHeaderClick}
                         onFolderGroupHeaderMouseDown={handleFolderGroupHeaderMouseDown}
+                        onPropertyNoteHeaderClick={handlePropertyNoteHeaderClick}
+                        onPropertyNoteHeaderMouseDown={handlePropertyNoteHeaderMouseDown}
                         onGroupHeaderContextMenu={handleGroupHeaderContextMenu}
                     />
                 </div>
@@ -1264,6 +1392,8 @@ export function ListPaneVirtualContent({
                                     onListGroupHeaderToggle={onListGroupHeaderToggle}
                                     onFolderGroupHeaderClick={handleFolderGroupHeaderClick}
                                     onFolderGroupHeaderMouseDown={handleFolderGroupHeaderMouseDown}
+                                    onPropertyNoteHeaderClick={handlePropertyNoteHeaderClick}
+                                    onPropertyNoteHeaderMouseDown={handlePropertyNoteHeaderMouseDown}
                                     onGroupHeaderContextMenu={handleGroupHeaderContextMenu}
                                 />
                             );

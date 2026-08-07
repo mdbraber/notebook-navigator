@@ -24,7 +24,12 @@ import { useSettingsState, useSettingsUpdate } from '../context/SettingsContext'
 import { useUXPreferenceActions, useUXPreferences } from '../context/UXPreferencesContext';
 import { strings } from '../i18n';
 import { ConfirmModal } from '../modals/ConfirmModal';
-import { createPropertyGroupingOption, getPropertyGroupingKey, getPropertyGroupingOrder } from '../settings/types';
+import {
+    createPropertyGroupingOption,
+    getPropertyGroupingKey,
+    getPropertyGroupingOrder,
+    getPropertyGroupingPerValue
+} from '../settings/types';
 import type { ListNoteGroupingOption, ListSortOverrideValue, NotebookNavigatorSettings, PropertyGroupingOrder } from '../settings/types';
 import { ItemType, PROPERTIES_ROOT_VIRTUAL_FOLDER_ID, TAGGED_TAG_ID, UNTAGGED_TAG_ID } from '../types';
 import {
@@ -75,7 +80,8 @@ import {
     getAvailablePropertyGroupKeys,
     resolveEffectiveListGroupingForSort,
     resolveListGrouping,
-    withPropertyGroupingOrder
+    withPropertyGroupingOrder,
+    withPropertyGroupingPerValue
 } from '../utils/listGrouping';
 import { getErrorMessage } from '../utils/errorUtils';
 import { showNotice } from '../utils/noticeUtils';
@@ -1845,18 +1851,14 @@ export function useListActions({
             // Switching the grouping property keeps the current group order, matching Obsidian Bases.
             const effectiveGroupPropertyKey = getPropertyGroupingKey(effectiveCurrentGroup);
             const effectiveGroupOrder = getPropertyGroupingOrder(effectiveCurrentGroup) ?? 'follow';
+            const effectiveGroupPerValue = getPropertyGroupingPerValue(effectiveCurrentGroup);
             const propertyGroupKeys = getAvailablePropertyGroupKeys(settings);
             propertyGroupKeys.forEach(propertyKey => {
+                // One entry per key. Splitting is a separate toggle below rather than a sibling entry
+                // per key, so the per-value axis carries over when the grouping property changes.
                 addGroupOptionItem(
-                    // The plain entry; its per-value sibling is the entry added right below.
-                    createPropertyGroupingOption(propertyKey, effectiveGroupOrder, false),
+                    createPropertyGroupingOption(propertyKey, effectiveGroupOrder, effectiveGroupPerValue),
                     getSortFieldLabel('property', propertyKey),
-                    getSortFieldMenuIcon('property', propertyKey),
-                    isManualSortActive
-                );
-                addGroupOptionItem(
-                    createPropertyGroupingOption(propertyKey, effectiveGroupOrder, true),
-                    strings.settings.items.groupNotes.perValueSuffix.replace('{key}', getSortFieldLabel('property', propertyKey)),
                     getSortFieldMenuIcon('property', propertyKey),
                     isManualSortActive
                 );
@@ -1875,6 +1877,28 @@ export function useListActions({
             // Group order applies only to property grouping; date and folder groups keep their fixed order.
             if (effectiveGroupPropertyKey !== null) {
                 menu.addSeparator();
+                // Splitting applies only to property grouping: the base modes have no value list to
+                // split. Toggling off back to the default grouping clears the override instead of
+                // storing a copy of it, matching how the group order entries treat their default.
+                const splitOption = withPropertyGroupingPerValue(effectiveCurrentGroup, !effectiveGroupPerValue);
+                if (splitOption !== null) {
+                    menu.addItem(item => {
+                        item.setTitle(`    ${strings.paneHeader.splitListValues}`)
+                            .setIcon('lucide-square-split-horizontal')
+                            .setChecked(effectiveGroupPerValue)
+                            .onClick(() => {
+                                if (areListGroupingOptionsEqual(splitOption, groupingInfo.defaultGrouping)) {
+                                    clearGroupOverride();
+                                    return;
+                                }
+                                runAsyncAction(async () => {
+                                    await setSelectionGroupOverride(splitOption);
+                                    app.workspace.requestSaveLayout();
+                                });
+                            });
+                    });
+                    menu.addSeparator();
+                }
                 // The default marker follows the default grouping's order independent of its
                 // property key, matching how the sort menu marks its default direction.
                 const defaultGroupOrder = getPropertyGroupingOrder(groupingInfo.defaultGrouping);

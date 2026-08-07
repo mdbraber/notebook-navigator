@@ -146,6 +146,7 @@ export const STRINGS_IT = {
         changeSortAndGroup: 'Cambia ordine e raggruppamento',
         resetViewToDefaults: 'Ripristina vista alle impostazioni predefinite',
         manualSort: 'Ordinamento manuale',
+        splitListValues: 'Dividi i valori multipli per gruppo',
         editSortOrder: 'Modifica ordinamento...',
         removeSortProperty: 'Rimuovi proprietà di ordinamento',
         descendants: 'discendenti',
@@ -1148,7 +1149,7 @@ export const STRINGS_IT = {
                 items: [
                     '**Ordinamento:** Scegliere una proprietà come Priorità ordina le note in base ai rispettivi valori di Priorità.',
                     "**Raggruppamento:** Scegliere una proprietà come Stato crea un'intestazione per ogni valore di Stato. Le note con lo stesso Stato vengono mostrate sotto la stessa intestazione.",
-                    "**Valori multipli:** Se una proprietà contiene un elenco, Notebook Navigator usa l'elenco completo. Ad esempio, se Argomenti contiene Libri e Storia, la nota viene ordinata o raggruppata usando «Libri, Storia», non ogni argomento separatamente.",
+                    "**Valori multipli:** Se una proprietà contiene un elenco, Notebook Navigator usa l'elenco completo. Ad esempio, se Argomenti contiene Libri e Storia, la nota viene ordinata o raggruppata usando «Libri, Storia». Attiva **Dividi i valori multipli per gruppo** nel menu di ordinamento e raggruppamento per raggruppare la nota sotto Libri e sotto Storia separatamente.",
                     '**Valori mancanti:** Durante il raggruppamento, le note prive della proprietà vengono mostrate sotto **Nessuno** alla fine.',
                     '**Viste per tag e proprietà:** Quando viene selezionato il raggruppamento **Cartella**, vengono mostrate invece intestazioni di data.'
                 ]
@@ -1218,7 +1219,6 @@ export const STRINGS_IT = {
                     headers: 'Intestazioni',
                     groups: 'Gruppi'
                 },
-                perValueSuffix: '{key} (ogni valore)',
                 options: {
                     custom: 'Personalizzato',
                     date: 'Data',
@@ -1230,8 +1230,8 @@ export const STRINGS_IT = {
                 desc: 'Quando disattivato, i badge corrispondenti alla selezione di navigazione corrente vengono nascosti (ad es. il badge del tag "ricette" viene nascosto durante la navigazione nel tag "ricette"). Attiva per mantenere tutti i badge visibili.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Colora le intestazioni per valore',
-                desc: "Raggruppando per ogni valore di una proprietà, le intestazioni prendono icona e colore di quel valore dall'albero di navigazione."
+                name: 'Decora le intestazioni dei gruppi',
+                desc: "Le intestazioni di gruppo di un singolo valore di proprietà o di un tag prendono icona e colore di quel valore dall'albero di navigazione."
             },
             stickyGroupHeaders: {
                 name: 'Intestazioni di gruppo fisse',

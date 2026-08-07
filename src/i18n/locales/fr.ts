@@ -146,6 +146,7 @@ export const STRINGS_FR = {
         changeSortAndGroup: 'Changer le tri et le regroupement',
         resetViewToDefaults: 'Réinitialiser la vue aux valeurs par défaut',
         manualSort: 'Tri manuel',
+        splitListValues: 'Séparer les valeurs multiples par groupe',
         editSortOrder: "Modifier l'ordre de tri...",
         removeSortProperty: 'Supprimer la propriété de tri',
         descendants: 'descendants',
@@ -1156,7 +1157,7 @@ export const STRINGS_FR = {
                 items: [
                     '**Tri :** Choisir une propriété comme Priorité trie les notes selon leur valeur de Priorité.',
                     '**Regroupement :** Choisir une propriété comme Statut crée un en-tête pour chaque valeur de Statut. Les notes ayant le même Statut apparaissent sous le même en-tête.',
-                    '**Valeurs multiples :** Si une propriété contient une liste, Notebook Navigator utilise la liste complète. Par exemple, si Sujets contient Livres et Histoire, la note est triée ou regroupée selon « Livres, Histoire », et non selon chaque sujet séparément.',
+                    '**Valeurs multiples :** Si une propriété contient une liste, Notebook Navigator utilise la liste complète. Par exemple, si Sujets contient Livres et Histoire, la note est triée ou regroupée selon « Livres, Histoire ». Activez **Séparer les valeurs multiples par groupe** dans le menu de tri et de regroupement pour regrouper la note sous Livres et sous Histoire séparément.',
                     '**Valeurs manquantes :** Lors du regroupement, les notes sans cette propriété apparaissent sous **Aucun** à la fin.',
                     '**Vues par étiquette et par propriété :** Lorsque le regroupement **Dossier** est sélectionné, des en-têtes de date sont affichés à la place.'
                 ]
@@ -1226,7 +1227,6 @@ export const STRINGS_FR = {
                     headers: 'En-têtes',
                     groups: 'Groupes'
                 },
-                perValueSuffix: '{key} (chaque valeur)',
                 options: {
                     custom: 'Personnalisé',
                     date: 'Date',
@@ -1238,8 +1238,8 @@ export const STRINGS_FR = {
                 desc: 'Lorsque désactivé, les pastilles correspondant à la sélection de navigation actuelle sont masquées (par ex. la pastille du tag « recettes » est masquée lors de la navigation dans le tag « recettes »). Activer pour garder toutes les pastilles visibles.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Colorer les en-têtes par valeur',
-                desc: "Lors du regroupement par chaque valeur d'une propriété, les en-têtes reprennent l'icône et la couleur de cette valeur depuis l'arborescence."
+                name: 'Décorer les en-têtes de groupe',
+                desc: "Les en-têtes de groupe d'une seule valeur de propriété ou d'une étiquette reprennent l'icône et la couleur de cette valeur depuis l'arborescence."
             },
             stickyGroupHeaders: {
                 name: 'En-têtes de groupe épinglés',

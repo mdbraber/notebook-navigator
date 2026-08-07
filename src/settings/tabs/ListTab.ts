@@ -25,7 +25,6 @@ import {
     createPropertyGroupingOption,
     getPropertyGroupingKey,
     getPropertyGroupingOrder,
-    getPropertyGroupingPerValue,
     MANUAL_SORT_NEW_NOTE_PLACEMENT_OPTIONS,
     normalizeListNoteGroupingOption,
     PROPERTY_SORT_SECONDARY_OPTIONS
@@ -149,6 +148,13 @@ export function createListPaneSettingDefinitions(context: SettingsTabContext): S
                 aliases: [strings.settings.items.propertyGroupKey.placeholder],
                 render: setting => renderPropertyGroupKeySetting(setting, context)
             }),
+            // Sits with the grouping properties rather than with the group header settings, because what
+            // it decorates is determined by these properties: a header inherits an appearance only when
+            // its group resolves to a single value, which is every group once list values are split.
+            createToggleDefinition('inheritPropertyValueHeaderAppearance', {
+                name: strings.settings.items.inheritPropertyValueHeaderAppearance.name,
+                desc: strings.settings.items.inheritPropertyValueHeaderAppearance.desc
+            }),
             createToggleDefinition('showCurrentFolderFilesAtBottom', {
                 name: strings.settings.items.showCurrentFolderFilesAtBottom.name,
                 desc: strings.settings.items.showCurrentFolderFilesAtBottom.desc
@@ -171,10 +177,6 @@ export function createListPaneSettingDefinitions(context: SettingsTabContext): S
             createToggleDefinition('showGroupHeaderItemCounts', {
                 name: strings.settings.items.showGroupHeaderItemCounts.name,
                 desc: strings.settings.items.showGroupHeaderItemCounts.desc
-            }),
-            createToggleDefinition('inheritPropertyValueHeaderAppearance', {
-                name: strings.settings.items.inheritPropertyValueHeaderAppearance.name,
-                desc: strings.settings.items.inheritPropertyValueHeaderAppearance.desc
             }),
             createRenderDefinition({
                 name: strings.settings.items.manualSortGroupHeaderProperty.name,
@@ -486,11 +488,8 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                     availableKey => casefold(availableKey) === casefold(propertyKey)
                 );
                 // Reconciliation resets unavailable property groupings, so a missing entry only occurs
-                // transiently; display the stock default rather than an empty selection. The per-value
-                // flag carries over so a per-value grouping selects its own entry, not its plain sibling.
-                return matchedKey
-                    ? createPropertyGroupingOption(matchedKey, 'follow', getPropertyGroupingPerValue(grouping))
-                    : DEFAULT_SETTINGS.noteGrouping;
+                // transiently; display the stock default rather than an empty selection.
+                return matchedKey ? createPropertyGroupingOption(matchedKey, 'follow', false) : DEFAULT_SETTINGS.noteGrouping;
             };
 
             const rebuildOptions = (): void => {
@@ -511,15 +510,10 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                 groupsGroupEl.createEl('option', { value: 'folder', text: strings.settings.items.groupNotes.options.folder });
                 getAvailablePropertyGroupKeys(plugin.settings).forEach(propertyKey => {
                     groupsGroupEl.createEl('option', {
-                        // The plain entry; its per-value sibling is the entry created right below.
+                        // Always the joined entry: splitting list values is a per-view choice made from
+                        // the list pane's sort and group menu, so the default grouping never splits.
                         value: createPropertyGroupingOption(propertyKey, 'follow', false),
                         text: getPropertyDropdownOptionLabel(propertyKey)
-                    });
-                    // Per-value sibling: splits the property's list values into one group each instead
-                    // of one group for the whole value list. Reuses the property label with a suffix.
-                    groupsGroupEl.createEl('option', {
-                        value: createPropertyGroupingOption(propertyKey, 'follow', true),
-                        text: strings.settings.items.groupNotes.perValueSuffix.replace('{key}', getPropertyDropdownOptionLabel(propertyKey))
                     });
                 });
                 dropdown.setValue(getSelectedValue());
@@ -531,8 +525,8 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                     return;
                 }
                 // Switching to another property keeps the current group order; coming from a base
-                // mode the order starts at follow-sort. The per-value flag comes from the newly
-                // selected entry itself, since this dropdown is the only control that sets it.
+                // mode the order starts at follow-sort. The default grouping never splits list
+                // values, so the per-value flag stays off however this dropdown is used.
                 const propertyKey = getPropertyGroupingKey(normalized);
                 const next =
                     propertyKey === null
@@ -540,7 +534,7 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                         : createPropertyGroupingOption(
                               propertyKey,
                               getPropertyGroupingOrder(plugin.settings.noteGrouping) ?? 'follow',
-                              getPropertyGroupingPerValue(normalized)
+                              false
                           );
                 if (plugin.settings.noteGrouping === next) {
                     return;

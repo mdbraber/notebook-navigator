@@ -145,6 +145,7 @@ export const STRINGS_DE = {
         changeSortAndGroup: 'Sortierung und Gruppierung ändern',
         resetViewToDefaults: 'Ansicht auf Standardwerte zurücksetzen',
         manualSort: 'Manuelle Sortierung',
+        splitListValues: 'Mehrere Werte pro Gruppe aufteilen',
         editSortOrder: 'Sortierreihenfolge bearbeiten...',
         removeSortProperty: 'Sortier-Eigenschaft entfernen',
         descendants: 'Unterelemente',
@@ -1155,7 +1156,7 @@ export const STRINGS_DE = {
                 items: [
                     '**Sortierung:** Die Auswahl einer Eigenschaft wie Priorität sortiert Notizen nach ihren Prioritätswerten.',
                     '**Gruppierung:** Die Auswahl einer Eigenschaft wie Status erstellt für jeden Statuswert eine Überschrift. Notizen mit demselben Status erscheinen unter derselben Überschrift.',
-                    '**Mehrere Werte:** Wenn eine Eigenschaft eine Liste enthält, verwendet Notebook Navigator die vollständige Liste. Enthält Themen zum Beispiel Bücher und Geschichte, wird die Notiz anhand von „Bücher, Geschichte“ sortiert oder gruppiert und nicht nach jedem Thema einzeln.',
+                    '**Mehrere Werte:** Wenn eine Eigenschaft eine Liste enthält, verwendet Notebook Navigator die vollständige Liste. Enthält Themen zum Beispiel Bücher und Geschichte, wird die Notiz anhand von „Bücher, Geschichte“ sortiert oder gruppiert. Aktiviere **Mehrere Werte pro Gruppe aufteilen** im Sortier- und Gruppierungsmenü, um die Notiz stattdessen unter Bücher und unter Geschichte zu gruppieren.',
                     '**Fehlende Werte:** Beim Gruppieren erscheinen Notizen ohne die Eigenschaft am Ende unter **Keine**.',
                     '**Tag- und Eigenschaftsansichten:** Wenn **Ordner** als Gruppierung ausgewählt ist, werden stattdessen Datumsüberschriften angezeigt.'
                 ]
@@ -1225,7 +1226,6 @@ export const STRINGS_DE = {
                     headers: 'Überschriften',
                     groups: 'Gruppen'
                 },
-                perValueSuffix: '{key} (jeder Wert)',
                 options: {
                     custom: 'Benutzerdefiniert',
                     date: 'Datum',
@@ -1237,8 +1237,8 @@ export const STRINGS_DE = {
                 desc: 'Wenn deaktiviert, werden Pillen ausgeblendet, die der aktuellen Navigationsauswahl entsprechen (z.\u00a0B. wird die „Rezepte"-Tag-Pille beim Durchsuchen des „Rezepte"-Tags ausgeblendet). Aktivieren, um alle Pillen sichtbar zu halten.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Gruppenköpfe pro Wert einfärben',
-                desc: 'Beim Gruppieren nach jedem Wert einer Eigenschaft übernehmen die Gruppenköpfe Symbol und Farbe dieses Werts aus dem Navigationsbaum.'
+                name: 'Gruppenköpfe dekorieren',
+                desc: 'Gruppenköpfe für einen einzelnen Eigenschaftswert oder ein Tag übernehmen Symbol und Farbe dieses Werts aus dem Navigationsbaum.'
             },
             stickyGroupHeaders: {
                 name: 'Gruppenüberschriften fixieren',

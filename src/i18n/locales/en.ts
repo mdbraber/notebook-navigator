@@ -146,6 +146,7 @@ export const STRINGS_EN = {
         changeSortAndGroup: 'Change sort and group',
         resetViewToDefaults: 'Reset view to defaults',
         manualSort: 'Manual sort',
+        splitListValues: 'Split multiple values per group',
         editSortOrder: 'Edit sort order...',
         removeSortProperty: 'Remove sort property',
         descendants: 'descendants',
@@ -1146,7 +1147,7 @@ export const STRINGS_EN = {
                 items: [
                     '**Sorting:** Choosing a property such as Priority sorts notes by their Priority values.',
                     '**Grouping:** Choosing a property such as Status creates a heading for each value. Notes with the same Status appear below the same heading.',
-                    '**Multiple values:** If a property contains a list, Notebook Navigator uses the full list. For example, if Topics contains Books and History, it sorts or groups the note using “Books, History”, not each topic separately.',
+                    '**Multiple values:** If a property contains a list, Notebook Navigator uses the full list. For example, if Topics contains Books and History, it sorts or groups the note using “Books, History”. Turn on **Split multiple values per group** in the sort and group menu to group the note under Books and under History instead.',
                     '**Missing values:** When grouping, notes without the property appear under **None** at the end.',
                     '**Tag and property views:** When **Folder** grouping is selected, date headings are shown instead.'
                 ]
@@ -1216,7 +1217,6 @@ export const STRINGS_EN = {
                     headers: 'Headers',
                     groups: 'Groups'
                 },
-                perValueSuffix: '{key} (each value)',
                 options: {
                     custom: 'Custom',
                     date: 'Date',
@@ -1228,8 +1228,8 @@ export const STRINGS_EN = {
                 desc: 'When disabled, pills matching the current navigation selection are hidden (e.g. the "recipes" tag pill is hidden when browsing the "recipes" tag). Enable to keep all pills visible.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Color per-value group headers',
-                desc: "When grouping by each value of a property, group headers take that value's icon and color from the navigation tree."
+                name: 'Decorate group headers',
+                desc: "Group headers for a single property value or a tag take that value's icon and color from the navigation tree."
             },
             stickyGroupHeaders: {
                 name: 'Sticky group headers',

@@ -5057,11 +5057,16 @@ button.nn-list-group-header-collapse-button .nn-list-group-header-icon {
     height: var(--nn-list-group-header-icon-size, var(--nn-file-icon-size-mobile, var(--nn-file-icon-size)));
 }
 
-.nn-list-group-header-text--folder-note {
+/* --note-link is the property value equivalent of --folder-note: a header whose value is a wikilink
+   pointing at an existing note. Both share the folder note decoration so a linked header looks the
+   same whatever it links to. */
+.nn-list-group-header-text--folder-note,
+.nn-list-group-header-text--note-link {
     text-decoration: var(--nn-theme-navitem-folder-note-name-decoration);
 }
 
-.nn-list-group-header-text--folder-note:hover {
+.nn-list-group-header-text--folder-note:hover,
+.nn-list-group-header-text--note-link:hover {
     cursor: pointer;
     text-decoration: var(--nn-theme-navitem-folder-note-name-hover-decoration);
 }

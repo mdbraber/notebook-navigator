@@ -146,6 +146,7 @@ export const STRINGS_TR = {
         changeSortAndGroup: 'Sıralama ve gruplandırmayı değiştir',
         resetViewToDefaults: 'Görünümü varsayılanlara sıfırla',
         manualSort: 'Manuel sıralama',
+        splitListValues: 'Birden fazla değeri gruba göre ayır',
         editSortOrder: 'Sıralama düzenini düzenle...',
         removeSortProperty: 'Sıralama özelliğini kaldır',
         descendants: 'alt öğeler',
@@ -1150,7 +1151,7 @@ export const STRINGS_TR = {
                 items: [
                     '**Sıralama:** Öncelik gibi bir özellik seçildiğinde notlar, Öncelik değerlerine göre sıralanır.',
                     '**Gruplama:** Durum gibi bir özellik seçildiğinde her Durum değeri için bir başlık oluşturulur. Aynı Duruma sahip notlar aynı başlığın altında görünür.',
-                    '**Birden fazla değer:** Bir özellik liste içeriyorsa Notebook Navigator listenin tamamını kullanır. Örneğin Konular, Kitaplar ve Tarih değerlerini içeriyorsa not “Kitaplar, Tarih” kullanılarak sıralanır veya gruplanır; her konu ayrı ayrı kullanılmaz.',
+                    '**Birden fazla değer:** Bir özellik liste içeriyorsa Notebook Navigator listenin tamamını kullanır. Örneğin Konular, Kitaplar ve Tarih değerlerini içeriyorsa not “Kitaplar, Tarih” kullanılarak sıralanır veya gruplanır. Notu ayrı ayrı Kitaplar ve Tarih altında gruplamak için sıralama ve gruplama menüsünden **Birden fazla değeri gruba göre ayır** seçeneğini açın.',
                     '**Eksik değerler:** Gruplama sırasında özelliği olmayan notlar sonda **Yok** altında görünür.',
                     '**Etiket ve özellik görünümleri:** **Klasör** gruplaması seçildiğinde bunun yerine tarih başlıkları gösterilir.'
                 ]
@@ -1220,7 +1221,6 @@ export const STRINGS_TR = {
                     headers: 'Başlıklar',
                     groups: 'Gruplar'
                 },
-                perValueSuffix: '{key} (her değer)',
                 options: {
                     custom: 'Özel',
                     date: 'Tarih',
@@ -1232,8 +1232,8 @@ export const STRINGS_TR = {
                 desc: 'Devre dışı bırakıldığında, geçerli gezinme seçimiyle eşleşen rozetler gizlenir (ör. "tarifler" etiketine göz atarken "tarifler" etiketi rozeti gizlenir). Tüm rozetlerin görünür kalması için etkinleştirin.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Değer başına grup başlıklarını renklendir',
-                desc: 'Bir özelliğin her değerine göre gruplarken grup başlıkları o değerin simgesini ve rengini gezinme ağacından alır.'
+                name: 'Grup başlıklarını süsle',
+                desc: 'Tek bir özellik değerine veya bir etikete ait grup başlıkları o değerin simgesini ve rengini gezinme ağacından alır.'
             },
             stickyGroupHeaders: {
                 name: 'Yapışkan grup başlıkları',

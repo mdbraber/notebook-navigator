@@ -146,6 +146,7 @@ export const STRINGS_ID = {
         changeSortAndGroup: 'Ubah urutan dan grup',
         resetViewToDefaults: 'Atur ulang tampilan ke default',
         manualSort: 'Urutan manual',
+        splitListValues: 'Pisahkan beberapa nilai per grup',
         editSortOrder: 'Edit urutan...',
         removeSortProperty: 'Hapus properti urutan',
         descendants: 'turunan',
@@ -1152,7 +1153,7 @@ export const STRINGS_ID = {
                 items: [
                     '**Pengurutan:** Memilih properti seperti Prioritas akan mengurutkan catatan berdasarkan nilai Prioritasnya.',
                     '**Pengelompokan:** Memilih properti seperti Status akan membuat satu header untuk setiap nilai Status. Catatan dengan Status yang sama muncul di bawah header yang sama.',
-                    '**Beberapa nilai:** Jika properti berisi daftar, Notebook Navigator menggunakan seluruh daftar. Misalnya, jika Topik berisi Buku dan Sejarah, catatan diurutkan atau dikelompokkan menggunakan “Buku, Sejarah”, bukan setiap topik secara terpisah.',
+                    '**Beberapa nilai:** Jika properti berisi daftar, Notebook Navigator menggunakan seluruh daftar. Misalnya, jika Topik berisi Buku dan Sejarah, catatan diurutkan atau dikelompokkan menggunakan “Buku, Sejarah”. Aktifkan **Pisahkan beberapa nilai per grup** di menu urutkan dan kelompokkan untuk mengelompokkan catatan di Buku dan di Sejarah secara terpisah.',
                     '**Nilai yang tidak ada:** Saat mengelompokkan, catatan tanpa properti tersebut muncul di bawah **Tidak ada** di bagian akhir.',
                     '**Tampilan tag dan properti:** Saat pengelompokan **Folder** dipilih, header tanggal ditampilkan sebagai gantinya.'
                 ]
@@ -1222,7 +1223,6 @@ export const STRINGS_ID = {
                     headers: 'Header',
                     groups: 'Grup'
                 },
-                perValueSuffix: '{key} (setiap nilai)',
                 options: {
                     custom: 'Kustom',
                     date: 'Tanggal',
@@ -1234,8 +1234,8 @@ export const STRINGS_ID = {
                 desc: 'Saat dinonaktifkan, pil yang cocok dengan pilihan navigasi saat ini disembunyikan (misalnya, pil tag "resep" disembunyikan saat menelusuri tag "resep"). Aktifkan untuk menampilkan semua pil.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Warnai header per nilai',
-                desc: 'Saat mengelompokkan per nilai properti, header grup mengambil ikon dan warna nilai tersebut dari pohon navigasi.'
+                name: 'Hiasi header grup',
+                desc: 'Header grup untuk satu nilai properti atau tag mengambil ikon dan warna nilai tersebut dari pohon navigasi.'
             },
             stickyGroupHeaders: {
                 name: 'Header grup tetap',

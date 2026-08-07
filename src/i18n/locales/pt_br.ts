@@ -146,6 +146,7 @@ export const STRINGS_PT_BR = {
         changeSortAndGroup: 'Alterar classificação e agrupamento',
         resetViewToDefaults: 'Redefinir visualização para o padrão',
         manualSort: 'Classificação manual',
+        splitListValues: 'Dividir vários valores por grupo',
         editSortOrder: 'Editar ordem de classificação...',
         removeSortProperty: 'Remover propriedade de classificação',
         descendants: 'descendentes',
@@ -1154,7 +1155,7 @@ export const STRINGS_PT_BR = {
                 items: [
                     '**Classificação:** Escolher uma propriedade como Prioridade classifica as notas pelos valores de Prioridade.',
                     '**Agrupamento:** Escolher uma propriedade como Status cria um cabeçalho para cada valor de Status. As notas com o mesmo Status aparecem sob o mesmo cabeçalho.',
-                    '**Vários valores:** Se uma propriedade contiver uma lista, o Notebook Navigator usa a lista inteira. Por exemplo, se Tópicos contiver Livros e História, a nota será classificada ou agrupada usando “Livros, História”, e não cada tópico separadamente.',
+                    '**Vários valores:** Se uma propriedade contiver uma lista, o Notebook Navigator usa a lista inteira. Por exemplo, se Tópicos contiver Livros e História, a nota será classificada ou agrupada usando “Livros, História”. Ative **Dividir vários valores por grupo** no menu de classificação e agrupamento para agrupar a nota em Livros e em História separadamente.',
                     '**Valores ausentes:** Ao agrupar, as notas sem a propriedade aparecem em **Nenhum** no final.',
                     '**Visualizações de tag e propriedade:** Quando o agrupamento **Pasta** é selecionado, cabeçalhos de data são exibidos em vez disso.'
                 ]
@@ -1224,7 +1225,6 @@ export const STRINGS_PT_BR = {
                     headers: 'Cabeçalhos',
                     groups: 'Grupos'
                 },
-                perValueSuffix: '{key} (cada valor)',
                 options: {
                     custom: 'Personalizado',
                     date: 'Data',
@@ -1236,8 +1236,8 @@ export const STRINGS_PT_BR = {
                 desc: 'Quando desativado, as etiquetas que correspondem à seleção de navegação atual ficam ocultas (por exemplo, a etiqueta "receitas" fica oculta ao navegar na etiqueta "receitas"). Ative para manter todas as etiquetas visíveis.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Colorir cabeçalhos por valor',
-                desc: 'Ao agrupar por cada valor de uma propriedade, os cabeçalhos assumem o ícone e a cor desse valor da árvore de navegação.'
+                name: 'Decorar cabeçalhos de grupo',
+                desc: 'Os cabeçalhos de grupo de um único valor de propriedade ou de uma tag assumem o ícone e a cor desse valor da árvore de navegação.'
             },
             stickyGroupHeaders: {
                 name: 'Cabeçalhos de grupo fixos',

@@ -39,7 +39,8 @@ import {
     updateDefaultNoteGroupingKey,
     updatePropertyGroupKeySetting,
     updatePropertyGroupingOverrideKeys,
-    withPropertyGroupingOrder
+    withPropertyGroupingOrder,
+    withPropertyGroupingPerValue
 } from '../../src/utils/listGrouping';
 
 type GroupingSettings = Pick<NotebookNavigatorSettings, 'noteGrouping' | 'folderAppearances' | 'tagAppearances' | 'propertyAppearances'>;
@@ -232,6 +233,38 @@ describe('withPropertyGroupingOrder', () => {
         expect(withPropertyGroupingOrder('date', 'desc')).toBeNull();
         expect(withPropertyGroupingOrder('folder', 'asc')).toBeNull();
         expect(withPropertyGroupingOrder('custom', 'follow')).toBeNull();
+    });
+});
+
+describe('withPropertyGroupingPerValue', () => {
+    // The split toggle in the list pane rebuilds the stored option from the current one plus a new
+    // per-value flag. Rebuilding from key and flag alone would drop a chosen order back to
+    // follow-sort, silently undoing the group order the view was set to.
+    it('keeps the group order when only the per-value axis changes', () => {
+        expect(withPropertyGroupingPerValue('property-desc:topics', true)).toBe('property-each-desc:topics');
+        expect(withPropertyGroupingPerValue('property:topics', true)).toBe('property-each:topics');
+        expect(withPropertyGroupingPerValue('property-follow:topics', true)).toBe('property-each-follow:topics');
+    });
+
+    it('turns splitting back off without changing the order', () => {
+        expect(withPropertyGroupingPerValue('property-each-desc:topics', false)).toBe('property-desc:topics');
+        expect(withPropertyGroupingPerValue('property-each:topics', false)).toBe('property:topics');
+        expect(withPropertyGroupingPerValue('property-each-follow:topics', false)).toBe('property-follow:topics');
+    });
+
+    it('is a no-op when the flag already matches', () => {
+        expect(withPropertyGroupingPerValue('property-each-desc:topics', true)).toBe('property-each-desc:topics');
+        expect(withPropertyGroupingPerValue('property-desc:topics', false)).toBe('property-desc:topics');
+    });
+
+    it('preserves the property key verbatim, including separator characters', () => {
+        expect(withPropertyGroupingPerValue('property-desc:my:topics', true)).toBe('property-each-desc:my:topics');
+    });
+
+    it('returns null for base grouping modes', () => {
+        expect(withPropertyGroupingPerValue('date', true)).toBeNull();
+        expect(withPropertyGroupingPerValue('folder', true)).toBeNull();
+        expect(withPropertyGroupingPerValue('custom', false)).toBeNull();
     });
 });
 

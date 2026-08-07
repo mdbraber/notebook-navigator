@@ -145,6 +145,7 @@ export const STRINGS_ZH_TW = {
         changeSortAndGroup: '變更排序與分組',
         resetViewToDefaults: '將檢視重設為預設值',
         manualSort: '手動排序',
+        splitListValues: '依分組拆分多個值',
         editSortOrder: '編輯排序方式...',
         removeSortProperty: '移除排序屬性',
         descendants: '子項',
@@ -1144,7 +1145,7 @@ export const STRINGS_ZH_TW = {
                 items: [
                     '**排序：** 選擇「優先順序」等屬性後，筆記會依各自的優先順序值排序。',
                     '**分組：** 選擇「狀態」等屬性後，每個狀態值都會建立一個標題。狀態相同的筆記會顯示在同一個標題下。',
-                    '**多個值：** 如果屬性包含清單，Notebook Navigator 會使用完整清單。例如，如果「主題」包含「書籍」和「歷史」，筆記會依「書籍, 歷史」這個完整清單排序或分組，而不會分別處理每個主題。',
+                    '**多個值：** 如果屬性包含清單，Notebook Navigator 會使用完整清單。例如，如果「主題」包含「書籍」和「歷史」，筆記會依「書籍, 歷史」這個完整清單排序或分組。在排序與分組選單中開啟 **依分組拆分多個值**，即可讓筆記分別歸入「書籍」和「歷史」。',
                     '**缺少值：** 分組時，沒有該屬性的筆記會顯示在最後的 **無** 下。',
                     '**標籤和屬性檢視：** 選擇 **資料夾** 分組後，會改為顯示日期標題。'
                 ]
@@ -1211,7 +1212,6 @@ export const STRINGS_ZH_TW = {
                     headers: '標題',
                     groups: '分組'
                 },
-                perValueSuffix: '{key}（每個值）',
                 options: {
                     custom: '自訂',
                     date: '日期',
@@ -1223,8 +1223,8 @@ export const STRINGS_ZH_TW = {
                 desc: '停用時，與目前導覽選擇相符的標記會被隱藏（例如，瀏覽「食譜」標籤時，「食譜」標籤標記會被隱藏）。啟用後所有標記始終可見。'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: '為每個值的分組標題著色',
-                desc: '依屬性的每個值分組時，分組標題會從導覽樹取得該值的圖示與顏色。'
+                name: '裝飾分組標題',
+                desc: '單一屬性值或標籤的分組標題會從導覽樹取得該值的圖示與顏色。'
             },
             stickyGroupHeaders: {
                 name: '固定群組標題',

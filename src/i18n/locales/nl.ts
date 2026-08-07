@@ -147,6 +147,7 @@ export const STRINGS_NL = {
         changeSortAndGroup: 'Sortering en groepering wijzigen',
         resetViewToDefaults: 'Weergave terugzetten naar standaardwaarden',
         manualSort: 'Handmatig sorteren',
+        splitListValues: 'Meerdere waarden per groep splitsen',
         editSortOrder: 'Sorteervolgorde bewerken...',
         removeSortProperty: 'Sorteereigenschap verwijderen',
         descendants: 'subelementen',
@@ -1154,7 +1155,7 @@ export const STRINGS_NL = {
                 items: [
                     '**Sorteren:** Als je een eigenschap zoals Prioriteit kiest, worden notities gesorteerd op hun Prioriteitswaarde.',
                     '**Groeperen:** Als je een eigenschap zoals Status kiest, wordt voor elke Statuswaarde een kop gemaakt. Notities met dezelfde Status verschijnen onder dezelfde kop.',
-                    '**Meerdere waarden:** Als een eigenschap een lijst bevat, gebruikt Notebook Navigator de volledige lijst. Als Onderwerpen bijvoorbeeld Boeken en Geschiedenis bevat, wordt de notitie gesorteerd of gegroepeerd op ‘Boeken, Geschiedenis’, niet op elk onderwerp afzonderlijk.',
+                    '**Meerdere waarden:** Als een eigenschap een lijst bevat, gebruikt Notebook Navigator de volledige lijst. Als Onderwerpen bijvoorbeeld Boeken en Geschiedenis bevat, wordt de notitie gesorteerd of gegroepeerd op ‘Boeken, Geschiedenis’. Zet **Meerdere waarden per groep splitsen** aan in het sorteer- en groepeermenu om de notitie in plaats daarvan onder Boeken en onder Geschiedenis te groeperen.',
                     '**Ontbrekende waarden:** Bij groeperen verschijnen notities zonder de eigenschap onderaan onder **Geen**.',
                     '**Tag- en eigenschapweergaven:** Als groeperen op **Map** is geselecteerd, worden in plaats daarvan datumkoppen weergegeven.'
                 ]
@@ -1224,7 +1225,6 @@ export const STRINGS_NL = {
                     headers: 'Koppen',
                     groups: 'Groepen'
                 },
-                perValueSuffix: '{key} (elke waarde)',
                 options: {
                     custom: 'Aangepast',
                     date: 'Datum',
@@ -1236,8 +1236,8 @@ export const STRINGS_NL = {
                 desc: 'Wanneer uitgeschakeld, worden pillen die overeenkomen met de huidige navigatieselectie verborgen (bijv. de "recepten"-tagpil wordt verborgen bij het bladeren door de "recepten"-tag). Inschakelen om alle pillen zichtbaar te houden.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Groepskoppen per waarde kleuren',
-                desc: 'Bij groeperen per waarde van een eigenschap nemen groepskoppen het pictogram en de kleur van die waarde over uit de boomstructuur.'
+                name: 'Groepskoppen opmaken',
+                desc: 'Groepskoppen voor één eigenschapswaarde of een tag nemen het pictogram en de kleur van die waarde over uit de boomstructuur.'
             },
             stickyGroupHeaders: {
                 name: 'Plakkerige groepskoppen',

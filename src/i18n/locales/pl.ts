@@ -146,6 +146,7 @@ export const STRINGS_PL = {
         changeSortAndGroup: 'Zmień sortowanie i grupowanie',
         resetViewToDefaults: 'Przywróć widok do ustawień domyślnych',
         manualSort: 'Sortowanie ręczne',
+        splitListValues: 'Podziel wiele wartości na grupy',
         editSortOrder: 'Edytuj kolejność sortowania...',
         removeSortProperty: 'Usuń atrybut sortowania',
         descendants: 'potomków',
@@ -1155,7 +1156,7 @@ export const STRINGS_PL = {
                 items: [
                     '**Sortowanie:** Wybranie atrybutu, takiego jak Priorytet, sortuje notatki według ich wartości Priorytetu.',
                     '**Grupowanie:** Wybranie atrybutu, takiego jak Status, tworzy nagłówek dla każdej wartości Statusu. Notatki z tym samym Statusem są wyświetlane pod tym samym nagłówkiem.',
-                    '**Wiele wartości:** Jeśli atrybut zawiera listę, Notebook Navigator używa całej listy. Na przykład, jeśli Tematy zawierają Książki i Historię, notatka jest sortowana lub grupowana według „Książki, Historia”, a nie według każdego tematu osobno.',
+                    '**Wiele wartości:** Jeśli atrybut zawiera listę, Notebook Navigator używa całej listy. Na przykład, jeśli Tematy zawierają Książki i Historię, notatka jest sortowana lub grupowana według „Książki, Historia”. Włącz **Podziel wiele wartości na grupy** w menu sortowania i grupowania, aby zgrupować notatkę osobno w Książkach i w Historii.',
                     '**Brakujące wartości:** Podczas grupowania notatki bez tego atrybutu są wyświetlane na końcu pod **Brak**.',
                     '**Widoki tagów i atrybutów:** Po wybraniu grupowania **Folder** zamiast tego wyświetlane są nagłówki dat.'
                 ]
@@ -1225,7 +1226,6 @@ export const STRINGS_PL = {
                     headers: 'Nagłówki',
                     groups: 'Grupy'
                 },
-                perValueSuffix: '{key} (każda wartość)',
                 options: {
                     custom: 'Niestandardowe',
                     date: 'Data',
@@ -1237,8 +1237,8 @@ export const STRINGS_PL = {
                 desc: 'Po wyłączeniu etykiety odpowiadające bieżącemu wyborowi nawigacji są ukrywane (np. etykieta tagu „przepisy” jest ukrywana podczas przeglądania tagu „przepisy”). Włącz, aby wszystkie etykiety były zawsze widoczne.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Koloruj nagłówki grup dla każdej wartości',
-                desc: 'Przy grupowaniu według każdej wartości atrybutu nagłówki grup przejmują ikonę i kolor tej wartości z drzewa nawigacji.'
+                name: 'Ozdabiaj nagłówki grup',
+                desc: 'Nagłówki grup dla jednej wartości atrybutu lub tagu przejmują ikonę i kolor tej wartości z drzewa nawigacji.'
             },
             stickyGroupHeaders: {
                 name: 'Przyklejone nagłówki grup',

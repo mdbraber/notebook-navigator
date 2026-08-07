@@ -145,6 +145,7 @@ export const STRINGS_ES = {
         changeSortAndGroup: 'Cambiar orden y agrupación',
         resetViewToDefaults: 'Restablecer vista a valores predeterminados',
         manualSort: 'Orden manual',
+        splitListValues: 'Dividir varios valores por grupo',
         editSortOrder: 'Editar orden de clasificación...',
         removeSortProperty: 'Eliminar propiedad de orden',
         descendants: 'descendientes',
@@ -1153,7 +1154,7 @@ export const STRINGS_ES = {
                 items: [
                     '**Ordenación:** Elegir una propiedad como Prioridad ordena las notas por sus valores de Prioridad.',
                     '**Agrupación:** Elegir una propiedad como Estado crea un encabezado para cada valor de Estado. Las notas con el mismo Estado aparecen bajo el mismo encabezado.',
-                    '**Varios valores:** Si una propiedad contiene una lista, Notebook Navigator usa la lista completa. Por ejemplo, si Temas contiene Libros e Historia, ordena o agrupa la nota usando «Libros, Historia», no cada tema por separado.',
+                    '**Varios valores:** Si una propiedad contiene una lista, Notebook Navigator usa la lista completa. Por ejemplo, si Temas contiene Libros e Historia, ordena o agrupa la nota usando «Libros, Historia». Activa **Dividir varios valores por grupo** en el menú de orden y grupo para agrupar la nota en Libros y en Historia por separado.',
                     '**Valores ausentes:** Al agrupar, las notas sin la propiedad aparecen al final bajo **Ninguno**.',
                     '**Vistas de etiquetas y propiedades:** Cuando se selecciona la agrupación **Carpeta**, se muestran encabezados de fecha en su lugar.'
                 ]
@@ -1223,7 +1224,6 @@ export const STRINGS_ES = {
                     headers: 'Encabezados',
                     groups: 'Grupos'
                 },
-                perValueSuffix: '{key} (cada valor)',
                 options: {
                     custom: 'Personalizada',
                     date: 'Fecha',
@@ -1235,8 +1235,8 @@ export const STRINGS_ES = {
                 desc: 'Cuando está desactivado, las etiquetas que coinciden con la selección de navegación actual se ocultan (p. ej., la etiqueta "recetas" se oculta al navegar por la etiqueta "recetas"). Activar para mantener todas las etiquetas visibles.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Colorear encabezados por valor',
-                desc: 'Al agrupar por cada valor de una propiedad, los encabezados toman el icono y el color de ese valor del árbol de navegación.'
+                name: 'Decorar encabezados de grupo',
+                desc: 'Los encabezados de grupo de un único valor de propiedad o de una etiqueta toman el icono y el color de ese valor del árbol de navegación.'
             },
             stickyGroupHeaders: {
                 name: 'Encabezados de grupo fijos',

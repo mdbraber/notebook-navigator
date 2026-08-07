@@ -2317,10 +2317,12 @@ describe('per-value property grouping', () => {
         expect(filePathsUnderHeaders(items)).toEqual({ Projects: ['Dune.md'], Topics: ['Dune.md'] });
     });
 
-    it('keeps the joined bucket for the original option', () => {
+    it('keeps the joined bucket for the original option, labelled with display text', () => {
         const items = build('property:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
 
-        expect(headerLabels(items)).toEqual(['[[Topics]], [[Projects]]']);
+        // One bucket, as the joined option requires. Each part is resolved to its display text, so the
+        // header reads like the navigation tree instead of exposing the raw wikilink markup.
+        expect(headerLabels(items)).toEqual(['Topics, Projects']);
     });
 
     it('labels wikilink values with their display text and plain values verbatim', () => {
@@ -2453,11 +2455,47 @@ describe('per-value property grouping', () => {
         expect(header?.headerPropertyNodeId).not.toBe(buildPropertyValueNodeId('topics', 'apple'));
     });
 
-    it('leaves the node id unset for joined groups and for the no-value group', () => {
-        const joined = build('property:topics', { 'Dune.md': { topics: ['[[Topics]]'] } }, [multi]);
-        expect(joined.find(item => item.type === ListPaneItemType.HEADER)?.headerPropertyNodeId ?? null).toBeNull();
+    it('resolves the node id for a single-value group even when values are not split', () => {
+        // Splitting is not what makes a group map to a tree node; holding exactly one value is. A
+        // scalar or a one-entry list already names one value, so its joined group resolves to the same
+        // node the split group would.
+        const oneEntryList = build('property:topics', { 'Dune.md': { topics: ['[[Topics]]'] } }, [multi]);
+        expect(oneEntryList.find(item => item.type === ListPaneItemType.HEADER)?.headerPropertyNodeId).toBe(
+            buildPropertyValueNodeId('topics', 'topics')
+        );
+
+        const scalar = build('property:topics', { 'Dune.md': { topics: '[[Topics]]' } }, [multi]);
+        expect(scalar.find(item => item.type === ListPaneItemType.HEADER)?.headerPropertyNodeId).toBe(
+            buildPropertyValueNodeId('topics', 'topics')
+        );
+    });
+
+    it('leaves the node id unset for multi-value joined groups and for the no-value group', () => {
+        const joinedMulti = build('property:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+        expect(joinedMulti.find(item => item.type === ListPaneItemType.HEADER)?.headerPropertyNodeId ?? null).toBeNull();
 
         const withNoValue = build('property-each:topics', {}, [single]);
         expect(withNoValue.find(item => item.type === ListPaneItemType.HEADER)?.headerPropertyNodeId ?? null).toBeNull();
+    });
+
+    it('routes tag values to a tag tree path instead of a property value node', () => {
+        // Frontmatter tag fields conventionally omit the leading hash, so the field name is what marks
+        // these values as tags. The tag tree keys its rows by lowercase path without the hash.
+        const tagField = build('property-each:tags', { 'Dune.md': { tags: ['Books', 'History'] } }, [multi]);
+        const tagHeader = tagField.find(item => item.type === ListPaneItemType.HEADER);
+        expect(tagHeader?.headerTagPath).toBe('books');
+        expect(tagHeader?.headerPropertyNodeId ?? null).toBeNull();
+
+        // A value written as an inline tag is a tag whatever key holds it.
+        const inline = build('property-each:topics', { 'Dune.md': { topics: ['#Books'] } }, [multi]);
+        const inlineHeader = inline.find(item => item.type === ListPaneItemType.HEADER);
+        expect(inlineHeader?.headerTagPath).toBe('books');
+        expect(inlineHeader?.headerPropertyNodeId ?? null).toBeNull();
+
+        // Ordinary values keep resolving against the property tree, with no tag path.
+        const plain = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]'] } }, [multi]);
+        const plainHeader = plain.find(item => item.type === ListPaneItemType.HEADER);
+        expect(plainHeader?.headerTagPath ?? null).toBeNull();
+        expect(plainHeader?.headerPropertyNodeId).toBe(buildPropertyValueNodeId('topics', 'topics'));
     });
 });

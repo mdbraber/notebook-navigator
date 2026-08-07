@@ -145,6 +145,7 @@ export const STRINGS_ZH_CN = {
         changeSortAndGroup: '更改排序和分组',
         resetViewToDefaults: '将视图重置为默认值',
         manualSort: '手动排序',
+        splitListValues: '按分组拆分多个值',
         editSortOrder: '编辑排序方式...',
         removeSortProperty: '移除排序属性',
         descendants: '子项',
@@ -1143,7 +1144,7 @@ export const STRINGS_ZH_CN = {
                 items: [
                     '**排序：** 选择“优先级”等属性后，笔记会按各自的优先级值排序。',
                     '**分组：** 选择“状态”等属性后，每个状态值都会创建一个标题。状态相同的笔记会显示在同一标题下。',
-                    '**多个值：** 如果属性包含列表，Notebook Navigator 会使用完整列表。例如，如果“主题”包含“书籍”和“历史”，笔记会按“书籍, 历史”这个完整列表排序或分组，而不会分别按每个主题处理。',
+                    '**多个值：** 如果属性包含列表，Notebook Navigator 会使用完整列表。例如，如果“主题”包含“书籍”和“历史”，笔记会按“书籍, 历史”这个完整列表排序或分组。在排序和分组菜单中开启 **按分组拆分多个值**，即可让笔记分别归入“书籍”和“历史”。',
                     '**缺少值：** 分组时，没有该属性的笔记会显示在末尾的 **无** 下。',
                     '**标签和属性视图：** 选择 **文件夹** 分组后，会改为显示日期标题。'
                 ]
@@ -1210,7 +1211,6 @@ export const STRINGS_ZH_CN = {
                     headers: '标题',
                     groups: '分组'
                 },
-                perValueSuffix: '{key}（每个值）',
                 options: {
                     custom: '自定义',
                     date: '日期',
@@ -1222,8 +1222,8 @@ export const STRINGS_ZH_CN = {
                 desc: '禁用时，与当前导航选择匹配的标记会被隐藏（例如，浏览"食谱"标签时，"食谱"标签标记会被隐藏）。启用后所有标记始终可见。'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: '为每个值的分组标题着色',
-                desc: '按属性的每个值分组时，分组标题会从导航树中获取该值的图标和颜色。'
+                name: '装饰分组标题',
+                desc: '单个属性值或标签的分组标题会从导航树中获取该值的图标和颜色。'
             },
             stickyGroupHeaders: {
                 name: '固定分组标题',

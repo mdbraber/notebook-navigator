@@ -45,7 +45,7 @@ import {
 } from '../../utils/manualSort';
 import { getCachedWordCountTargetFromFrontmatter, getWordCountTargetFromProperties } from '../../utils/wordCountUtils';
 import { createHiddenTagVisibility } from '../../utils/tagPrefixMatcher';
-import { getCachedFileTags } from '../../utils/tagUtils';
+import { getCachedFileTags, isFrontmatterTagKey, normalizeTagPath } from '../../utils/tagUtils';
 import { DateUtils } from '../../utils/dateUtils';
 import { buildListGroupCollapseKey } from '../../utils/listGroupCollapse';
 import type { AliasSearchMatch, PropertySearchMatch, SearchResultMeta } from '../../types/search';
@@ -345,6 +345,7 @@ function buildListItemsInternal(
         key,
         headerFolderPath,
         headerPropertyNodeId,
+        headerTagPath,
         headerFolderSegments,
         headerKind,
         collapseKey,
@@ -357,6 +358,7 @@ function buildListItemsInternal(
         | 'key'
         | 'headerFolderPath'
         | 'headerPropertyNodeId'
+        | 'headerTagPath'
         | 'headerFolderSegments'
         | 'headerKind'
         | 'collapseKey'
@@ -390,6 +392,7 @@ function buildListItemsInternal(
             data,
             headerFolderPath,
             headerPropertyNodeId,
+            headerTagPath,
             headerFolderSegments,
             manualSortHeaderFilePath,
             groupFilePaths: collectGroupItemCounts ? undefined : groupFiles ? groupFiles.map(file => file.path) : [],
@@ -549,6 +552,9 @@ function buildListItemsInternal(
         // described where the buckets are built below.
         const propertyGroupingDirection = resolvePropertyGroupingDirection(groupingMode, sortOption);
         const propertyGroupingPerValue = getPropertyGroupingPerValue(groupingMode);
+        // Grouping by a tag field makes every group a tag, whether or not the values are written with
+        // a leading hash. Individual values elsewhere can still be tags; those are caught per group.
+        const isTagValuedGrouping = isFrontmatterTagKey(propertyGroupingKey);
         const propertyGroups = new Map<string, { label: string; numericValue: number | null; files: TFile[] }>();
         const ungroupedFiles: TFile[] = [];
 
@@ -580,7 +586,12 @@ function buildListItemsInternal(
                 // The first file to create a bucket decides whether the group carries a numeric key,
                 // matching how the first encountered value becomes the group key in Obsidian Bases.
                 propertyGroups.set(bucketKey, {
-                    label: propertyGroupingPerValue ? resolvePropertyDisplayText(bucketKey) : groupingValue.parts.join(', '),
+                    // Every part is resolved to its display text, so a joined group reads
+                    // "World, History" rather than the raw "[[World]], [[History]]" the frontmatter
+                    // holds. Split groups resolve their single part the same way.
+                    label: propertyGroupingPerValue
+                        ? resolvePropertyDisplayText(bucketKey)
+                        : groupingValue.parts.map(part => resolvePropertyDisplayText(part)).join(', '),
                     numericValue: groupingValue.numericValue,
                     files: [file]
                 });
@@ -616,13 +627,20 @@ function buildListItemsInternal(
                 return directionMultiplier * (left.bucketKey < right.bucketKey ? -1 : 1);
             });
 
-        const renderPropertyGroup = (label: string, groupFiles: TFile[], groupId: string, propertyNodeId: string | null): void => {
+        const renderPropertyGroup = (
+            label: string,
+            groupFiles: TFile[],
+            groupId: string,
+            propertyNodeId: string | null,
+            tagPath: string | null
+        ): void => {
             pushHeaderItem({
                 data: label,
                 collapseKey: createCollapseKey(groupId),
                 key: `header-${groupId}`,
                 headerKind: 'property',
                 headerPropertyNodeId: propertyNodeId,
+                headerTagPath: tagPath,
                 groupFiles
             });
             groupFiles.forEach(file => {
@@ -643,18 +661,29 @@ function buildListItemsInternal(
             // the tree actually assigns to that value, and the appearance lookup would silently never
             // match.
             let propertyNodeId: string | null = null;
-            if (propertyGroupingPerValue) {
-                const normalizedValuePath = normalizePropertyTreeValuePath(group.bucketKey);
-                propertyNodeId = normalizedValuePath
-                    ? buildPropertyValueNodeId(normalizePropertyTreeKey(propertyGroupingKey), normalizedValuePath)
-                    : null;
+            let tagPath: string | null = null;
+            // A bucket maps to one tree node when it holds exactly one value. Splitting guarantees
+            // that, but a joined bucket qualifies too whenever the property held a single value —
+            // a scalar, or a one-entry list. Only multi-value joined buckets have no single node.
+            // The separator cannot occur inside a value, so its absence means one part.
+            if (!group.bucketKey.includes(JOINED_BUCKET_SEPARATOR)) {
+                if (isTagValuedGrouping || group.bucketKey.startsWith('#')) {
+                    // Tag values name a row in the tag tree, which holds their appearance; the tag tree
+                    // keys rows by lowercase path without the leading hash.
+                    tagPath = normalizeTagPath(group.bucketKey);
+                } else {
+                    const normalizedValuePath = normalizePropertyTreeValuePath(group.bucketKey);
+                    propertyNodeId = normalizedValuePath
+                        ? buildPropertyValueNodeId(normalizePropertyTreeKey(propertyGroupingKey), normalizedValuePath)
+                        : null;
+                }
             }
-            renderPropertyGroup(group.label, group.files, `property-value:${group.bucketKey}`, propertyNodeId);
+            renderPropertyGroup(group.label, group.files, `property-value:${group.bucketKey}`, propertyNodeId, tagPath);
         });
 
         // Files without the property collect into one trailing group, matching the Bases "None" group placement.
         if (ungroupedFiles.length > 0) {
-            renderPropertyGroup(strings.listPane.propertyGroupNoValue, ungroupedFiles, 'property-none', null);
+            renderPropertyGroup(strings.listPane.propertyGroupNoValue, ungroupedFiles, 'property-none', null, null);
         }
     } else {
         const baseFolderPath = selectedFolder?.path ?? null;

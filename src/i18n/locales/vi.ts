@@ -146,6 +146,7 @@ export const STRINGS_VI = {
         changeSortAndGroup: 'Đổi sắp xếp và nhóm',
         resetViewToDefaults: 'Đặt lại chế độ xem về mặc định',
         manualSort: 'Sắp xếp thủ công',
+        splitListValues: 'Tách nhiều giá trị theo nhóm',
         editSortOrder: 'Chỉnh sửa thứ tự sắp xếp...',
         removeSortProperty: 'Xóa thuộc tính sắp xếp',
         descendants: 'phần tử con',
@@ -1153,7 +1154,7 @@ export const STRINGS_VI = {
                 items: [
                     '**Sắp xếp:** Chọn một thuộc tính như Ưu tiên sẽ sắp xếp ghi chú theo giá trị Ưu tiên của chúng.',
                     '**Nhóm:** Chọn một thuộc tính như Trạng thái sẽ tạo một tiêu đề cho mỗi giá trị Trạng thái. Các ghi chú có cùng Trạng thái xuất hiện dưới cùng một tiêu đề.',
-                    '**Nhiều giá trị:** Nếu một thuộc tính chứa danh sách, Notebook Navigator sử dụng toàn bộ danh sách. Ví dụ, nếu Chủ đề chứa Sách và Lịch sử, ghi chú sẽ được sắp xếp hoặc nhóm bằng “Sách, Lịch sử”, chứ không theo từng chủ đề riêng biệt.',
+                    '**Nhiều giá trị:** Nếu một thuộc tính chứa danh sách, Notebook Navigator sử dụng toàn bộ danh sách. Ví dụ, nếu Chủ đề chứa Sách và Lịch sử, ghi chú sẽ được sắp xếp hoặc nhóm bằng “Sách, Lịch sử”. Bật **Tách nhiều giá trị theo nhóm** trong menu sắp xếp và nhóm để nhóm ghi chú vào Sách và Lịch sử riêng biệt.',
                     '**Giá trị bị thiếu:** Khi nhóm, các ghi chú không có thuộc tính sẽ xuất hiện dưới **Không có** ở cuối.',
                     '**Chế độ xem thẻ và thuộc tính:** Khi chọn nhóm theo **Thư mục**, tiêu đề ngày sẽ được hiển thị thay thế.'
                 ]
@@ -1223,7 +1224,6 @@ export const STRINGS_VI = {
                     headers: 'Tiêu đề',
                     groups: 'Nhóm'
                 },
-                perValueSuffix: '{key} (từng giá trị)',
                 options: {
                     custom: 'Tùy chỉnh',
                     date: 'Ngày',
@@ -1235,8 +1235,8 @@ export const STRINGS_VI = {
                 desc: 'Khi tắt, các nhãn khớp với lựa chọn điều hướng hiện tại sẽ bị ẩn (ví dụ: nhãn thẻ "công thức" bị ẩn khi duyệt thẻ "công thức"). Bật để giữ tất cả các nhãn luôn hiển thị.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Tô màu tiêu đề nhóm theo từng giá trị',
-                desc: 'Khi nhóm theo từng giá trị của thuộc tính, tiêu đề nhóm lấy biểu tượng và màu của giá trị đó từ cây điều hướng.'
+                name: 'Trang trí tiêu đề nhóm',
+                desc: 'Tiêu đề nhóm cho một giá trị thuộc tính đơn lẻ hoặc một thẻ lấy biểu tượng và màu của giá trị đó từ cây điều hướng.'
             },
             stickyGroupHeaders: {
                 name: 'Header nhóm cố định',

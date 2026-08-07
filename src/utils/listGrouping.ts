@@ -78,6 +78,22 @@ export function withPropertyGroupingOrder(groupBy: ListNoteGroupingOption, order
     return createPropertyGroupingOption(propertyKey, order, getPropertyGroupingPerValue(groupBy));
 }
 
+/**
+ * Rebuilds a property grouping option with a different per-value axis, keeping its property key and
+ * its group order. Returns null for base grouping modes, which have no per-value axis to change.
+ *
+ * The mirror of withPropertyGroupingOrder: controls that only toggle splitting must go through this
+ * rather than re-encoding from key and per-value, which drops the order back to follow-sort.
+ */
+export function withPropertyGroupingPerValue(groupBy: ListNoteGroupingOption, perValue: boolean): ListNoteGroupingOption | null {
+    const propertyKey = getPropertyGroupingKey(groupBy);
+    if (propertyKey === null) {
+        return null;
+    }
+
+    return createPropertyGroupingOption(propertyKey, getPropertyGroupingOrder(groupBy) ?? 'follow', perValue);
+}
+
 interface ResolveListGroupingParams {
     settings: Pick<NotebookNavigatorSettings, 'noteGrouping' | 'folderAppearances' | 'tagAppearances' | 'propertyAppearances'>;
     selectionType?: ItemType;

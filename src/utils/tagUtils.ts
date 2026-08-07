@@ -160,6 +160,20 @@ export function normalizeTagPath(tagPath: string | null | undefined): string | n
 }
 
 /**
+ * Checks whether a frontmatter property key holds tags rather than ordinary values. Obsidian reads
+ * both `tags` and `tag`, case-insensitively, which is how frontmatter tag writes resolve their field
+ * key. Values of such a key name rows in the tag tree, so their appearance comes from there.
+ */
+export function isFrontmatterTagKey(propertyKey: string | null | undefined): boolean {
+    if (!propertyKey) {
+        return false;
+    }
+
+    const lowerKey = propertyKey.trim().toLowerCase();
+    return lowerKey === 'tags' || lowerKey === 'tag';
+}
+
+/**
  * Resolves the canonical lowercase tag path used across state stores.
  * Returns the node path when available, otherwise the normalized string.
  */
