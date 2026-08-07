@@ -260,7 +260,7 @@ export function NavigationPaneTreeRow({
                     onClick={event => tree.handlePropertyClick(propertyNode, item.key, event)}
                     onNameClick={event => tree.handlePropertyNameClick(propertyNode, item.key, event)}
                     onNameMouseDown={event => tree.handlePropertyNameMouseDown(propertyNode, event)}
-                    onToggleAllSiblings={() => tree.handlePropertyToggleAllSiblings(propertyNode)}
+                    onToggleAllSiblings={() => tree.handlePropertyToggleAllSiblings(propertyNode, item.key)}
                     hasChildren={hasChildren}
                     color={item.color}
                     backgroundColor={getSolidBackground(item.backgroundColor)}

@@ -108,7 +108,11 @@ export interface NavigationPaneTreeInteractionsResult {
      * because the collapseOtherBranchesOnExpand path still reasons in node ids.
      */
     handlePropertyToggle: (placementKey: string, nodeId: string) => void;
-    handlePropertyToggleAllSiblings: (propertyNode: PropertyTreeNode) => void;
+    /**
+     * Alt+click on a property chevron. placementKey has the same meaning as in handlePropertyToggle and
+     * drives the row's own toggle; the recursive descendant dispatch stays in node ids.
+     */
+    handlePropertyToggleAllSiblings: (propertyNode: PropertyTreeNode, placementKey: string) => void;
     handleVirtualFolderToggle: (folderId: string) => void;
     handleVirtualFolderToggleAllSiblings: (folderId: string) => void;
     handleTagClick: (tagPath: string, event?: React.MouseEvent, options?: { fromShortcut?: boolean }) => void;
@@ -367,7 +371,13 @@ export function useNavigationPaneTreeInteractions({
                         {
                             type: 'property',
                             id: targetNode.id,
-                            hasChildren: targetNode.children.size > 0,
+                            // A hierarchical value node is stored as a leaf child of its key, so its
+                            // own children map is always empty and this must ask the index too.
+                            // Without that, toggleNavigationExpansionTarget computes canExpand as
+                            // false, dispatches nothing, and the early return below swallows the
+                            // toggle, leaving the whole hierarchical tree unopenable by mouse
+                            // whenever collapseOtherBranchesOnExpand is on.
+                            hasChildren: propertyNodeHasChildren(targetNode, propertyHierarchyIndex),
                             ancestorIds: getPropertyAncestorNodeIds(targetNode.id)
                         },
                         expansionState,
@@ -381,7 +391,14 @@ export function useNavigationPaneTreeInteractions({
 
             expansionDispatch({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: placementKey });
         },
-        [expansionDispatch, expansionState, propertyTree, propertyTreeService, settings.collapseOtherBranchesOnExpand]
+        [
+            expansionDispatch,
+            expansionState,
+            propertyHierarchyIndex,
+            propertyTree,
+            propertyTreeService,
+            settings.collapseOtherBranchesOnExpand
+        ]
     );
 
     const handleVirtualFolderToggle = useCallback(
@@ -831,11 +848,12 @@ export function useNavigationPaneTreeInteractions({
     );
 
     const handlePropertyToggleAllSiblings = useCallback(
-        (propertyNode: PropertyTreeNode) => {
-            const isCurrentlyExpanded = expansionState.expandedProperties.has(propertyNode.id);
-            // "Toggle all siblings" only ever deals in node ids (see TOGGLE_DESCENDANT_PROPERTIES
-            // below), so the placement key and node id are the same argument here.
-            handlePropertyToggle(propertyNode.id, propertyNode.id);
+        (propertyNode: PropertyTreeNode, placementKey: string) => {
+            // The row's own toggle is per placement, exactly like the plain toggle and the two click
+            // handlers. Only the descendant payload below stays in node ids, because
+            // TOGGLE_DESCENDANT_PROPERTIES walks node.children, which a hierarchical value never has.
+            const isCurrentlyExpanded = expansionState.expandedProperties.has(placementKey);
+            handlePropertyToggle(placementKey, propertyNode.id);
             const descendantNodeIds = getAllDescendantPropertyNodeIds(propertyNode);
             if (descendantNodeIds.length > 0) {
                 expansionDispatch({ type: 'TOGGLE_DESCENDANT_PROPERTIES', descendantNodeIds, expand: !isCurrentlyExpanded });
