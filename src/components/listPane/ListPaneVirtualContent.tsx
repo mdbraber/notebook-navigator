@@ -85,6 +85,10 @@ export interface HeaderRenderModel {
     folderIconId: string | null;
     folderColor: string | null;
     applyFolderColorToLabel: boolean;
+    propertyValueIconId: string | null;
+    propertyValueColor: string | null;
+    propertyValueBackground: string | null;
+    applyPropertyValueColorToLabel: boolean;
 }
 
 interface HeaderRenderModels {
@@ -269,6 +273,12 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
     const folderColor = header.folderColor ?? undefined;
     const folderIconStyle = folderColor ? { color: folderColor } : undefined;
     const folderLabelStyle = header.applyFolderColorToLabel && folderColor ? { color: folderColor } : undefined;
+    const propertyValueColor = header.propertyValueColor ?? undefined;
+    const propertyValueIconStyle = propertyValueColor ? { color: propertyValueColor } : undefined;
+    const propertyValueLabelStyle = header.applyPropertyValueColorToLabel && propertyValueColor ? { color: propertyValueColor } : undefined;
+    const propertyValueShellStyle = header.propertyValueBackground ? { backgroundColor: header.propertyValueBackground } : undefined;
+    // Folder-group and property-value headers never resolve color at the same time, so at most one is set.
+    const headerLabelStyle = folderLabelStyle ?? propertyValueLabelStyle;
     // Shared by the header row and the chevron button. stopPropagation keeps a chevron click from
     // bubbling to the row handler, which would toggle the group twice and leave it unchanged.
     const handleCollapseToggle = useCallback(
@@ -341,7 +351,7 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
         return (
             <span
                 className={textClassName}
-                style={folderLabelStyle}
+                style={headerLabelStyle}
                 onClick={
                     folderGroupHeaderTarget
                         ? event => {
@@ -361,6 +371,7 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
     const headerRow = (
         <div
             className={headerClasses.join(' ')}
+            style={propertyValueShellStyle}
             onClick={header.isCollapsible ? handleCollapseToggle : undefined}
             onContextMenu={hasManualSortGoal ? undefined : handleContextMenu}
         >
@@ -386,6 +397,15 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
                             aria-hidden={true}
                             data-has-color={folderColor ? 'true' : 'false'}
                             style={folderIconStyle}
+                        />
+                    ) : null}
+                    {!header.isPinnedHeader && header.propertyValueIconId ? (
+                        <ServiceIcon
+                            iconId={header.propertyValueIconId}
+                            className="nn-list-group-header-icon nn-list-group-header-property-icon"
+                            aria-hidden={true}
+                            data-has-color={propertyValueColor ? 'true' : 'false'}
+                            style={propertyValueIconStyle}
                         />
                     ) : null}
                     {renderFolderGroupHeaderText()}
@@ -796,6 +816,16 @@ export function ListPaneVirtualContent({
                         }).color ?? null;
                 }
             }
+            let propertyValueIconId: string | null = null;
+            let propertyValueColor: string | null = null;
+            let propertyValueBackground: string | null = null;
+            const propertyValueNodeId = item.headerKind === 'property' ? (item.headerPropertyNodeId ?? null) : null;
+            if (propertyValueNodeId !== null && settings.inheritPropertyValueHeaderAppearance) {
+                propertyValueIconId = metadataService.getPropertyIcon(propertyValueNodeId) ?? null;
+                const propertyColorData = metadataService.getPropertyColorData(propertyValueNodeId);
+                propertyValueColor = propertyColorData.color ?? null;
+                propertyValueBackground = propertyColorData.background ?? null;
+            }
             const model: HeaderRenderModel = {
                 index,
                 label: item.data,
@@ -817,7 +847,11 @@ export function ListPaneVirtualContent({
                 manualSortHeaderTargetWordCount: item.manualSortHeaderTargetWordCount ?? null,
                 folderIconId,
                 folderColor,
-                applyFolderColorToLabel: folderColor !== null && !settings.colorIconOnly
+                applyFolderColorToLabel: folderColor !== null && !settings.colorIconOnly,
+                propertyValueIconId,
+                propertyValueColor,
+                propertyValueBackground,
+                applyPropertyValueColorToLabel: propertyValueColor !== null && !settings.colorIconOnly
             };
             models.push(model);
             modelsByIndex.set(index, model);
@@ -834,6 +868,7 @@ export function ListPaneVirtualContent({
         metadataService,
         pinnedGroupExpanded,
         settings.colorIconOnly,
+        settings.inheritPropertyValueHeaderAppearance,
         settings.showFolderGroupPaths,
         settings.showGroupHeaderItemCounts,
         settings.interfaceIcons,

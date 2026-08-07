@@ -115,6 +115,10 @@
     height: 100%;
 }
 
+.nn-list-group-header-property-icon {
+    flex: 0 0 auto;
+}
+
 .nn-list-group-header--manual-sort {
     --nn-manual-sort-group-header-accent: var(--interactive-accent);
 }
