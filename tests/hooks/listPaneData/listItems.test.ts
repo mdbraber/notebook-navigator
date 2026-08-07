@@ -22,6 +22,7 @@ import { DEFAULT_SETTINGS } from '../../../src/settings/defaultSettings';
 import type { PropertyItem } from '../../../src/storage/IndexedDBStorage';
 import type { IndexedDBStorage } from '../../../src/storage/IndexedDBStorage';
 import {
+    buildFileIndexToListIndexMap,
     buildFilePathToIndexMap,
     buildListGroupItemCountData,
     buildListItems,
@@ -30,6 +31,7 @@ import {
     resolveListGroupExpansionToggleState,
     type ListPaneConfig
 } from '../../../src/hooks/listPaneData/listItems';
+import { resolveRowCursorFileIndex } from '../../../src/utils/selectionUtils';
 import { FILE_VISIBILITY } from '../../../src/utils/fileTypeUtils';
 import { createTestTFile } from '../../utils/createTestTFile';
 import { ItemType, ListPaneItemType, PINNED_SECTION_HEADER_KEY } from '../../../src/types';
@@ -2368,9 +2370,53 @@ describe('per-value property grouping', () => {
         expect(buildFilePathToIndexMap(items).get('Dune.md')).toBe(fileRowIndexes[0]);
 
         const { orderedFiles, orderedFileIndexMap } = buildOrderedFiles(items);
-        // orderedFiles keeps both appearances on purpose - that is what makes arrow keys walk each copy.
+        // orderedFiles keeps both appearances so a cursor can point at either one; the path maps
+        // resolve to the first appearance only, which is why keyboard navigation carries a row cursor
+        // (see the arrow-key test below) instead of resolving the cursor from the path alone.
         expect(orderedFiles.map(file => file.path)).toEqual(['Dune.md', 'Dune.md']);
         expect(orderedFileIndexMap.get('Dune.md')).toBe(0);
+    });
+
+    it('advances past a repeated note when the cursor holds its second row', () => {
+        // Projects = [Dune], Topics = [Dune, PKM]. Dune renders twice, so resolving the cursor from
+        // its path alone always lands on the first copy: ArrowDown from the second copy would move to
+        // the row after the FIRST copy, cycling between two rows and leaving PKM unreachable.
+        const items = build(
+            'property-each:topics',
+            { 'Dune.md': { topics: ['[[Projects]]', '[[Topics]]'] }, 'PKM.md': { topics: ['[[Topics]]'] } },
+            [multi, single]
+        );
+        expect(filePathsUnderHeaders(items)).toEqual({ Projects: ['Dune.md'], Topics: ['Dune.md', 'PKM.md'] });
+
+        const { orderedFiles, orderedFileIndexMap } = buildOrderedFiles(items);
+        expect(orderedFiles.map(file => file.path)).toEqual(['Dune.md', 'Dune.md', 'PKM.md']);
+
+        // Mirrors findNextSelectableIndex in useKeyboardNavigation: the next file row after a row.
+        const nextFileRow = (fromListIndex: number): number =>
+            items.findIndex((item, index) => index > fromListIndex && item.type === ListPaneItemType.FILE);
+        const listIndexByFileIndex = buildFileIndexToListIndexMap(items);
+        expect(listIndexByFileIndex).toHaveLength(3);
+
+        // Cursor on the second Dune row (its appearance under Topics), which is where the user clicked
+        // or arrowed to. The row wins over the path lookup, so ArrowDown reaches PKM.
+        const cursorFileIndex = resolveRowCursorFileIndex(orderedFiles, multi, 1);
+        expect(cursorFileIndex).toBe(1);
+        const cursorListIndex = listIndexByFileIndex[cursorFileIndex];
+        expect(items[cursorListIndex].data).toBe(multi);
+        expect(items[nextFileRow(cursorListIndex)].data).toBe(single);
+
+        // Without a usable row the cursor degrades to the first appearance, which is the pre-cursor
+        // behavior: ArrowDown moves to the row after the first copy, which is the second copy.
+        const fallbackFileIndex = resolveRowCursorFileIndex(orderedFiles, multi, null);
+        expect(fallbackFileIndex).toBe(orderedFileIndexMap.get('Dune.md'));
+        const fallbackListIndex = listIndexByFileIndex[fallbackFileIndex];
+        expect(items[nextFileRow(fallbackListIndex)].data).toBe(multi);
+
+        // A row that no longer holds the selected note degrades the same way rather than moving the
+        // cursor onto the wrong note.
+        expect(resolveRowCursorFileIndex(orderedFiles, multi, 2)).toBe(0);
+        expect(resolveRowCursorFileIndex(orderedFiles, multi, 7)).toBe(0);
+        expect(resolveRowCursorFileIndex(orderedFiles, null, 1)).toBe(-1);
     });
 
     it('tags per-value headers with the property value node id the tree would use', () => {

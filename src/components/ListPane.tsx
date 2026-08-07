@@ -1073,6 +1073,8 @@ export const ListPane = React.memo(
 
         const isCompactMode = appearanceSettings.mode === 'compact';
         const {
+            getRowCursor,
+            setRowCursor,
             selectFileFromList,
             selectAdjacentFile,
             ensureSelectionForCurrentFilter,
@@ -1698,6 +1700,8 @@ export const ListPane = React.memo(
             pathToIndex: filePathToIndex,
             orderedFiles,
             orderedFileIndexMap,
+            getRowCursor,
+            setRowCursor,
             scrollToIndexSafely,
             onSelectFile: (file, options) =>
                 selectFileFromList(file, {

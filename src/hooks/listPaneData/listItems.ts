@@ -882,8 +882,8 @@ export function buildOrderedFiles(listItems: ListPaneItem[]): {
 
     listItems.forEach(item => {
         if (item.type === ListPaneItemType.FILE && item.data instanceof TFile) {
-            // orderedFiles keeps every appearance so keyboard navigation walks each copy, while the
-            // index map points at the first one.
+            // orderedFiles keeps every appearance so a cursor can address one specific copy, while the
+            // index map points at the first one and is the fallback when no cursor row is available.
             if (!orderedFileIndexMap.has(item.data.path)) {
                 orderedFileIndexMap.set(item.data.path, orderedFiles.length);
             }
@@ -892,6 +892,22 @@ export function buildOrderedFiles(listItems: ListPaneItem[]): {
     });
 
     return { orderedFiles, orderedFileIndexMap };
+}
+
+/**
+ * Maps each position in `orderedFiles` back to the list row it was rendered from.
+ * `buildOrderedFiles` appends one entry per rendered file row in render order, so position n here is
+ * the row of the nth file. A note grouped per value occupies several rows, so this is the only way
+ * back from a cursor position to the row the user is on.
+ */
+export function buildFileIndexToListIndexMap(listItems: ListPaneItem[]): number[] {
+    const listIndexByFileIndex: number[] = [];
+    listItems.forEach((item, index) => {
+        if (item.type === ListPaneItemType.FILE && item.data instanceof TFile) {
+            listIndexByFileIndex.push(index);
+        }
+    });
+    return listIndexByFileIndex;
 }
 
 export function findCollapsedListGroupRevealTarget(

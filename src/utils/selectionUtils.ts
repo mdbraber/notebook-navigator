@@ -234,6 +234,41 @@ export function findFileIndex(files: TFile[], targetFile: TFile | null): number 
     return files.findIndex(f => f.path === targetFile.path);
 }
 
+/**
+ * Resolves which row of an ordered file list the list pane cursor sits on.
+ *
+ * Per-value property grouping renders a note once per value it carries, so the list can hold the same
+ * path on several rows and the selected path alone cannot say which of them the user is on. The list
+ * pane therefore remembers the row it last selected and passes it here: the remembered row wins while
+ * it still holds the selected file, and a stale, cleared or out-of-range row falls back to the first
+ * appearance, which is how the list behaved before rows could repeat.
+ *
+ * This is a cursor only. Selection identity stays the path, so every copy of a note highlights together.
+ *
+ * `fileIndexByPath` is an optional first-appearance index over the same list, used to keep the fallback
+ * O(1) for callers that already build one; callers without it fall back to scanning `files`.
+ */
+export function resolveRowCursorFileIndex(
+    files: TFile[],
+    selectedFile: TFile | null,
+    rowCursor: number | null | undefined,
+    fileIndexByPath?: ReadonlyMap<string, number>
+): number {
+    if (!selectedFile) {
+        return -1;
+    }
+
+    if (rowCursor !== null && rowCursor !== undefined && files[rowCursor]?.path === selectedFile.path) {
+        return rowCursor;
+    }
+
+    if (fileIndexByPath) {
+        return fileIndexByPath.get(selectedFile.path) ?? -1;
+    }
+
+    return findFileIndex(files, selectedFile);
+}
+
 export function orderFilesByReference(files: readonly TFile[], orderedFiles?: readonly TFile[]): TFile[] {
     if (!orderedFiles || files.length < 2) {
         return [...files];
