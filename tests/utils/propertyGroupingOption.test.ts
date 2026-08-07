@@ -32,8 +32,8 @@ describe('per-value property grouping options', () => {
         expect(createPropertyGroupingOption('topics', 'follow', true)).toBe('property-each-follow:topics');
     });
 
-    it('keeps the original three prefixes when perValue is absent or false', () => {
-        expect(createPropertyGroupingOption('topics', 'asc')).toBe('property:topics');
+    it('keeps the original three prefixes when perValue is false', () => {
+        expect(createPropertyGroupingOption('topics', 'asc', false)).toBe('property:topics');
         expect(createPropertyGroupingOption('topics', 'desc', false)).toBe('property-desc:topics');
         expect(createPropertyGroupingOption('topics', 'follow', false)).toBe('property-follow:topics');
     });

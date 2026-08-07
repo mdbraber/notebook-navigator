@@ -25,7 +25,7 @@ import {
 } from '../settings/types';
 import type { ListNoteGroupingOption, ListSortOverrideValue, NotebookNavigatorSettings, SortOption } from '../settings/types';
 import { DEFAULT_SETTINGS } from '../settings/defaultSettings';
-import type { PropertyGroupingDirection } from '../settings/types';
+import type { PropertyGroupingDirection, PropertyGroupingOrder } from '../settings/types';
 import { casefold } from './recordUtils';
 import {
     getSortDirection,
@@ -60,6 +60,22 @@ export function resolvePropertyGroupingDirection(groupBy: ListNoteGroupingOption
         return order;
     }
     return getSortDirection(sortOption);
+}
+
+/**
+ * Rebuilds a property grouping option with a different group order, keeping its property key and its
+ * per-value axis. Returns null for base grouping modes, which have no group order to change.
+ *
+ * Controls that only change the order must go through this rather than re-encoding from key and
+ * order, which drops the per-value axis and reverts the grouping to its joined sibling.
+ */
+export function withPropertyGroupingOrder(groupBy: ListNoteGroupingOption, order: PropertyGroupingOrder): ListNoteGroupingOption | null {
+    const propertyKey = getPropertyGroupingKey(groupBy);
+    if (propertyKey === null) {
+        return null;
+    }
+
+    return createPropertyGroupingOption(propertyKey, order, getPropertyGroupingPerValue(groupBy));
 }
 
 interface ResolveListGroupingParams {
@@ -212,7 +228,13 @@ export function updatePropertyGroupingOverrideKeys(
             }
 
             if (newKeyDisplay) {
-                appearance.groupBy = createPropertyGroupingOption(newKeyDisplay, getPropertyGroupingOrder(appearance?.groupBy) ?? 'asc');
+                // A rename changes the key only; the group order and the per-value axis carry over,
+                // or the stored grouping would silently change how the view is partitioned.
+                appearance.groupBy = createPropertyGroupingOption(
+                    newKeyDisplay,
+                    getPropertyGroupingOrder(appearance?.groupBy) ?? 'asc',
+                    getPropertyGroupingPerValue(appearance?.groupBy)
+                );
             } else {
                 delete appearance.groupBy;
                 // A grouping-only appearance becomes an empty object; drop the entry so no
@@ -264,7 +286,12 @@ export function updateDefaultNoteGroupingKey(
     }
 
     if (newKeyDisplay) {
-        settings.noteGrouping = createPropertyGroupingOption(newKeyDisplay, getPropertyGroupingOrder(settings.noteGrouping) ?? 'asc');
+        // A rename changes the key only; the group order and the per-value axis carry over.
+        settings.noteGrouping = createPropertyGroupingOption(
+            newKeyDisplay,
+            getPropertyGroupingOrder(settings.noteGrouping) ?? 'asc',
+            getPropertyGroupingPerValue(settings.noteGrouping)
+        );
     } else {
         settings.noteGrouping = DEFAULT_SETTINGS.noteGrouping;
     }

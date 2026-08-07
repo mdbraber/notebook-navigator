@@ -500,11 +500,14 @@ export function getPropertyGroupingPerValue(value: unknown): boolean {
     return parsePropertyGroupingOption(value)?.perValue ?? false;
 }
 
-export function createPropertyGroupingOption(
-    propertyKey: string,
-    order: PropertyGroupingOrder,
-    perValue: boolean = false
-): ListNoteGroupingOption {
+/**
+ * Encodes a property grouping option from its three axes.
+ *
+ * `perValue` is required rather than defaulted: every writer rebuilding an option from an existing
+ * one has to decide whether the per-value axis carries over, and an omitted argument silently wrote
+ * the joined form (see `getPropertyGroupingPerValue` for reading it back off an existing option).
+ */
+export function createPropertyGroupingOption(propertyKey: string, order: PropertyGroupingOrder, perValue: boolean): ListNoteGroupingOption {
     const match = PROPERTY_GROUPING_PREFIXES.find(candidate => candidate.order === order && candidate.perValue === perValue);
     // The table covers every order/perValue pair, so this cannot be reached.
     const prefix = match?.prefix ?? PROPERTY_GROUPING_PREFIX;

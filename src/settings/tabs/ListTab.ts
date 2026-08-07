@@ -54,7 +54,8 @@ import {
 import {
     getAvailablePropertyGroupKeys,
     pruneUnavailablePropertyGroupingOverrides,
-    reconcileDefaultNoteGrouping
+    reconcileDefaultNoteGrouping,
+    withPropertyGroupingOrder
 } from '../../utils/listGrouping';
 import { getManualSortGroupHeaderPropertyKey, isValidManualSortPropertyKey, normalizeManualSortPropertyKey } from '../../utils/manualSort';
 import { formatPixelSliderValue, renderSliderSetting } from './SliderSetting';
@@ -510,7 +511,8 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                 groupsGroupEl.createEl('option', { value: 'folder', text: strings.settings.items.groupNotes.options.folder });
                 getAvailablePropertyGroupKeys(plugin.settings).forEach(propertyKey => {
                     groupsGroupEl.createEl('option', {
-                        value: createPropertyGroupingOption(propertyKey, 'follow'),
+                        // The plain entry; its per-value sibling is the entry created right below.
+                        value: createPropertyGroupingOption(propertyKey, 'follow', false),
                         text: getPropertyDropdownOptionLabel(propertyKey)
                     });
                     // Per-value sibling: splits the property's list values into one group each instead
@@ -577,15 +579,14 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                 if (value !== 'follow' && value !== 'asc' && value !== 'desc') {
                     return;
                 }
-                const propertyKey = getPropertyGroupingKey(plugin.settings.noteGrouping);
-                // The control is hidden for base grouping modes, but the guard keeps a stale
-                // change event from rewriting a base mode into a property grouping.
-                if (propertyKey === null) {
+                // This dropdown only changes order; the property key and the per-value axis are set by
+                // the mode dropdown above and carry over unchanged. The control is hidden for base
+                // grouping modes, and a null result keeps a stale change event from rewriting a base
+                // mode into a property grouping.
+                const next = withPropertyGroupingOrder(plugin.settings.noteGrouping, value);
+                if (next === null) {
                     return;
                 }
-                // This dropdown only changes order; the per-value flag is set by the mode dropdown
-                // above and must carry over unchanged.
-                const next = createPropertyGroupingOption(propertyKey, value, getPropertyGroupingPerValue(plugin.settings.noteGrouping));
                 if (plugin.settings.noteGrouping === next) {
                     return;
                 }

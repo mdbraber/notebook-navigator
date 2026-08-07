@@ -74,7 +74,8 @@ import {
     areListGroupingOptionsSameKind,
     getAvailablePropertyGroupKeys,
     resolveEffectiveListGroupingForSort,
-    resolveListGrouping
+    resolveListGrouping,
+    withPropertyGroupingOrder
 } from '../utils/listGrouping';
 import { getErrorMessage } from '../utils/errorUtils';
 import { showNotice } from '../utils/noticeUtils';
@@ -1847,7 +1848,8 @@ export function useListActions({
             const propertyGroupKeys = getAvailablePropertyGroupKeys(settings);
             propertyGroupKeys.forEach(propertyKey => {
                 addGroupOptionItem(
-                    createPropertyGroupingOption(propertyKey, effectiveGroupOrder),
+                    // The plain entry; its per-value sibling is the entry added right below.
+                    createPropertyGroupingOption(propertyKey, effectiveGroupOrder, false),
                     getSortFieldLabel('property', propertyKey),
                     getSortFieldMenuIcon('property', propertyKey),
                     isManualSortActive
@@ -1887,7 +1889,13 @@ export function useListActions({
                     desc: 'lucide-sort-desc'
                 };
                 (['follow', 'asc', 'desc'] as const).forEach(order => {
-                    const orderOption = createPropertyGroupingOption(effectiveGroupPropertyKey, order);
+                    // Only the order changes here, so the per-value axis of the current grouping carries
+                    // over; rebuilding from key and order alone would revert it to its joined sibling.
+                    // This branch runs only for property grouping, so the rebuild always succeeds.
+                    const orderOption = withPropertyGroupingOrder(effectiveCurrentGroup, order);
+                    if (orderOption === null) {
+                        return;
+                    }
                     const isDefaultOrder = defaultGroupOrder === order;
                     menu.addItem(item => {
                         item.setTitle(`    ${withDefaultSuffix(groupOrderLabels[order], isDefaultOrder)}`)

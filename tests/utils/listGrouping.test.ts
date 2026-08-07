@@ -38,7 +38,8 @@ import {
     resolvePropertyGroupingDirection,
     updateDefaultNoteGroupingKey,
     updatePropertyGroupKeySetting,
-    updatePropertyGroupingOverrideKeys
+    updatePropertyGroupingOverrideKeys,
+    withPropertyGroupingOrder
 } from '../../src/utils/listGrouping';
 
 type GroupingSettings = Pick<NotebookNavigatorSettings, 'noteGrouping' | 'folderAppearances' | 'tagAppearances' | 'propertyAppearances'>;
@@ -177,7 +178,7 @@ describe('resolveEffectiveListGroupingForSort', () => {
     });
 
     it('keeps property grouping under every sort and selection type', () => {
-        const groupBy = createPropertyGroupingOption('status', 'asc');
+        const groupBy = createPropertyGroupingOption('status', 'asc', false);
         (['modified-desc', 'title-asc', 'property-asc'] as const).forEach(sortOption => {
             expect(
                 resolveEffectiveListGroupingForSort({
@@ -199,12 +200,38 @@ describe('resolveEffectiveListGroupingForSort', () => {
     it('locks manual sort to custom groups even with property grouping', () => {
         expect(
             resolveEffectiveListGroupingForSort({
-                groupBy: createPropertyGroupingOption('status', 'asc'),
+                groupBy: createPropertyGroupingOption('status', 'asc', false),
                 sortOption: 'property-asc',
                 selectionType: ItemType.FOLDER,
                 isManualSortActive: true
             })
         ).toBe('custom');
+    });
+});
+
+describe('withPropertyGroupingOrder', () => {
+    // The group order menu and the settings order dropdown both rebuild the stored option from the
+    // current one plus a new order. Rebuilding from key and order alone silently reverted per-value
+    // grouping to its joined sibling, which is unreachable in descending form from the list pane.
+    it('keeps the per-value axis when only the group order changes', () => {
+        expect(withPropertyGroupingOrder('property-each:topics', 'desc')).toBe('property-each-desc:topics');
+        expect(withPropertyGroupingOrder('property-each-desc:topics', 'follow')).toBe('property-each-follow:topics');
+        expect(withPropertyGroupingOrder('property-each-follow:topics', 'asc')).toBe('property-each:topics');
+    });
+
+    it('keeps the joined forms joined', () => {
+        expect(withPropertyGroupingOrder('property:topics', 'desc')).toBe('property-desc:topics');
+        expect(withPropertyGroupingOrder('property-follow:topics', 'asc')).toBe('property:topics');
+    });
+
+    it('preserves the property key verbatim, including separator characters', () => {
+        expect(withPropertyGroupingOrder('property-each:my:topics', 'desc')).toBe('property-each-desc:my:topics');
+    });
+
+    it('returns null for base grouping modes', () => {
+        expect(withPropertyGroupingOrder('date', 'desc')).toBeNull();
+        expect(withPropertyGroupingOrder('folder', 'asc')).toBeNull();
+        expect(withPropertyGroupingOrder('custom', 'follow')).toBeNull();
     });
 });
 
@@ -222,9 +249,9 @@ describe('property grouping option encoding', () => {
         expect(getPropertyGroupingOrder('property-desc:status')).toBe('desc');
         expect(getPropertyGroupingOrder('property-follow:status')).toBe('follow');
         expect(getPropertyGroupingOrder('folder')).toBeNull();
-        expect(createPropertyGroupingOption('status', 'desc')).toBe('property-desc:status');
-        expect(createPropertyGroupingOption('status', 'asc')).toBe('property:status');
-        expect(createPropertyGroupingOption('status', 'follow')).toBe('property-follow:status');
+        expect(createPropertyGroupingOption('status', 'desc', false)).toBe('property-desc:status');
+        expect(createPropertyGroupingOption('status', 'asc', false)).toBe('property:status');
+        expect(createPropertyGroupingOption('status', 'follow', false)).toBe('property-follow:status');
     });
 
     it('keeps keys containing separator characters intact under both prefixes', () => {
@@ -297,7 +324,7 @@ describe('pruneUnavailablePropertyGroupingOverrides', () => {
     it('removes overrides referencing the manual sort key', () => {
         const settings = structuredClone(DEFAULT_SETTINGS);
         settings.propertyGroupKey = `status, ${settings.manualSortPropertyKey}`;
-        settings.folderAppearances.Projects = { groupBy: createPropertyGroupingOption(settings.manualSortPropertyKey, 'asc') };
+        settings.folderAppearances.Projects = { groupBy: createPropertyGroupingOption(settings.manualSortPropertyKey, 'asc', false) };
 
         expect(pruneUnavailablePropertyGroupingOverrides(settings)).toBe(true);
         expect(settings.folderAppearances.Projects).toBeUndefined();
@@ -330,6 +357,16 @@ describe('updatePropertyGroupingOverrideKeys', () => {
 
         expect(updatePropertyGroupingOverrideKeys(settings, 'status', 'State')).toBe(true);
         expect(settings.folderAppearances.Projects.groupBy).toBe('property-desc:State');
+    });
+
+    it('preserves per-value grouping across a rename', () => {
+        const settings = structuredClone(DEFAULT_SETTINGS);
+        settings.folderAppearances.Projects = { groupBy: 'property-each:Status' };
+        settings.tagAppearances.reading = { groupBy: 'property-each-desc:Status' };
+
+        expect(updatePropertyGroupingOverrideKeys(settings, 'status', 'State')).toBe(true);
+        expect(settings.folderAppearances.Projects.groupBy).toBe('property-each:State');
+        expect(settings.tagAppearances.reading.groupBy).toBe('property-each-desc:State');
     });
 
     it('removes overrides when the property is deleted', () => {
@@ -434,7 +471,7 @@ describe('reconcileDefaultNoteGrouping', () => {
     it('resets property groupings referencing the manual sort key', () => {
         const settings = structuredClone(DEFAULT_SETTINGS);
         settings.propertyGroupKey = settings.manualSortPropertyKey;
-        settings.noteGrouping = createPropertyGroupingOption(settings.manualSortPropertyKey, 'asc');
+        settings.noteGrouping = createPropertyGroupingOption(settings.manualSortPropertyKey, 'asc', false);
 
         expect(reconcileDefaultNoteGrouping(settings)).toEqual({ changed: true, reset: true });
         expect(settings.noteGrouping).toBe(DEFAULT_SETTINGS.noteGrouping);
@@ -456,6 +493,14 @@ describe('updateDefaultNoteGroupingKey', () => {
 
         expect(updateDefaultNoteGroupingKey(settings, 'status', 'Stage')).toBe(true);
         expect(settings.noteGrouping).toBe('property-desc:Stage');
+    });
+
+    it('preserves per-value grouping across a rename', () => {
+        const settings = structuredClone(DEFAULT_SETTINGS);
+        settings.noteGrouping = 'property-each-follow:status';
+
+        expect(updateDefaultNoteGroupingKey(settings, 'status', 'Stage')).toBe(true);
+        expect(settings.noteGrouping).toBe('property-each-follow:Stage');
     });
 
     it('resets the default grouping when the key is deleted', () => {
