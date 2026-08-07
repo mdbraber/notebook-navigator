@@ -308,7 +308,7 @@ export const ListPaneGroupHeader = React.memo(function ListPaneGroupHeader({
     const handleContextMenu = (event: React.MouseEvent<HTMLDivElement>) => onGroupHeaderContextMenu(event, header);
     const textClassName = `nn-list-group-header-text ${
         isClickableFolderGroupHeader ? 'nn-list-group-header-text--folder-note' : ''
-    } ${header.applyFolderColorToLabel ? 'nn-list-group-header-text--custom-color' : ''}`;
+    } ${header.applyFolderColorToLabel || header.applyPropertyValueColorToLabel ? 'nn-list-group-header-text--custom-color' : ''}`;
     const folderPathClassName = `${textClassName} nn-list-group-header-path`;
     const renderFolderGroupHeaderText = () => {
         if (hasFolderPathSegments) {
@@ -820,10 +820,19 @@ export function ListPaneVirtualContent({
             let propertyValueColor: string | null = null;
             let propertyValueBackground: string | null = null;
             const propertyValueNodeId = item.headerKind === 'property' ? (item.headerPropertyNodeId ?? null) : null;
+            // Mirrors the folder branch above: the icon follows the pane's icon toggle, and the color is
+            // only worth resolving when it has somewhere to land - the icon, or the label when the color
+            // is not restricted to icons. The background is outside that rule: colorIconOnly only decides
+            // whether the custom color reaches the label, and a navigation tree row keeps its background
+            // whichever way both settings are set.
+            const shouldResolvePropertyValueIcon = settings.showPropertyIcons;
+            const shouldResolvePropertyValueColor = settings.showPropertyIcons || !settings.colorIconOnly;
             if (propertyValueNodeId !== null && settings.inheritPropertyValueHeaderAppearance) {
-                propertyValueIconId = metadataService.getPropertyIcon(propertyValueNodeId) ?? null;
+                propertyValueIconId = shouldResolvePropertyValueIcon
+                    ? (metadataService.getPropertyIcon(propertyValueNodeId) ?? null)
+                    : null;
                 const propertyColorData = metadataService.getPropertyColorData(propertyValueNodeId);
-                propertyValueColor = propertyColorData.color ?? null;
+                propertyValueColor = shouldResolvePropertyValueColor ? (propertyColorData.color ?? null) : null;
                 propertyValueBackground = propertyColorData.background ?? null;
             }
             const model: HeaderRenderModel = {
@@ -861,6 +870,7 @@ export function ListPaneVirtualContent({
             headerModels: models,
             headerModelByIndex: modelsByIndex
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- the four property records below are read through metadataService, which the rule cannot see into.
     }, [
         folderDecorationModel,
         folderGroupHeaderTargets,
@@ -872,7 +882,15 @@ export function ListPaneVirtualContent({
         settings.showFolderGroupPaths,
         settings.showGroupHeaderItemCounts,
         settings.interfaceIcons,
-        settings.showFolderIcons
+        settings.showFolderIcons,
+        settings.showPropertyIcons,
+        // Records the property value icon and color reads resolve from. Without them a color or icon set
+        // on a value in the navigation tree would leave the header stale; the folder branch above is
+        // invalidated the same way, through folderDecorationModel.
+        settings.propertyColors,
+        settings.propertyBackgroundColors,
+        settings.propertyIcons,
+        settings.inheritPropertyColors
     ]);
     const dateGroupLabelByIndex = useMemo(() => buildDateGroupLabelsByIndex(listItems), [listItems]);
 
