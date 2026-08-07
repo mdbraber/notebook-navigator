@@ -27,6 +27,8 @@ import { ItemType, NavigationPaneItemType } from '../../src/types';
 import type { TagTreeNode, PropertyTreeNode } from '../../src/types/storage';
 import { createHiddenTagVisibility } from '../../src/utils/tagPrefixMatcher';
 import { buildPropertyKeyNodeId, buildPropertyValueNodeId } from '../../src/utils/propertyTree';
+import { buildPropertyPlacementKey } from '../../src/utils/treeFlattener';
+import type { PropertyValueTreeItem } from '../../src/types/virtualization';
 import type { NavigationPaneSourceState } from '../../src/hooks/navigationPane/data/useNavigationPaneSourceState';
 import {
     useNavigationPaneTreeSections,
@@ -385,5 +387,118 @@ describe('useNavigationPaneTreeSections', () => {
 
         expect(Array.from(result.renderPropertyTree.keys())).toEqual([]);
         expect(result.propertyItems).toEqual([]);
+    });
+
+    it("nests a hierarchical key's values and sources subtree counts from the scoped tree, not the global one", () => {
+        dbFileDataByPath.clear();
+
+        // Building software.md carries projects: [[Fiddle]], so it counts toward Fiddle directly.
+        // Bulwark.md carries projects: [[Building software]], so through Building software's own
+        // assignmentValue wikilink it nests under Fiddle. Same fixture propertyHierarchy.test.ts uses.
+        const buildingSoftwareFile = createTestTFile('notes/project/Building software.md');
+        const bulwarkFile = createTestTFile('notes/project/Bulwark.md');
+        dbFileDataByPath.set(buildingSoftwareFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Fiddle]]', valueKind: 'string' }]
+        });
+        dbFileDataByPath.set(bulwarkFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Building software]]', valueKind: 'string' }]
+        });
+
+        const folder = createFolder('notes/project', [buildingSoftwareFile, bulwarkFile]);
+        Reflect.set(buildingSoftwareFile, 'parent', folder);
+        Reflect.set(bulwarkFile, 'parent', folder);
+
+        const app = new App();
+        app.metadataCache.getFirstLinkpathDest = (linkpath: string) => (linkpath === 'Building software' ? buildingSoftwareFile : null);
+
+        const fiddleId = buildPropertyValueNodeId('projects', 'fiddle');
+        const buildingSoftwareId = buildPropertyValueNodeId('projects', 'building software');
+
+        // An artificially larger, flat "global" tree standing in for whatever pre-scope source the
+        // index must not read from. If the index read this tree instead of the scoped one, Fiddle's
+        // subtree count would be 3 (its own notes, no nesting) instead of the scoped 2 (Building
+        // software.md unioned with Bulwark.md through the nesting above).
+        const globalFiddleValueNode = createPropertyValueNode('projects', 'fiddle', 'Fiddle', [
+            buildingSoftwareFile.path,
+            'notes/elsewhere-1.md',
+            'notes/elsewhere-2.md'
+        ]);
+        const globalProjectsKeyNode = createPropertyKeyNode(
+            'projects',
+            'Projects',
+            [buildingSoftwareFile.path, 'notes/elsewhere-1.md', 'notes/elsewhere-2.md'],
+            [globalFiddleValueNode]
+        );
+        const globalPropertyTree = new Map<string, PropertyTreeNode>([[globalProjectsKeyNode.key, globalProjectsKeyNode]]);
+
+        let captured: NavigationPaneTreeSectionsResult | null = null;
+
+        function Harness() {
+            captured = useNavigationPaneTreeSections({
+                app,
+                settings: createSettings({
+                    showTags: false,
+                    showProperties: true,
+                    showAllPropertiesFolder: false,
+                    scopeTagsToCurrentContext: false,
+                    scopePropertiesToCurrentContext: true,
+                    propertyHierarchicalKeys: { projects: true }
+                }),
+                expansionState: {
+                    expandedFolders: new Set(),
+                    expandedTags: new Set(),
+                    expandedProperties: new Set([buildPropertyKeyNodeId('projects'), fiddleId]),
+                    expandedVirtualFolders: new Set()
+                },
+                showHiddenItems: false,
+                includeDescendantNotes: true,
+                sourceState: createSourceState({
+                    propertyTree: globalPropertyTree,
+                    visiblePropertyNavigationKeySet: new Set(['projects'])
+                }),
+                selectionScope: {
+                    selectionType: ItemType.FOLDER,
+                    selectedFolder: folder
+                },
+                tagTreeService: null,
+                propertyTreeService: null
+            });
+            return null;
+        }
+
+        renderToStaticMarkup(React.createElement(Harness));
+
+        expect(captured).not.toBeNull();
+        if (!captured) {
+            throw new Error('Expected hook result');
+        }
+        const result = captured as NavigationPaneTreeSectionsResult;
+
+        expect(result.propertyItems.map(item => item.type)).toEqual([
+            NavigationPaneItemType.PROPERTY_KEY,
+            NavigationPaneItemType.PROPERTY_VALUE,
+            NavigationPaneItemType.PROPERTY_VALUE
+        ]);
+        // Fiddle is a root placement, so its item key equals its node id. Building software is
+        // nested one level under Fiddle, so its item key is the chain-joined placement key.
+        expect(result.propertyItems.map(item => item.key)).toEqual([
+            buildPropertyKeyNodeId('projects'),
+            fiddleId,
+            buildPropertyPlacementKey([fiddleId, buildingSoftwareId])
+        ]);
+        const propertyItemLevels = result.propertyItems.map(item =>
+            item.type === NavigationPaneItemType.PROPERTY_KEY || item.type === NavigationPaneItemType.PROPERTY_VALUE ? item.level : null
+        );
+        expect(propertyItemLevels).toEqual([0, 1, 2]);
+
+        const fiddleItem = result.propertyItems[1] as PropertyValueTreeItem;
+        const buildingSoftwareItem = result.propertyItems[2] as PropertyValueTreeItem;
+        expect(fiddleItem.hasChildren).toBe(true);
+        expect(buildingSoftwareItem.hasChildren).toBe(false);
+
+        // Must reflect the scoped tree's counts (2), not the larger global tree passed above (3).
+        expect(result.propertyHierarchyIndex.subtreeCount.get(fiddleId)).toBe(2);
     });
 });

@@ -761,7 +761,8 @@ export function useNavigationPaneTreeSections({
             hierarchicalKeys: hierarchicalPropertyKeys,
             resolveValueNotePath: node => resolvePropertyNote(node, app)?.path ?? null
         });
-    }, [app, hierarchicalPropertyKeys, renderPropertyTree]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- sourceState.fileChangeVersion refreshes link resolution for resolveValueNotePath, which reads app.metadataCache and can settle after renderPropertyTree was last built.
+    }, [app, hierarchicalPropertyKeys, renderPropertyTree, sourceState.fileChangeVersion]);
 
     const effectiveRootPropertyComparator = useMemo(
         () =>
