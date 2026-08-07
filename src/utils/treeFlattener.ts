@@ -20,10 +20,11 @@ import { TFolder } from 'obsidian';
 import { compareByAlphaSortOrder, naturalCompare, resolveFolderChildSortOrder } from './sortUtils';
 import { NavigationPaneItemType } from '../types';
 import { PropertyTreeNode, TagTreeNode } from '../types/storage';
-import type { FolderTreeItem, TagTreeItem } from '../types/virtualization';
+import type { FolderTreeItem, TagTreeItem, PropertyValueTreeItem } from '../types/virtualization';
 import { isFolderInExcludedFolder } from './fileFilters';
 import { matchesHiddenTagPattern, HiddenTagMatcher } from './tagPrefixMatcher';
 import type { AlphaSortOrder } from '../settings/types';
+import type { PropertyHierarchyIndex } from './propertyHierarchy';
 
 /** Options for flattenFolderTree function */
 interface FlattenFolderTreeOptions {
@@ -442,4 +443,106 @@ export function flattenTagTree(
 
     sortedNodes.forEach(node => addNode(node, level));
     return items;
+}
+
+/**
+ * Joins the value node ids of a placement's chain. A node id can contain both `:` and `/`, so the
+ * separator is a NUL, which cannot occur in one. Same reason listItems.ts uses it for bucket keys.
+ */
+const PROPERTY_PLACEMENT_SEPARATOR = String.fromCharCode(0);
+
+/**
+ * Identity of one placement of a value node in a hierarchical property tree. Tags key identity by
+ * node.path; a DAG node has no single path, so the chain is accumulated while walking. A root's
+ * chain is just its own node id, which is why turning Hierarchical on preserves persisted expansion
+ * for root values.
+ */
+export function buildPropertyPlacementKey(chain: readonly string[]): string {
+    return chain.join(PROPERTY_PLACEMENT_SEPARATOR);
+}
+
+export interface FlattenPropertyHierarchyResult {
+    items: PropertyValueTreeItem[];
+    /** First placement key emitted for each node id. Auto-reveal targets this one. */
+    firstPlacementByNodeId: Map<string, string>;
+}
+
+interface FlattenPropertyHierarchyParams {
+    keyNode: PropertyTreeNode;
+    index: PropertyHierarchyIndex;
+    /** Placement keys, not node ids. */
+    expandedPlacements: ReadonlySet<string>;
+    /** Level of the emitted root values. */
+    level: number;
+    /** Levels of nesting below the roots. A backstop against pathological data, not a style choice. */
+    maxDepth: number;
+    comparator: (a: PropertyTreeNode, b: PropertyTreeNode) => number;
+    getChildComparator?: (parentNodeId: string) => ((a: PropertyTreeNode, b: PropertyTreeNode) => number) | undefined;
+}
+
+/**
+ * Flattens a hierarchical property key into navigation items, one per placement. Mirrors
+ * flattenTagTree, differing only in taking children from the hierarchy index rather than from
+ * node.children, and in accumulating the placement key rather than reading a path off the node.
+ */
+export function flattenPropertyHierarchy({
+    keyNode,
+    index,
+    expandedPlacements,
+    level,
+    maxDepth,
+    comparator,
+    getChildComparator
+}: FlattenPropertyHierarchyParams): FlattenPropertyHierarchyResult {
+    const items: PropertyValueTreeItem[] = [];
+    const firstPlacementByNodeId = new Map<string, string>();
+
+    const nodeById = new Map<string, PropertyTreeNode>();
+    keyNode.children.forEach(node => {
+        if (node.kind === 'value') {
+            nodeById.set(node.id, node);
+        }
+    });
+
+    const resolveNodes = (ids: readonly string[]): PropertyTreeNode[] =>
+        ids.map(id => nodeById.get(id)).filter((node): node is PropertyTreeNode => node !== undefined);
+
+    /**
+     * Emits one placement and, when it is expanded, its children. chain carries the ancestor node
+     * ids, which both forms the placement key and guards against cycles: the index may contain a
+     * cycle edge, so a node already in this chain is not descended into again.
+     */
+    const addNode = (node: PropertyTreeNode, currentLevel: number, chain: readonly string[]): void => {
+        const nextChain = [...chain, node.id];
+        const placementKey = buildPropertyPlacementKey(nextChain);
+
+        items.push({
+            type: NavigationPaneItemType.PROPERTY_VALUE,
+            data: node,
+            level: currentLevel,
+            key: placementKey
+        });
+
+        if (!firstPlacementByNodeId.has(node.id)) {
+            firstPlacementByNodeId.set(node.id, placementKey);
+        }
+
+        if (currentLevel - level >= maxDepth || !expandedPlacements.has(placementKey)) {
+            return;
+        }
+
+        const childIds = index.childIds.get(node.id) ?? [];
+        const children = resolveNodes(childIds).filter(child => !nextChain.includes(child.id));
+        if (children.length === 0) {
+            return;
+        }
+
+        const childComparator = getChildComparator?.(node.id) ?? comparator;
+        children.sort(childComparator).forEach(child => addNode(child, currentLevel + 1, nextChain));
+    };
+
+    const roots = resolveNodes(index.rootIds.get(keyNode.id) ?? []);
+    roots.sort(comparator).forEach(root => addNode(root, level, []));
+
+    return { items, firstPlacementByNodeId };
 }

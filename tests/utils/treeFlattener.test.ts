@@ -18,7 +18,14 @@
 
 import { describe, expect, it } from 'vitest';
 import { TFolder } from 'obsidian';
-import { buildVisibleFolderTraversalState, flattenFolderTree } from '../../src/utils/treeFlattener';
+import {
+    buildVisibleFolderTraversalState,
+    flattenFolderTree,
+    buildPropertyPlacementKey,
+    flattenPropertyHierarchy
+} from '../../src/utils/treeFlattener';
+import { buildPropertyHierarchyIndex } from '../../src/utils/propertyHierarchy';
+import type { PropertyTreeNode } from '../../src/types/storage';
 
 function getFolderName(path: string): string {
     if (path === '/') {
@@ -172,5 +179,166 @@ describe('treeFlattener flattenFolderTree', () => {
 
         expect(traversalState.siblingPathsByParent.get('/')).toEqual(['Projects']);
         expect(traversalState.siblingPathsByParent.has('Projects')).toBe(false);
+    });
+});
+
+describe('flattenPropertyHierarchy', () => {
+    function createTree(key: string, values: { value: string; notes: string[] }[]): Map<string, PropertyTreeNode> {
+        const keyNode: PropertyTreeNode = {
+            id: `key:${key}`,
+            kind: 'key',
+            key,
+            valuePath: null,
+            name: key,
+            displayPath: key,
+            children: new Map(),
+            notesWithValue: new Set()
+        };
+        for (const entry of values) {
+            const id = `key:${key}=${entry.value.toLowerCase()}`;
+            keyNode.children.set(id, {
+                id,
+                kind: 'value',
+                key,
+                valuePath: entry.value.toLowerCase(),
+                name: entry.value,
+                displayPath: entry.value,
+                assignmentValue: `[[${entry.value}]]`,
+                children: new Map(),
+                notesWithValue: new Set(entry.notes)
+            });
+        }
+        return new Map([[key, keyNode]]);
+    }
+
+    const resolveByName = (node: PropertyTreeNode): string | null => {
+        const match = /^\[\[([^\]|]+)\]\]$/.exec(node.assignmentValue ?? '');
+        return match ? `${match[1]}.md` : null;
+    };
+    const byName = (a: PropertyTreeNode, b: PropertyTreeNode) => a.name.localeCompare(b.name);
+    const id = (key: string, value: string) => `key:${key}=${value.toLowerCase()}`;
+
+    function flatten(tree: Map<string, PropertyTreeNode>, key: string, expanded: string[], maxDepth = 10) {
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set([key]),
+            resolveValueNotePath: resolveByName
+        });
+        return flattenPropertyHierarchy({
+            keyNode: tree.get(key) as PropertyTreeNode,
+            index,
+            expandedPlacements: new Set(expanded),
+            level: 1,
+            maxDepth,
+            comparator: byName
+        });
+    }
+
+    it('emits only roots while nothing is expanded', () => {
+        const tree = createTree('projects', [
+            { value: 'Fiddle', notes: ['Building software.md'] },
+            { value: 'Building software', notes: ['Bulwark.md'] },
+            { value: 'Work', notes: [] }
+        ]);
+
+        const result = flatten(tree, 'projects', []);
+
+        expect(result.items.map(item => item.data.name)).toEqual(['Fiddle', 'Work']);
+        expect(result.items.every(item => item.level === 1)).toBe(true);
+    });
+
+    it('keys a root placement by the node id alone so flat expansion keeps working', () => {
+        const tree = createTree('projects', [{ value: 'Fiddle', notes: [] }]);
+
+        const result = flatten(tree, 'projects', []);
+
+        expect(result.items[0].key).toBe(id('projects', 'Fiddle'));
+    });
+
+    it('emits children with a chained key and an incremented level when expanded', () => {
+        const tree = createTree('projects', [
+            { value: 'Fiddle', notes: ['Building software.md'] },
+            { value: 'Building software', notes: [] }
+        ]);
+        const fiddleKey = id('projects', 'Fiddle');
+
+        const result = flatten(tree, 'projects', [fiddleKey]);
+
+        expect(result.items.map(item => [item.data.name, item.level])).toEqual([
+            ['Fiddle', 1],
+            ['Building software', 2]
+        ]);
+        expect(result.items[1].key).toBe(buildPropertyPlacementKey([fiddleKey, id('projects', 'Building software')]));
+    });
+
+    it('expands one placement of a two parent value without expanding the other', () => {
+        const tree = createTree('categories', [
+            { value: 'Areas', notes: ['Clients.md'] },
+            { value: 'Categories', notes: ['Clients.md'] },
+            { value: 'Clients', notes: ['Acme.md'] },
+            { value: 'Acme', notes: [] }
+        ]);
+        const underAreas = buildPropertyPlacementKey([id('categories', 'Areas'), id('categories', 'Clients')]);
+
+        const result = flatten(tree, 'categories', [id('categories', 'Areas'), id('categories', 'Categories'), underAreas]);
+
+        // Clients appears under both parents, but only the Areas placement shows Acme.
+        expect(result.items.map(item => [item.data.name, item.level])).toEqual([
+            ['Areas', 1],
+            ['Clients', 2],
+            ['Acme', 3],
+            ['Categories', 1],
+            ['Clients', 2]
+        ]);
+    });
+
+    it('records the first placement of each node id', () => {
+        const tree = createTree('categories', [
+            { value: 'Areas', notes: ['Clients.md'] },
+            { value: 'Categories', notes: ['Clients.md'] },
+            { value: 'Clients', notes: [] }
+        ]);
+
+        const result = flatten(tree, 'categories', [id('categories', 'Areas'), id('categories', 'Categories')]);
+
+        expect(result.firstPlacementByNodeId.get(id('categories', 'Clients'))).toBe(
+            buildPropertyPlacementKey([id('categories', 'Areas'), id('categories', 'Clients')])
+        );
+    });
+
+    it('stops at maxDepth without emitting deeper levels', () => {
+        const tree = createTree('projects', [
+            { value: 'Work', notes: ['Clients.md'] },
+            { value: 'Clients', notes: ['Acme.md'] },
+            { value: 'Acme', notes: [] }
+        ]);
+        const workKey = id('projects', 'Work');
+        const clientsKey = buildPropertyPlacementKey([workKey, id('projects', 'Clients')]);
+
+        const deep = flatten(tree, 'projects', [workKey, clientsKey], 10);
+        expect(deep.items.map(item => item.data.name)).toEqual(['Work', 'Clients', 'Acme']);
+
+        const capped = flatten(tree, 'projects', [workKey, clientsKey], 1);
+        expect(capped.items.map(item => item.data.name)).toEqual(['Work', 'Clients']);
+    });
+
+    it('does not loop forever on a cycle in the index', () => {
+        const tree = createTree('topics', [
+            { value: 'A', notes: ['B.md'] },
+            { value: 'B', notes: ['A.md'] }
+        ]);
+        const aKey = id('topics', 'A');
+        const bUnderA = buildPropertyPlacementKey([aKey, id('topics', 'B')]);
+
+        const result = flatten(tree, 'topics', [aKey, bUnderA, id('topics', 'B')]);
+
+        // B is expanded under A, and its only child is A, which is already in this chain, so the
+        // walk stops there rather than recursing.
+        expect(result.items.map(item => [item.data.name, item.level])).toEqual([
+            ['A', 1],
+            ['B', 2],
+            ['B', 1],
+            ['A', 2]
+        ]);
     });
 });
