@@ -22,7 +22,8 @@ import {
     buildVisibleFolderTraversalState,
     flattenFolderTree,
     buildPropertyPlacementKey,
-    flattenPropertyHierarchy
+    flattenPropertyHierarchy,
+    getPropertyPlacementAncestorKeys
 } from '../../src/utils/treeFlattener';
 import { buildPropertyHierarchyIndex } from '../../src/utils/propertyHierarchy';
 import type { PropertyTreeNode } from '../../src/types/storage';
@@ -340,5 +341,24 @@ describe('flattenPropertyHierarchy', () => {
             ['B', 1],
             ['A', 2]
         ]);
+    });
+});
+
+describe('getPropertyPlacementAncestorKeys', () => {
+    const id = (key: string, value: string) => `key:${key}=${value.toLowerCase()}`;
+
+    it('produces every prefix of a three-deep chain, in root-to-parent order', () => {
+        const workId = id('projects', 'work');
+        const clientsId = id('projects', 'clients');
+        const targetId = id('projects', 'datawerkplaats mooi maasvallei');
+
+        const ancestorKeys = getPropertyPlacementAncestorKeys([workId, clientsId, targetId]);
+
+        expect(ancestorKeys).toEqual([buildPropertyPlacementKey([workId]), buildPropertyPlacementKey([workId, clientsId])]);
+    });
+
+    it('returns no ancestors for a single-element chain, which is a root placement or a flat value', () => {
+        expect(getPropertyPlacementAncestorKeys([id('projects', 'fiddle')])).toEqual([]);
+        expect(getPropertyPlacementAncestorKeys([id('status', 'open')])).toEqual([]);
     });
 });

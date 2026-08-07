@@ -21,10 +21,16 @@ import { TFolder } from 'obsidian';
 import type { ExpansionAction } from '../../src/context/ExpansionContext';
 import {
     getFolderAncestorPaths,
+    getNavigationExpansionTargetForItem,
     isFolderEffectivelyExpanded,
     isFolderExpansionLocked,
     toggleNavigationExpansionTarget
 } from '../../src/utils/navigationExpansion';
+import { NavigationPaneItemType } from '../../src/types';
+import type { CombinedNavigationItem } from '../../src/types/virtualization';
+import type { PropertyTreeNode } from '../../src/types/storage';
+import { buildPropertyKeyNodeId, buildPropertyValueNodeId } from '../../src/utils/propertyTree';
+import { buildPropertyPlacementKey } from '../../src/utils/treeFlattener';
 
 describe('navigationExpansion', () => {
     it('locks a hidden root open without relying on persisted expansion', () => {
@@ -96,5 +102,107 @@ describe('navigationExpansion', () => {
 
         expect(didCollapse).toBe(true);
         expect(dispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: 'key:status' });
+    });
+});
+
+/**
+ * The two calls below are exactly what the keyboard paths in useNavigationPaneKeyboard perform when
+ * autoExpandNavItems moves the selection onto a property row, or when the expand key is pressed on one.
+ * These assert the resulting dispatch rather than that the children-presence guard was reached, because
+ * the guard used to pass and then dispatch nothing at all: a hierarchical value node's own children map
+ * is always empty, so the old `item.data.children.size > 0` reported no children for every placement.
+ */
+describe('navigationExpansion keyboard expansion of property placements', () => {
+    const KEY_ID = buildPropertyKeyNodeId('projects');
+    const WORK_ID = buildPropertyValueNodeId('projects', 'work');
+    const CLIENTS_ID = buildPropertyValueNodeId('projects', 'clients');
+    const CLIENTS_UNDER_WORK = buildPropertyPlacementKey([WORK_ID, CLIENTS_ID]);
+
+    function createValueNode(valuePath: string, name: string): PropertyTreeNode {
+        return {
+            id: buildPropertyValueNodeId('projects', valuePath),
+            kind: 'value',
+            key: 'projects',
+            valuePath,
+            name,
+            displayPath: name,
+            children: new Map(),
+            notesWithValue: new Set(['notes/a.md'])
+        };
+    }
+
+    /** Shaped as the flattener emits it: key is the placement key, hasChildren comes from the index. */
+    function createValueItem(node: PropertyTreeNode, placementKey: string, hasChildren?: boolean): CombinedNavigationItem {
+        return {
+            type: NavigationPaneItemType.PROPERTY_VALUE,
+            data: node,
+            level: 2,
+            key: placementKey,
+            ...(hasChildren === undefined ? {} : { hasChildren })
+        };
+    }
+
+    const expandItem = (item: CombinedNavigationItem, expandedProperties: Set<string>, collapseOtherBranches: boolean) => {
+        const dispatch = vi.fn<(action: ExpansionAction) => void>();
+        const target = getNavigationExpansionTargetForItem(item, { showHiddenItems: false, showRootFolder: true });
+        const didExpand = target
+            ? toggleNavigationExpansionTarget(
+                  target,
+                  {
+                      expandedFolders: new Set(),
+                      expandedTags: new Set(),
+                      expandedProperties,
+                      expandedVirtualFolders: new Set()
+                  },
+                  dispatch,
+                  'expand',
+                  { collapseOtherBranches }
+              )
+            : false;
+        return { didExpand, dispatch };
+    };
+
+    it('expands a nested placement by its placement key', () => {
+        const item = createValueItem(createValueNode('clients', 'Clients'), CLIENTS_UNDER_WORK, true);
+
+        const { didExpand, dispatch } = expandItem(item, new Set([KEY_ID, WORK_ID]), false);
+
+        expect(didExpand).toBe(true);
+        expect(dispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: CLIENTS_UNDER_WORK });
+    });
+
+    it('does not replace the expanded set for a nested placement when branch collapse is on', () => {
+        // Branch replacement lists ancestors as node ids, which cannot name the intermediate placements
+        // this row depends on, so it would collapse the row it just expanded. Per-placement
+        // collapse-others is Task 6; until then a nested placement takes the plain toggle.
+        const item = createValueItem(createValueNode('clients', 'Clients'), CLIENTS_UNDER_WORK, true);
+
+        const { didExpand, dispatch } = expandItem(item, new Set([KEY_ID, WORK_ID]), true);
+
+        expect(didExpand).toBe(true);
+        expect(dispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: CLIENTS_UNDER_WORK });
+        expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_EXPANDED_PROPERTIES' }));
+    });
+
+    it('still replaces the expanded set for a root placement, whose key is its node id', () => {
+        const workNode = createValueNode('work', 'Work');
+        const item = createValueItem(workNode, workNode.id, true);
+
+        const { didExpand, dispatch } = expandItem(item, new Set([KEY_ID]), true);
+
+        expect(didExpand).toBe(true);
+        expect(dispatch).toHaveBeenCalledWith({ type: 'SET_EXPANDED_PROPERTIES', properties: new Set([KEY_ID, workNode.id]) });
+    });
+
+    it('reports no children for a flat value with no hasChildren flag and no child nodes', () => {
+        // A non-hierarchical key never sets the flag, so this falls back to the node's own children,
+        // which is the check this site always used.
+        const openNode = createValueNode('open', 'Open');
+        const item = createValueItem(openNode, openNode.id);
+
+        const { didExpand, dispatch } = expandItem(item, new Set([KEY_ID]), false);
+
+        expect(didExpand).toBe(false);
+        expect(dispatch).not.toHaveBeenCalled();
     });
 });

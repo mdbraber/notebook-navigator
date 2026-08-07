@@ -56,12 +56,21 @@ import {
 } from '../utils/propertyTree';
 import { findPropertyNoteValueNode, resolvePropertyNoteLensJump, resolvePropertyRevealTarget } from '../utils/propertyNoteLookup';
 import { expandNavigationTreeItems, isFolderEffectivelyExpanded, isFolderExpansionLocked } from '../utils/navigationExpansion';
+import type { PropertyHierarchyIndex } from '../utils/propertyHierarchy';
 
 interface UseNavigatorRevealOptions {
     app: App;
     navigationPaneRef: RefObject<NavigationPaneHandle | null>;
     focusNavigationPane: () => void;
     focusFilesPane: () => void;
+    /**
+     * Additive nesting over the value nodes of keys marked Hierarchical, kept live across renders in a
+     * ref because this hook is constructed before the navigation pane's tree sections are computed for
+     * the same render pass - reading `.current` at call time (inside the callbacks below, never during
+     * render) always sees the latest index. See NotebookNavigatorComponent, which owns the ref and
+     * updates it once navigationTreeSections is available.
+     */
+    propertyHierarchyIndexRef: { readonly current: PropertyHierarchyIndex };
 }
 
 export interface RevealFileOptions {
@@ -123,7 +132,13 @@ export interface RevealPropertyOptions {
  * This hook encapsulates the complex reveal logic that was previously
  * in the NotebookNavigatorComponent, making it reusable and testable.
  */
-export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane, focusFilesPane }: UseNavigatorRevealOptions) {
+export function useNavigatorReveal({
+    app,
+    navigationPaneRef,
+    focusNavigationPane,
+    focusFilesPane,
+    propertyHierarchyIndexRef
+}: UseNavigatorRevealOptions) {
     const settings = useSettingsState();
     const uxPreferences = useUXPreferences();
     const includeDescendantNotes = uxPreferences.includeDescendantNotes;
@@ -448,6 +463,7 @@ export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane
                     expansionDispatch,
                     selectionDispatch,
                     activatePane,
+                    propertyHierarchyIndex: propertyHierarchyIndexRef.current,
                     requestScroll: (nodeId, scrollOptions) => {
                         navigationPaneRef.current?.requestScroll(nodeId, scrollOptions);
                     }
@@ -487,6 +503,7 @@ export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane
             activatePane,
             selectionState.selectedFile,
             navigationPaneRef,
+            propertyHierarchyIndexRef,
             settings.showAllPropertiesFolder,
             settings.collapseOtherBranchesOnExpand,
             settings.showProperties,
@@ -942,6 +959,7 @@ export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane
                     expansionDispatch,
                     selectionDispatch,
                     activatePane,
+                    propertyHierarchyIndex: propertyHierarchyIndexRef.current,
                     requestScroll: (nodeId, scrollOptions) => {
                         navigationPaneRef.current?.requestScroll(nodeId, scrollOptions);
                     }
@@ -956,6 +974,7 @@ export function useNavigatorReveal({ app, navigationPaneRef, focusNavigationPane
             expansionState.expandedVirtualFolders,
             activatePane,
             navigationPaneRef,
+            propertyHierarchyIndexRef,
             selectionDispatch,
             settings.showAllPropertiesFolder,
             settings.collapseOtherBranchesOnExpand,

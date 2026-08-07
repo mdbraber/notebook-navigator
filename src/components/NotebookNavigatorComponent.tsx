@@ -61,6 +61,7 @@ import { confirmRemoveAllTagsFromFiles, openAddTagToFilesModal, removeTagFromFil
 import { normalizeTagPath } from '../utils/tagUtils';
 import { getTemplaterCreateNewNoteFromTemplate } from '../utils/templaterIntegration';
 import { normalizePropertyNodeId } from '../utils/propertyTree';
+import { EMPTY_PROPERTY_HIERARCHY_INDEX, type PropertyHierarchyIndex } from '../utils/propertyHierarchy';
 import { collectFileMenuPropertyActions } from '../utils/propertyMenuActions';
 import { openMergeNotesModal } from '../utils/mergeNotesModal';
 import { getMarkdownFilesInOrder } from '../utils/noteMerge';
@@ -282,6 +283,10 @@ export const NotebookNavigatorComponent = React.memo(
         const [suppressPaneTransitions, setSuppressPaneTransitions] = useState(false);
         const navigationPaneRef = useRef<NavigationPaneHandle | null>(null);
         const listPaneRef = useRef<ListPaneHandle | null>(null);
+        // useNavigatorReveal is constructed below before navigationTreeSections exists further down
+        // in this render. The ref lets its callbacks read the latest property hierarchy index at call
+        // time regardless of that ordering; it is written once navigationTreeSections is computed.
+        const propertyHierarchyIndexRef = useRef<PropertyHierarchyIndex>(EMPTY_PROPERTY_HIERARCHY_INDEX);
         const lastDualPaneRef = useRef(uiState.dualPane);
         const auxClickStateRef = useRef<AuxClickState>({
             mouseBackForwardAction: settings.mouseBackForwardAction,
@@ -571,7 +576,8 @@ export const NotebookNavigatorComponent = React.memo(
             app,
             navigationPaneRef,
             focusNavigationPane: focusNavigationPaneCallback,
-            focusFilesPane: focusFilesPaneCallback
+            focusFilesPane: focusFilesPaneCallback,
+            propertyHierarchyIndexRef
         });
 
         const resolveSelectionHistoryEntry = useCallback(
@@ -1484,6 +1490,9 @@ export const NotebookNavigatorComponent = React.memo(
             tagTreeService,
             propertyTreeService
         });
+        // Latest-ref pattern: written during render (not in an effect) so it is current before any
+        // event handler constructed by useNavigatorReveal above could possibly run.
+        propertyHierarchyIndexRef.current = navigationTreeSections.propertyHierarchyIndex;
         const fileItemPillDecorationModel = useFileItemPillDecorationState({
             sourceState: navigationSourceState,
             treeSections: navigationTreeSections,

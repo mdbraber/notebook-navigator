@@ -54,6 +54,7 @@ import {
     isFolderEffectivelyExpanded,
     toggleNavigationExpansionTarget
 } from '../utils/navigationExpansion';
+import { propertyNodeHasChildren, type PropertyHierarchyIndex } from '../utils/propertyHierarchy';
 
 type VirtualTagCollectionItem = VirtualFolderItem & { tagCollectionId: string };
 type VirtualPropertyCollectionItem = VirtualFolderItem & { propertyCollectionId: string };
@@ -101,6 +102,8 @@ interface UseNavigationPaneKeyboardProps {
     pathToIndex: Map<string, number>;
     /** Starts inline rename for the current item when available */
     onStartRename?: () => boolean;
+    /** Additive nesting over property values for keys marked Hierarchical. Empty when none are. */
+    propertyHierarchyIndex: PropertyHierarchyIndex;
 }
 
 /**
@@ -112,7 +115,8 @@ export function useNavigationPaneKeyboard({
     virtualizer,
     containerRef,
     pathToIndex,
-    onStartRename
+    onStartRename,
+    propertyHierarchyIndex
 }: UseNavigationPaneKeyboardProps) {
     const { app, commandQueue, plugin, propertyTreeService } = useServices();
     const fileSystemOps = useFileSystemOps();
@@ -230,8 +234,17 @@ export function useNavigationPaneKeyboard({
                     nodeId: propertyNode.id
                 });
 
-                if (settings.autoExpandNavItems && propertyNode.children.size > 0) {
-                    if (!expansionState.expandedProperties.has(propertyNode.id)) {
+                // A hierarchical value's expansion is stored per placement, so the row the user landed
+                // on is identified by its placement key, not by the node id it shares with every other
+                // placement of the same value. Equal to the node id for a key node, a root placement,
+                // or a non-hierarchical value.
+                const placementKey = item.type === NavigationPaneItemType.PROPERTY_VALUE ? item.key : propertyNode.id;
+                if (settings.autoExpandNavItems && propertyNodeHasChildren(propertyNode, propertyHierarchyIndex)) {
+                    if (!expansionState.expandedProperties.has(placementKey)) {
+                        // The target below carries the placement key as its id, and marks itself
+                        // ineligible for branch replacement when that key is not also a node id, so a
+                        // nested placement expands through the plain toggle. Per-placement
+                        // collapse-others is Task 6.
                         const expansionTarget = getNavigationExpansionTargetForItem(item, {
                             showHiddenItems,
                             showRootFolder: settings.showRootFolder
@@ -254,7 +267,7 @@ export function useNavigationPaneKeyboard({
                 selectionDispatch({ type: 'SET_SELECTED_TAG', tag: tagCollectionId });
             }
         },
-        [selectionDispatch, settings, expansionState, expansionDispatch, showHiddenItems]
+        [selectionDispatch, settings, expansionState, expansionDispatch, showHiddenItems, propertyHierarchyIndex]
     );
 
     /**

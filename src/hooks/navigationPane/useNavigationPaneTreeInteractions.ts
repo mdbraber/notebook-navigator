@@ -41,6 +41,7 @@ import type { InclusionOperator } from '../../utils/filterSearch';
 import { getFolderNote, openFolderNoteFile, type FolderNoteOpenContext } from '../../utils/folderNotes';
 import { resolvePropertyNote } from '../../utils/propertyNoteLookup';
 import { openPropertyNoteFile } from '../../utils/propertyNotes';
+import { propertyNodeHasChildren, type PropertyHierarchyIndex } from '../../utils/propertyHierarchy';
 import { runAsyncAction } from '../../utils/async';
 import { resolveFolderNoteClickOpenContext, resolveFolderNoteDefaultOpenContext } from '../../utils/keyboardOpenContext';
 import { findTagNode } from '../../utils/tagTree';
@@ -81,6 +82,8 @@ interface UseNavigationPaneTreeInteractionsProps {
     propertyTreeService: IPropertyTreeProvider | null;
     tagTree: Map<string, TagTreeNode>;
     propertyTree: Map<string, PropertyTreeNode>;
+    /** Additive nesting over property values for keys marked Hierarchical. Empty when none are. */
+    propertyHierarchyIndex: PropertyHierarchyIndex;
     tagsVirtualFolderHasChildren: boolean;
     setShortcutsExpanded: Dispatch<SetStateAction<boolean>>;
     setRecentNotesExpanded: Dispatch<SetStateAction<boolean>>;
@@ -98,15 +101,32 @@ export interface NavigationPaneTreeInteractionsResult {
     handleFolderToggleAllSiblings: (folder: TFolder) => void;
     handleTagToggle: (path: string) => void;
     handleTagToggleAllSiblings: (tagPath: string) => void;
-    handlePropertyToggle: (nodeId: string) => void;
+    /**
+     * Toggles a property row's expansion. placementKey is what actually gets stored (a placement
+     * key for a hierarchical value, a bare node id for everything else - see ExpansionContext's
+     * TOGGLE_PROPERTY_EXPANDED comment). nodeId is the underlying value node, needed separately
+     * because the collapseOtherBranchesOnExpand path still reasons in node ids.
+     */
+    handlePropertyToggle: (placementKey: string, nodeId: string) => void;
     handlePropertyToggleAllSiblings: (propertyNode: PropertyTreeNode) => void;
     handleVirtualFolderToggle: (folderId: string) => void;
     handleVirtualFolderToggleAllSiblings: (folderId: string) => void;
     handleTagClick: (tagPath: string, event?: React.MouseEvent, options?: { fromShortcut?: boolean }) => void;
     handleTagCollectionClick: (tagCollectionId: string, event: React.MouseEvent<HTMLDivElement>) => void;
     handlePropertyCollectionClick: (event: React.MouseEvent<HTMLDivElement>) => void;
-    handlePropertyClick: (propertyNode: PropertyTreeNode, event?: React.MouseEvent, options?: { fromShortcut?: boolean }) => void;
-    handlePropertyNameClick: (propertyNode: PropertyTreeNode, event?: React.MouseEvent) => void;
+    /**
+     * Row click for a property. placementKey identifies which row was clicked, so expansion targets
+     * that placement rather than every placement of the same value; pass the node id for a key node or
+     * anywhere a placement is not known.
+     */
+    handlePropertyClick: (
+        propertyNode: PropertyTreeNode,
+        placementKey: string,
+        event?: React.MouseEvent,
+        options?: { fromShortcut?: boolean }
+    ) => void;
+    /** Name click for a property. placementKey has the same meaning as in handlePropertyClick. */
+    handlePropertyNameClick: (propertyNode: PropertyTreeNode, placementKey: string, event?: React.MouseEvent) => void;
     handlePropertyNameMouseDown: (propertyNode: PropertyTreeNode, event: React.MouseEvent) => void;
 }
 
@@ -123,6 +143,7 @@ export function useNavigationPaneTreeInteractions({
     propertyTreeService,
     tagTree,
     propertyTree,
+    propertyHierarchyIndex,
     tagsVirtualFolderHasChildren,
     setShortcutsExpanded,
     setRecentNotesExpanded,
@@ -329,8 +350,13 @@ export function useNavigationPaneTreeInteractions({
     );
 
     const handlePropertyToggle = useCallback(
-        (nodeId: string) => {
-            if (settings.collapseOtherBranchesOnExpand) {
+        (placementKey: string, nodeId: string) => {
+            // Per-placement collapse-others is Task 6: it reworks toggleNavigationExpansionTarget,
+            // which folders and tags also use. Until then this branch is only taken when the
+            // placement key equals the node id - a root placement or a non-hierarchical value -
+            // which is exactly the case where node-id reasoning below is still correct. Every deeper
+            // placement falls through to the plain dispatch.
+            if (settings.collapseOtherBranchesOnExpand && placementKey === nodeId) {
                 const propertyNode =
                     propertyTreeService?.findNode(nodeId) ??
                     Array.from(propertyTree.values()).find(node => node.id === nodeId || node.children.has(nodeId)) ??
@@ -353,7 +379,7 @@ export function useNavigationPaneTreeInteractions({
                 }
             }
 
-            expansionDispatch({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: nodeId });
+            expansionDispatch({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: placementKey });
         },
         [expansionDispatch, expansionState, propertyTree, propertyTreeService, settings.collapseOtherBranchesOnExpand]
     );
@@ -625,7 +651,7 @@ export function useNavigationPaneTreeInteractions({
     );
 
     const handlePropertyClick = useCallback(
-        (propertyNode: PropertyTreeNode, event?: React.MouseEvent, options?: { fromShortcut?: boolean }) => {
+        (propertyNode: PropertyTreeNode, placementKey: string, event?: React.MouseEvent, options?: { fromShortcut?: boolean }) => {
             const operator = getTagSearchModifierOperator(event ?? null, settings.multiSelectModifier);
             if (operator) {
                 if (event) {
@@ -637,8 +663,8 @@ export function useNavigationPaneTreeInteractions({
                 return;
             }
 
-            const hasChildren = propertyNode.children.size > 0;
-            const isExpanded = expansionState.expandedProperties.has(propertyNode.id);
+            const hasChildren = propertyNodeHasChildren(propertyNode, propertyHierarchyIndex);
+            const isExpanded = expansionState.expandedProperties.has(placementKey);
             const selectedPropertyNodeId = selectionState.selectionType === ItemType.PROPERTY ? selectionState.selectedProperty : null;
             // Resolved before applyTreeSelection so the selection dispatch below can carry
             // autoSelectedFile: null - without that, the list pane's auto-selected first file
@@ -659,7 +685,7 @@ export function useNavigationPaneTreeInteractions({
                     });
                 },
                 onToggleExpand: () => {
-                    handlePropertyToggle(propertyNode.id);
+                    handlePropertyToggle(placementKey, propertyNode.id);
                 }
             });
 
@@ -681,6 +707,7 @@ export function useNavigationPaneTreeInteractions({
             expansionState.expandedProperties,
             handlePropertyToggle,
             onModifySearchWithProperty,
+            propertyHierarchyIndex,
             selectionDispatch,
             selectionState.selectedProperty,
             selectionState.selectionType,
@@ -692,23 +719,23 @@ export function useNavigationPaneTreeInteractions({
     );
 
     const handlePropertyNameClick = useCallback(
-        (propertyNode: PropertyTreeNode, event?: React.MouseEvent) => {
+        (propertyNode: PropertyTreeNode, placementKey: string, event?: React.MouseEvent) => {
             // The name click stops propagation before the row click handler runs, so the
             // search-filter modifier (Cmd/Alt+click) has to be checked here too, or it gets
             // silently swallowed by the note-opening branch below instead of filtering.
             if (getTagSearchModifierOperator(event ?? null, settings.multiSelectModifier)) {
-                handlePropertyClick(propertyNode, event);
+                handlePropertyClick(propertyNode, placementKey, event);
                 return;
             }
 
             if (!settings.enablePropertyNotes || !settings.enablePropertyNoteLinks) {
-                handlePropertyClick(propertyNode, event);
+                handlePropertyClick(propertyNode, placementKey, event);
                 return;
             }
 
             const propertyNote = resolvePropertyNote(propertyNode, app);
             if (!propertyNote) {
-                handlePropertyClick(propertyNode, event);
+                handlePropertyClick(propertyNode, placementKey, event);
                 return;
             }
 
@@ -719,8 +746,12 @@ export function useNavigationPaneTreeInteractions({
                 autoSelectedFile: null
             });
 
-            if (settings.autoExpandNavItems && propertyNode.children.size > 0 && !expansionState.expandedProperties.has(propertyNode.id)) {
-                handlePropertyToggle(propertyNode.id);
+            if (
+                settings.autoExpandNavItems &&
+                propertyNodeHasChildren(propertyNode, propertyHierarchyIndex) &&
+                !expansionState.expandedProperties.has(placementKey)
+            ) {
+                handlePropertyToggle(placementKey, propertyNode.id);
             }
 
             const openContext = event
@@ -737,6 +768,7 @@ export function useNavigationPaneTreeInteractions({
             focusListPaneAfterRightSidebarFolderNoteSelection,
             handlePropertyClick,
             handlePropertyToggle,
+            propertyHierarchyIndex,
             selectionDispatch,
             settings
         ]
@@ -801,7 +833,9 @@ export function useNavigationPaneTreeInteractions({
     const handlePropertyToggleAllSiblings = useCallback(
         (propertyNode: PropertyTreeNode) => {
             const isCurrentlyExpanded = expansionState.expandedProperties.has(propertyNode.id);
-            handlePropertyToggle(propertyNode.id);
+            // "Toggle all siblings" only ever deals in node ids (see TOGGLE_DESCENDANT_PROPERTIES
+            // below), so the placement key and node id are the same argument here.
+            handlePropertyToggle(propertyNode.id, propertyNode.id);
             const descendantNodeIds = getAllDescendantPropertyNodeIds(propertyNode);
             if (descendantNodeIds.length > 0) {
                 expansionDispatch({ type: 'TOGGLE_DESCENDANT_PROPERTIES', descendantNodeIds, expand: !isCurrentlyExpanded });

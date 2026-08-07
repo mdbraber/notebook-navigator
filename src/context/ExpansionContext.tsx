@@ -20,9 +20,10 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode } fr
 import { PROPERTIES_ROOT_VIRTUAL_FOLDER_ID, STORAGE_KEYS, TAGS_ROOT_VIRTUAL_FOLDER_ID } from '../types';
 import { localStorage } from '../utils/localStorage';
 import { normalizeStoredCollapsedListGroupKeys } from '../utils/listGroupCollapse';
+import { PROPERTY_PLACEMENT_SEPARATOR } from '../utils/treeFlattener';
 
 // State interface
-interface ExpansionState {
+export interface ExpansionState {
     expandedFolders: Set<string>;
     expandedTags: Set<string>;
     expandedProperties: Set<string>;
@@ -38,6 +39,9 @@ export type ExpansionAction =
     | { type: 'SET_EXPANDED_VIRTUAL_FOLDERS'; folders: Set<string> }
     | { type: 'TOGGLE_FOLDER_EXPANDED'; folderPath: string }
     | { type: 'TOGGLE_TAG_EXPANDED'; tagPath: string }
+    // propertyNodeId is a placement key for a hierarchical property value (chain of value node ids
+    // joined with a NUL, see buildPropertyPlacementKey) and a bare node id for everything else. A
+    // root placement's key equals its node id, so the field name still fits the common case.
     | { type: 'TOGGLE_PROPERTY_EXPANDED'; propertyNodeId: string }
     | { type: 'TOGGLE_VIRTUAL_FOLDER_EXPANDED'; folderId: string }
     | { type: 'TOGGLE_LIST_GROUP_COLLAPSED'; collapseKey: string }
@@ -45,22 +49,25 @@ export type ExpansionAction =
     | { type: 'SET_LIST_GROUPS_COLLAPSED'; collapseKeys: string[]; collapsed: boolean }
     | { type: 'EXPAND_FOLDERS'; folderPaths: string[] }
     | { type: 'EXPAND_TAGS'; tagPaths: string[] }
+    // propertyNodeIds are placement keys, same convention as TOGGLE_PROPERTY_EXPANDED above.
     | { type: 'EXPAND_PROPERTIES'; propertyNodeIds: string[] }
     | { type: 'TOGGLE_DESCENDANT_FOLDERS'; descendantPaths: string[]; expand: boolean }
     | { type: 'TOGGLE_DESCENDANT_TAGS'; descendantPaths: string[]; expand: boolean }
     | { type: 'TOGGLE_DESCENDANT_PROPERTIES'; descendantNodeIds: string[]; expand: boolean }
     | { type: 'CLEANUP_DELETED_FOLDERS'; existingPaths: Set<string> }
     | { type: 'CLEANUP_DELETED_TAGS'; existingTags: Set<string> }
+    // existingPropertyNodeIds stays a whitelist of key and value node ids. Placement keys in
+    // expandedProperties are validated against it per chain segment, see isExpandedPropertyEntryValid.
     | { type: 'CLEANUP_DELETED_PROPERTIES'; existingPropertyNodeIds: Set<string> };
 
 // Create contexts
 const ExpansionContext = createContext<ExpansionState | null>(null);
 const ExpansionDispatchContext = createContext<React.Dispatch<ExpansionAction> | null>(null);
 
-function filterExpandedSet(currentValues: Set<string>, validValues: Set<string>): Set<string> | null {
+function filterExpandedSet(currentValues: Set<string>, isValid: (value: string) => boolean): Set<string> | null {
     let changed = false;
     currentValues.forEach(value => {
-        if (!validValues.has(value)) {
+        if (!isValid(value)) {
             changed = true;
         }
     });
@@ -71,7 +78,7 @@ function filterExpandedSet(currentValues: Set<string>, validValues: Set<string>)
 
     const filteredValues = new Set<string>();
     currentValues.forEach(value => {
-        if (validValues.has(value)) {
+        if (isValid(value)) {
             filteredValues.add(value);
         }
     });
@@ -79,8 +86,26 @@ function filterExpandedSet(currentValues: Set<string>, validValues: Set<string>)
     return filteredValues;
 }
 
+/**
+ * Whether one entry of expandedProperties still refers to something that exists. A hierarchical
+ * value's expansion is stored per placement, and a placement key is the chain of value node ids from
+ * the root joined with a NUL, so it can never appear in a whitelist of node ids: checking membership
+ * directly would delete every nested expansion on the next cleanup pass, which is what erased a
+ * level-2 row's own children the moment it was expanded. Validity is therefore checked segment by
+ * segment - every value in the chain must still exist - so a placement whose ancestor was deleted is
+ * still correctly purged. A single-segment entry, meaning a key node, a root placement, or any flat
+ * property value, reduces to the plain membership test this always did.
+ */
+function isExpandedPropertyEntryValid(entry: string, existingPropertyNodeIds: Set<string>): boolean {
+    if (!entry.includes(PROPERTY_PLACEMENT_SEPARATOR)) {
+        return existingPropertyNodeIds.has(entry);
+    }
+
+    return entry.split(PROPERTY_PLACEMENT_SEPARATOR).every(segment => existingPropertyNodeIds.has(segment));
+}
+
 // Reducer
-function expansionReducer(state: ExpansionState, action: ExpansionAction): ExpansionState {
+export function expansionReducer(state: ExpansionState, action: ExpansionAction): ExpansionState {
     switch (action.type) {
         case 'SET_EXPANDED_FOLDERS':
             return { ...state, expandedFolders: action.folders };
@@ -222,7 +247,7 @@ function expansionReducer(state: ExpansionState, action: ExpansionAction): Expan
         }
 
         case 'CLEANUP_DELETED_FOLDERS': {
-            const cleaned = filterExpandedSet(state.expandedFolders, action.existingPaths);
+            const cleaned = filterExpandedSet(state.expandedFolders, path => action.existingPaths.has(path));
             if (!cleaned) {
                 return state;
             }
@@ -230,7 +255,7 @@ function expansionReducer(state: ExpansionState, action: ExpansionAction): Expan
         }
 
         case 'CLEANUP_DELETED_TAGS': {
-            const cleaned = filterExpandedSet(state.expandedTags, action.existingTags);
+            const cleaned = filterExpandedSet(state.expandedTags, tagPath => action.existingTags.has(tagPath));
             if (!cleaned) {
                 return state;
             }
@@ -238,7 +263,9 @@ function expansionReducer(state: ExpansionState, action: ExpansionAction): Expan
         }
 
         case 'CLEANUP_DELETED_PROPERTIES': {
-            const cleaned = filterExpandedSet(state.expandedProperties, action.existingPropertyNodeIds);
+            const cleaned = filterExpandedSet(state.expandedProperties, entry =>
+                isExpandedPropertyEntryValid(entry, action.existingPropertyNodeIds)
+            );
             if (!cleaned) {
                 return state;
             }

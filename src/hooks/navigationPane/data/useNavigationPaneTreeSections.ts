@@ -39,7 +39,12 @@ import type { NavigationSelectionScope } from '../../../utils/selectionUtils';
 import { getFilesForNavigationSelection } from '../../../utils/selectionUtils';
 import { buildTagTreeFromFilePaths, excludeFromTagTree } from '../../../utils/tagTree';
 import { buildPropertyTreeFromFilePaths, getTotalPropertyNoteCount } from '../../../utils/propertyTree';
-import { buildPropertyHierarchyIndex, EMPTY_PROPERTY_HIERARCHY_INDEX, type PropertyHierarchyIndex } from '../../../utils/propertyHierarchy';
+import {
+    buildPropertyHierarchyIndex,
+    EMPTY_PROPERTY_HIERARCHY_INDEX,
+    propertyNodeHasChildren,
+    type PropertyHierarchyIndex
+} from '../../../utils/propertyHierarchy';
 import { resolvePropertyNote } from '../../../utils/propertyNoteLookup';
 import {
     flattenFolderTree,
@@ -94,7 +99,13 @@ export interface NavigationPaneTreeSectionsResult {
     propertyCollectionCount: NoteCountInfo | undefined;
     /** Additive nesting over property values for keys marked Hierarchical. Empty when none are. */
     propertyHierarchyIndex: PropertyHierarchyIndex;
-    /** First placement key emitted for each property value node id, for Task 5's per-placement reveal. */
+    /**
+     * First placement key emitted for each property value node id. Reveal does not read this: the map
+     * only ever holds nodes whose rows are already on screen, because the flattener recurses into a
+     * placement's children only when that placement is expanded, so it can never say what to expand.
+     * resolvePropertyRevealChain walks the index instead. Kept because it describes what was rendered,
+     * which is what a scroll or highlight lookup needs.
+     */
     firstPlacementByNodeId: Map<string, string>;
 }
 
@@ -955,7 +966,7 @@ export function useNavigationPaneTreeSections({
                     comparator: createChildComparator(keyNode)
                 });
                 flattened.items.forEach(item => {
-                    const hasChildren = (propertyHierarchyIndex.childIds.get(item.data.id)?.length ?? 0) > 0;
+                    const hasChildren = propertyNodeHasChildren(item.data, propertyHierarchyIndex);
                     items.push({ ...item, hasChildren });
                 });
                 flattened.firstPlacementByNodeId.forEach((placementKey, nodeId) => {

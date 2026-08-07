@@ -28,6 +28,8 @@ import {
 } from './propertyTree';
 import type { PropertyTreeNode } from '../types/storage';
 import { expandNavigationTreeItems } from './navigationExpansion';
+import { getPropertyPlacementAncestorKeys } from './treeFlattener';
+import { resolvePropertyRevealChain, type PropertyHierarchyIndex } from './propertyHierarchy';
 
 type Dispatch<T> = (action: T) => void;
 
@@ -60,6 +62,14 @@ export interface PropertyNavigationEnvironment {
     selectionDispatch: Dispatch<SelectionAction>;
     activatePane: (target: ContentPane) => void;
     resolveSelectionNodeId?: (nodeId: PropertySelectionNodeId) => PropertySelectionNodeId;
+    /**
+     * Additive nesting over the value nodes of keys marked Hierarchical, surfaced on the tree
+     * sections result. Lets reveal expand every ancestor placement of a nested value, not just its
+     * key. Optional because not every caller of navigateToProperty has a navigation pane render to
+     * read it from; omitting it just means a hierarchical value reveals no deeper than its key, same
+     * as before the index existed.
+     */
+    propertyHierarchyIndex?: PropertyHierarchyIndex;
     requestScroll?: (nodeId: PropertySelectionNodeId, options: { align: 'auto'; itemType: typeof ItemType.PROPERTY }) => void;
 }
 
@@ -140,15 +150,31 @@ export function navigateToProperty(
         resolvedNodeId !== PROPERTIES_ROOT_VIRTUAL_FOLDER_ID
             ? getPropertyKeyNodeIdFromNodeId(resolvedNodeId)
             : PROPERTIES_ROOT_VIRTUAL_FOLDER_ID;
-    const keyNeedsExpansion =
-        keyNodeId &&
-        keyNodeId !== PROPERTIES_ROOT_VIRTUAL_FOLDER_ID &&
-        keyNodeId !== resolvedNodeId &&
-        !env.expandedProperties.has(keyNodeId);
-    if (keyNeedsExpansion) {
+    const hasOwnKeyNode = Boolean(keyNodeId) && keyNodeId !== PROPERTIES_ROOT_VIRTUAL_FOLDER_ID && keyNodeId !== resolvedNodeId;
+
+    // A hierarchical value nested under other values needs every ancestor placement expanded too, not
+    // just the key, or the flattener never recurses far enough to emit the target's own row. A
+    // non-hierarchical value, a key node, or the root sentinel all resolve to no chain or a
+    // single-element one here, which yields no ancestor keys and preserves today's key-only expansion
+    // for those exactly.
+    const revealChain =
+        env.propertyHierarchyIndex && resolvedNodeId !== PROPERTIES_ROOT_VIRTUAL_FOLDER_ID
+            ? resolvePropertyRevealChain(env.propertyHierarchyIndex, resolvedNodeId)
+            : null;
+    const ancestorPlacementKeys = revealChain ? getPropertyPlacementAncestorKeys(revealChain) : [];
+
+    // The full list, always including the key node, then dispatched only when something in it is not
+    // already expanded - the same shape navigateToTag uses. Both halves matter: with
+    // collapseOtherBranchesOnExpand on this becomes SET_EXPANDED_PROPERTIES, which replaces the whole
+    // expanded set, so omitting the already-expanded key would collapse the entire property; and
+    // dispatching when nothing needs expanding still allocates a new Set, which is a state change that
+    // can re-run the effects revealProperty is a dependency of, writing localStorage every pass.
+    const idsToExpand = [...(hasOwnKeyNode && keyNodeId ? [keyNodeId] : []), ...ancestorPlacementKeys];
+    const needsExpansion = idsToExpand.some(id => !env.expandedProperties.has(id));
+    if (needsExpansion) {
         expandNavigationTreeItems({
             type: 'property',
-            ids: [keyNodeId],
+            ids: idsToExpand,
             collapseOtherBranches: Boolean(env.collapseOtherBranchesOnExpand),
             dispatch: env.expansionDispatch
         });

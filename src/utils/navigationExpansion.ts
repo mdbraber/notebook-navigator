@@ -35,6 +35,15 @@ export interface NavigationExpansionTarget {
     id: string;
     hasChildren: boolean;
     ancestorIds?: readonly string[];
+    /**
+     * Set to false when branch replacement cannot express this target. ancestorIds is a list of ids in
+     * the same namespace as id, and a nested hierarchical property placement has ancestors that are
+     * placement keys rather than node ids, so replacing the expanded set would drop the intermediate
+     * placements the row depends on and collapse the row that was just expanded. Such a target takes
+     * the plain toggle path instead. Per-placement collapse-others is Task 6; this mirrors the
+     * placementKey === nodeId guard in handlePropertyToggle. Defaults to allowed.
+     */
+    supportsBranchCollapse?: boolean;
 }
 
 type NavigationExpansionTreeType = Exclude<NavigationExpansionTarget['type'], 'virtual-folder'>;
@@ -155,7 +164,7 @@ export function toggleNavigationExpansionTarget(
         return false;
     }
 
-    if (options?.collapseOtherBranches && targetState.canExpand) {
+    if (options?.collapseOtherBranches && targetState.canExpand && target.supportsBranchCollapse !== false) {
         dispatch(buildBranchExpandAction(target));
     } else {
         dispatch(buildToggleAction(target));
@@ -238,12 +247,26 @@ export function getNavigationExpansionTargetForItem(
                 ancestorIds: getTagAncestorPaths(item.data.path)
             };
         case NavigationPaneItemType.PROPERTY_KEY:
-        case NavigationPaneItemType.PROPERTY_VALUE:
             return {
                 type: 'property',
                 id: item.data.id,
                 hasChildren: item.data.children.size > 0,
                 ancestorIds: getPropertyAncestorNodeIds(item.data.id)
+            };
+        case NavigationPaneItemType.PROPERTY_VALUE:
+            return {
+                type: 'property',
+                // The placement key, so this targets the row the user is on rather than every
+                // placement of the same value. Equal to the node id for a root placement or a
+                // non-hierarchical value, so those keep behaving exactly as they do today.
+                id: item.key,
+                // A hierarchical value node's own children map is always empty, because the property
+                // tree is never reparented, so the node alone cannot answer this. The item's flag
+                // comes from the hierarchy index; a flat value has no flag and falls back to the
+                // node's own children, which is the check this site always used.
+                hasChildren: item.hasChildren ?? item.data.children.size > 0,
+                ancestorIds: getPropertyAncestorNodeIds(item.data.id),
+                supportsBranchCollapse: item.key === item.data.id
             };
         case NavigationPaneItemType.VIRTUAL_FOLDER:
             if (typeof item.tagCollectionId !== 'string' && typeof item.propertyCollectionId !== 'string') {

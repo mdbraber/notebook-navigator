@@ -256,9 +256,9 @@ export function NavigationPaneTreeRow({
                     indentGuideLevels={indentGuideLevels}
                     isExpanded={isExpanded}
                     isSelected={isSelected}
-                    onToggle={() => tree.handlePropertyToggle(propertyNode.id)}
-                    onClick={event => tree.handlePropertyClick(propertyNode, event)}
-                    onNameClick={event => tree.handlePropertyNameClick(propertyNode, event)}
+                    onToggle={() => tree.handlePropertyToggle(item.key, propertyNode.id)}
+                    onClick={event => tree.handlePropertyClick(propertyNode, item.key, event)}
+                    onNameClick={event => tree.handlePropertyNameClick(propertyNode, item.key, event)}
                     onNameMouseDown={event => tree.handlePropertyNameMouseDown(propertyNode, event)}
                     onToggleAllSiblings={() => tree.handlePropertyToggleAllSiblings(propertyNode)}
                     hasChildren={hasChildren}

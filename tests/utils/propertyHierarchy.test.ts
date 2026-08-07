@@ -3,7 +3,8 @@ import type { PropertyTreeNode } from '../../src/types/storage';
 import {
     buildPropertyHierarchyIndex,
     createPropertyNoteCountInfo,
-    EMPTY_PROPERTY_HIERARCHY_INDEX
+    EMPTY_PROPERTY_HIERARCHY_INDEX,
+    resolvePropertyRevealChain
 } from '../../src/utils/propertyHierarchy';
 
 /**
@@ -169,6 +170,87 @@ describe('buildPropertyHierarchyIndex', () => {
         });
 
         expect(index.subtreeCount.get(id('topics', 'A'))).toBe(4);
+    });
+
+    it('records the parents of every value, empty for a root', () => {
+        const tree = createTree('categories', [
+            { value: 'Areas', notes: ['Clients.md'] },
+            { value: 'Categories', notes: ['Clients.md'] },
+            { value: 'Clients', notes: ['Acme.md'] }
+        ]);
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set(['categories']),
+            resolveValueNotePath: resolveByName
+        });
+
+        expect(index.parentIds.get(id('categories', 'Areas'))).toEqual([]);
+        expect(index.parentIds.get(id('categories', 'Clients'))).toEqual([id('categories', 'Areas'), id('categories', 'Categories')]);
+    });
+});
+
+describe('resolvePropertyRevealChain', () => {
+    it('resolves a root-to-target chain with nothing expanded', () => {
+        // Work <- Clients <- Datawerkplaats. No expansion state is involved at all, which is the whole
+        // point: the flattener's firstPlacementByNodeId only ever holds nodes whose rows are already
+        // visible, so it can never tell reveal which ancestors to expand.
+        const tree = createTree('projects', [
+            { value: 'Work', notes: ['Clients.md'] },
+            { value: 'Clients', notes: ['Datawerkplaats.md'] },
+            { value: 'Datawerkplaats', notes: ['note.md'] }
+        ]);
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set(['projects']),
+            resolveValueNotePath: resolveByName
+        });
+
+        expect(resolvePropertyRevealChain(index, id('projects', 'Datawerkplaats'))).toEqual([
+            id('projects', 'Work'),
+            id('projects', 'Clients'),
+            id('projects', 'Datawerkplaats')
+        ]);
+    });
+
+    it('returns a single element chain for a root, which needs no ancestor expanded', () => {
+        const tree = createTree('projects', [{ value: 'Fiddle', notes: ['note.md'] }]);
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set(['projects']),
+            resolveValueNotePath: resolveByName
+        });
+
+        expect(resolvePropertyRevealChain(index, id('projects', 'Fiddle'))).toEqual([id('projects', 'Fiddle')]);
+    });
+
+    it('returns null for a node the index does not know, such as a non-hierarchical value', () => {
+        const tree = createTree('status', [{ value: 'Open', notes: ['note.md'] }]);
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set(),
+            resolveValueNotePath: resolveByName
+        });
+
+        expect(resolvePropertyRevealChain(index, id('status', 'Open'))).toBeNull();
+        expect(resolvePropertyRevealChain(EMPTY_PROPERTY_HIERARCHY_INDEX, id('status', 'Open'))).toBeNull();
+    });
+
+    it('terminates on a cycle instead of looping', () => {
+        // A.md carries [[B]] and B.md carries [[A]], so each is the other's parent. Both are promoted
+        // to roots by the index, so stopping at the node already in the chain leaves a chain whose head
+        // is a row that actually exists.
+        const tree = createTree('topics', [
+            { value: 'A', notes: ['B.md'] },
+            { value: 'B', notes: ['A.md'] }
+        ]);
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set(['topics']),
+            resolveValueNotePath: resolveByName
+        });
+
+        expect(resolvePropertyRevealChain(index, id('topics', 'A'))).toEqual([id('topics', 'B'), id('topics', 'A')]);
+        expect(index.rootIds.get('key:topics')).toContain(id('topics', 'B'));
     });
 });
 

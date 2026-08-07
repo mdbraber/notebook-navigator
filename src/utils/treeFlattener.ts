@@ -449,7 +449,7 @@ export function flattenTagTree(
  * Joins the value node ids of a placement's chain. A node id can contain both `:` and `/`, so the
  * separator is a NUL, which cannot occur in one. Same reason listItems.ts uses it for bucket keys.
  */
-const PROPERTY_PLACEMENT_SEPARATOR = String.fromCharCode(0);
+export const PROPERTY_PLACEMENT_SEPARATOR = String.fromCharCode(0);
 
 /**
  * Identity of one placement of a value node in a hierarchical property tree. Tags key identity by
@@ -459,6 +459,17 @@ const PROPERTY_PLACEMENT_SEPARATOR = String.fromCharCode(0);
  */
 export function buildPropertyPlacementKey(chain: readonly string[]): string {
     return chain.join(PROPERTY_PLACEMENT_SEPARATOR);
+}
+
+/**
+ * Placement keys of every ancestor of a chain, in root-to-parent order, excluding the chain's own
+ * target. Auto-reveal expands these so every level between the key and the target actually renders:
+ * without them the flattener never recurses far enough to emit the target's own row. A single-element
+ * chain - a root placement, or any non-hierarchical value - yields nothing, which reproduces today's
+ * key-only expansion for those cases exactly.
+ */
+export function getPropertyPlacementAncestorKeys(chain: readonly string[]): string[] {
+    return chain.slice(0, -1).map((_, index) => buildPropertyPlacementKey(chain.slice(0, index + 1)));
 }
 
 export interface FlattenPropertyHierarchyResult {

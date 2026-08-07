@@ -477,6 +477,7 @@ export const NavigationPane = React.memo(
             propertyTreeService,
             tagTree: props.navigationTreeSections.renderTagTree,
             propertyTree: props.navigationTreeSections.renderPropertyTree,
+            propertyHierarchyIndex: props.navigationTreeSections.propertyHierarchyIndex,
             tagsVirtualFolderHasChildren,
             setShortcutsExpanded: shortcuts.setShortcutsExpanded,
             setRecentNotesExpanded: shortcuts.setRecentNotesExpanded,
@@ -947,7 +948,8 @@ export const NavigationPane = React.memo(
             virtualizer: rowVirtualizer,
             containerRef: props.rootContainerRef,
             pathToIndex: keyboardPathToIndex,
-            onStartRename: handleStartInlineRename
+            onStartRename: handleStartInlineRename,
+            propertyHierarchyIndex: props.navigationTreeSections.propertyHierarchyIndex
         });
 
         const navigationPaneStyle = useMemo<CSSPropertiesWithVars>(() => {
@@ -1092,8 +1094,13 @@ export const NavigationPane = React.memo(
                         isExpanded = expansionState.expandedTags.has(item.data.path);
                         break;
                     case NavigationPaneItemType.PROPERTY_KEY:
-                    case NavigationPaneItemType.PROPERTY_VALUE:
                         isExpanded = expansionState.expandedProperties.has(item.data.id);
+                        break;
+                    case NavigationPaneItemType.PROPERTY_VALUE:
+                        // item.key is the placement key (chain-joined for a nested hierarchical
+                        // placement, equal to the node id for a root placement or a flat value), so
+                        // this is what must be tested to know whether THIS placement is expanded.
+                        isExpanded = expansionState.expandedProperties.has(item.key);
                         break;
                     case NavigationPaneItemType.SHORTCUT_FOLDER:
                     case NavigationPaneItemType.SHORTCUT_NOTE:

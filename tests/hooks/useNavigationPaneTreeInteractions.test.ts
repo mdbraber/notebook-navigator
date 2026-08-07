@@ -30,6 +30,8 @@ import {
     type NavigationPaneTreeInteractionsResult
 } from '../../src/hooks/navigationPane/useNavigationPaneTreeInteractions';
 import { buildPropertyKeyNodeId, buildPropertyValueNodeId } from '../../src/utils/propertyTree';
+import { buildPropertyPlacementKey } from '../../src/utils/treeFlattener';
+import { EMPTY_PROPERTY_HIERARCHY_INDEX, type PropertyHierarchyIndex } from '../../src/utils/propertyHierarchy';
 import { createTestTFile } from '../utils/createTestTFile';
 
 function createPropertyValueNode(
@@ -170,6 +172,7 @@ describe('useNavigationPaneTreeInteractions', () => {
                 propertyTreeService: propertyTreeProvider,
                 tagTree: new Map(),
                 propertyTree,
+                propertyHierarchyIndex: EMPTY_PROPERTY_HIERARCHY_INDEX,
                 tagsVirtualFolderHasChildren: false,
                 setShortcutsExpanded: vi.fn(),
                 setRecentNotesExpanded: vi.fn(),
@@ -234,6 +237,7 @@ describe('useNavigationPaneTreeInteractions', () => {
                 propertyTreeService: null,
                 tagTree: new Map(),
                 propertyTree: new Map(),
+                propertyHierarchyIndex: EMPTY_PROPERTY_HIERARCHY_INDEX,
                 tagsVirtualFolderHasChildren: false,
                 setShortcutsExpanded: vi.fn(),
                 setRecentNotesExpanded: vi.fn(),
@@ -294,6 +298,7 @@ describe('useNavigationPaneTreeInteractions', () => {
                 propertyTreeService: null,
                 tagTree: new Map(),
                 propertyTree: new Map(),
+                propertyHierarchyIndex: EMPTY_PROPERTY_HIERARCHY_INDEX,
                 tagsVirtualFolderHasChildren: false,
                 setShortcutsExpanded: vi.fn(),
                 setRecentNotesExpanded: vi.fn(),
@@ -353,6 +358,7 @@ describe('useNavigationPaneTreeInteractions', () => {
                 propertyTreeService: null,
                 tagTree: new Map(),
                 propertyTree: new Map(),
+                propertyHierarchyIndex: EMPTY_PROPERTY_HIERARCHY_INDEX,
                 tagsVirtualFolderHasChildren: false,
                 setShortcutsExpanded: vi.fn(),
                 setRecentNotesExpanded: vi.fn(),
@@ -406,6 +412,7 @@ describe('useNavigationPaneTreeInteractions', () => {
                 propertyTreeService: null,
                 tagTree: new Map(),
                 propertyTree: new Map(),
+                propertyHierarchyIndex: EMPTY_PROPERTY_HIERARCHY_INDEX,
                 tagsVirtualFolderHasChildren: false,
                 setShortcutsExpanded: vi.fn(),
                 setRecentNotesExpanded: vi.fn(),
@@ -485,6 +492,7 @@ describe('property note name clicks', () => {
                 propertyTreeService: propertyTreeProvider,
                 tagTree: new Map(),
                 propertyTree,
+                propertyHierarchyIndex: EMPTY_PROPERTY_HIERARCHY_INDEX,
                 tagsVirtualFolderHasChildren: false,
                 setShortcutsExpanded: vi.fn(),
                 setRecentNotesExpanded: vi.fn(),
@@ -503,8 +511,9 @@ describe('property note name clicks', () => {
         const result = captured as NavigationPaneTreeInteractionsResult;
 
         return {
-            nameClick: (event?: React.MouseEvent) => result.handlePropertyNameClick(valueNode, event),
-            rowClick: () => result.handlePropertyClick(valueNode),
+            // A flat value's placement key is its node id, which is what the row passes here.
+            nameClick: (event?: React.MouseEvent) => result.handlePropertyNameClick(valueNode, valueNode.id, event),
+            rowClick: () => result.handlePropertyClick(valueNode, valueNode.id),
             nameMouseDown: (button = 1) =>
                 result.handlePropertyNameMouseDown(valueNode, {
                     button,
@@ -733,5 +742,106 @@ describe('property note name clicks', () => {
         await Promise.resolve();
         expect(openFile).not.toHaveBeenCalled();
         expect(selectionDispatch).not.toHaveBeenCalled();
+    });
+});
+
+describe('handlePropertyToggle placement keys', () => {
+    function renderInteractions(params: {
+        propertyTree: Map<string, PropertyTreeNode>;
+        propertyHierarchyIndex?: PropertyHierarchyIndex;
+        collapseOtherBranchesOnExpand?: boolean;
+        expansionDispatch: ReturnType<typeof vi.fn>;
+    }) {
+        let captured: NavigationPaneTreeInteractionsResult | null = null;
+
+        function Harness() {
+            captured = useNavigationPaneTreeInteractions({
+                app: new App(),
+                commandQueue: null,
+                settings: {
+                    ...DEFAULT_SETTINGS,
+                    collapseOtherBranchesOnExpand: params.collapseOtherBranchesOnExpand ?? false
+                },
+                uiState: { singlePane: false },
+                expansionState: {
+                    expandedFolders: new Set(),
+                    expandedTags: new Set(),
+                    expandedProperties: new Set(),
+                    expandedVirtualFolders: new Set()
+                },
+                expansionDispatch: params.expansionDispatch,
+                selectionState: createSelectionState(),
+                selectionDispatch: vi.fn(),
+                uiDispatch: vi.fn(),
+                propertyTreeService: null,
+                tagTree: new Map(),
+                propertyTree: params.propertyTree,
+                propertyHierarchyIndex: params.propertyHierarchyIndex ?? EMPTY_PROPERTY_HIERARCHY_INDEX,
+                tagsVirtualFolderHasChildren: false,
+                setShortcutsExpanded: vi.fn(),
+                setRecentNotesExpanded: vi.fn(),
+                clearActiveShortcut: vi.fn(),
+                openFolderNoteInRightSidebar: vi.fn(),
+                onModifySearchWithTag: vi.fn(),
+                onModifySearchWithProperty: vi.fn()
+            });
+            return null;
+        }
+
+        renderToStaticMarkup(React.createElement(Harness));
+        if (!captured) {
+            throw new Error('Expected hook result');
+        }
+        return captured as NavigationPaneTreeInteractionsResult;
+    }
+
+    it('dispatches the placement key, not the node id, for a nested placement', () => {
+        // "Clients" nested under "Work": the node id alone would collide with every other
+        // placement of the same value, so the chain-joined placement key is what must travel.
+        const clientsNode = createPropertyValueNode('projects', 'clients', 'Clients', ['notes/a.md']);
+        const workNode = createPropertyValueNode('projects', 'work', 'Work', [], undefined);
+        const keyNode = createPropertyKeyNode('projects', 'Projects', [], [workNode, clientsNode]);
+        const propertyTree = new Map<string, PropertyTreeNode>([[keyNode.key, keyNode]]);
+        const placementKey = buildPropertyPlacementKey([workNode.id, clientsNode.id]);
+        const expansionDispatch = vi.fn();
+
+        const result = renderInteractions({ propertyTree, expansionDispatch });
+
+        result.handlePropertyToggle(placementKey, clientsNode.id);
+
+        expect(expansionDispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: placementKey });
+    });
+
+    it('falls through to the plain dispatch when collapseOtherBranchesOnExpand is on but the placement key differs from the node id', () => {
+        // Per-placement collapse-others is Task 6. Until then, node-id reasoning only applies when
+        // the placement key equals the node id, so a nested placement must skip that branch entirely.
+        const clientsNode = createPropertyValueNode('projects', 'clients', 'Clients', ['notes/a.md']);
+        const workNode = createPropertyValueNode('projects', 'work', 'Work', [], undefined);
+        const keyNode = createPropertyKeyNode('projects', 'Projects', [], [workNode, clientsNode]);
+        const propertyTree = new Map<string, PropertyTreeNode>([[keyNode.key, keyNode]]);
+        const placementKey = buildPropertyPlacementKey([workNode.id, clientsNode.id]);
+        const expansionDispatch = vi.fn();
+
+        const result = renderInteractions({ propertyTree, expansionDispatch, collapseOtherBranchesOnExpand: true });
+
+        result.handlePropertyToggle(placementKey, clientsNode.id);
+
+        expect(expansionDispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: placementKey });
+        expect(expansionDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_EXPANDED_PROPERTIES' }));
+    });
+
+    it('still takes the collapse-others branch for a root placement, where the placement key equals the node id', () => {
+        const workNode = createPropertyValueNode('projects', 'work', 'Work', ['notes/a.md']);
+        const keyNode = createPropertyKeyNode('projects', 'Projects', [], [workNode]);
+        const propertyTree = new Map<string, PropertyTreeNode>([[keyNode.key, keyNode]]);
+        const expansionDispatch = vi.fn();
+
+        const result = renderInteractions({ propertyTree, expansionDispatch, collapseOtherBranchesOnExpand: true });
+
+        // A root placement's chain is just its own node id (buildPropertyPlacementKey([id]) === id),
+        // so the caller passes the node id for both arguments, same as NavigationPaneTreeRow does.
+        result.handlePropertyToggle(keyNode.id, keyNode.id);
+
+        expect(expansionDispatch).toHaveBeenCalledWith({ type: 'SET_EXPANDED_PROPERTIES', properties: new Set([keyNode.id]) });
     });
 });

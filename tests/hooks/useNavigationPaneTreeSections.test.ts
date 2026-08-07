@@ -28,13 +28,26 @@ import type { TagTreeNode, PropertyTreeNode } from '../../src/types/storage';
 import { createHiddenTagVisibility } from '../../src/utils/tagPrefixMatcher';
 import { buildPropertyKeyNodeId, buildPropertyValueNodeId } from '../../src/utils/propertyTree';
 import { buildPropertyPlacementKey } from '../../src/utils/treeFlattener';
-import type { PropertyValueTreeItem } from '../../src/types/virtualization';
+import type { CombinedNavigationItem, PropertyValueTreeItem } from '../../src/types/virtualization';
 import type { NavigationPaneSourceState } from '../../src/hooks/navigationPane/data/useNavigationPaneSourceState';
 import {
     useNavigationPaneTreeSections,
     type NavigationPaneTreeSectionsResult
 } from '../../src/hooks/navigationPane/data/useNavigationPaneTreeSections';
 import { createTestTFile } from '../utils/createTestTFile';
+
+/**
+ * [type, key, level] for each item, for asserting a whole rendered property section at once. Narrows on
+ * item.type first because CombinedNavigationItem includes members with no level, such as RootSpacerItem.
+ */
+function describePropertyItems(items: CombinedNavigationItem[]): [string, string, number][] {
+    return items.map(item => {
+        if (item.type !== NavigationPaneItemType.PROPERTY_KEY && item.type !== NavigationPaneItemType.PROPERTY_VALUE) {
+            throw new Error(`Expected a property item, received ${item.type}`);
+        }
+        return [item.type, item.key, item.level];
+    });
+}
 
 const dbFileDataByPath = new Map<string, { tags: string[] | null; properties: PropertyItem[] | null }>();
 
@@ -500,5 +513,194 @@ describe('useNavigationPaneTreeSections', () => {
 
         // Must reflect the scoped tree's counts (2), not the larger global tree passed above (3).
         expect(result.propertyHierarchyIndex.subtreeCount.get(fiddleId)).toBe(2);
+    });
+
+    it('expanding a level-2 placement emits its level-3 children', () => {
+        dbFileDataByPath.clear();
+
+        // Fiddle (root) <- Building software (level 2, carries Projects: Fiddle) <- Bulwark
+        // (level 3, carries Projects: Building software). uses-bulwark.md is what makes "Bulwark" a
+        // value node of projects at all: it is the note that carries Projects: [[Bulwark]].
+        const buildingSoftwareFile = createTestTFile('notes/project/Building software.md');
+        const bulwarkFile = createTestTFile('notes/project/Bulwark.md');
+        const usesBulwarkFile = createTestTFile('notes/project/uses-bulwark.md');
+        dbFileDataByPath.set(buildingSoftwareFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Fiddle]]', valueKind: 'string' }]
+        });
+        dbFileDataByPath.set(bulwarkFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Building software]]', valueKind: 'string' }]
+        });
+        dbFileDataByPath.set(usesBulwarkFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Bulwark]]', valueKind: 'string' }]
+        });
+
+        const folder = createFolder('notes/project', [buildingSoftwareFile, bulwarkFile, usesBulwarkFile]);
+        Reflect.set(buildingSoftwareFile, 'parent', folder);
+        Reflect.set(bulwarkFile, 'parent', folder);
+        Reflect.set(usesBulwarkFile, 'parent', folder);
+
+        const app = new App();
+        app.metadataCache.getFirstLinkpathDest = (linkpath: string) =>
+            linkpath === 'Building software' ? buildingSoftwareFile : linkpath === 'Bulwark' ? bulwarkFile : null;
+
+        const fiddleId = buildPropertyValueNodeId('projects', 'fiddle');
+        const buildingSoftwareId = buildPropertyValueNodeId('projects', 'building software');
+        const bulwarkId = buildPropertyValueNodeId('projects', 'bulwark');
+        const buildingSoftwarePlacementKey = buildPropertyPlacementKey([fiddleId, buildingSoftwareId]);
+
+        let captured: NavigationPaneTreeSectionsResult | null = null;
+
+        function Harness() {
+            captured = useNavigationPaneTreeSections({
+                app,
+                settings: createSettings({
+                    showTags: false,
+                    showProperties: true,
+                    showAllPropertiesFolder: false,
+                    scopeTagsToCurrentContext: false,
+                    scopePropertiesToCurrentContext: true,
+                    propertyHierarchicalKeys: { projects: true }
+                }),
+                expansionState: {
+                    expandedFolders: new Set(),
+                    expandedTags: new Set(),
+                    // The key, the root placement (level 1) and the level-2 placement all need to be
+                    // expanded for the flattener to recurse far enough to reach level 3.
+                    expandedProperties: new Set([buildPropertyKeyNodeId('projects'), fiddleId, buildingSoftwarePlacementKey]),
+                    expandedVirtualFolders: new Set()
+                },
+                showHiddenItems: false,
+                includeDescendantNotes: true,
+                sourceState: createSourceState({
+                    propertyTree: new Map(),
+                    visiblePropertyNavigationKeySet: new Set(['projects'])
+                }),
+                selectionScope: {
+                    selectionType: ItemType.FOLDER,
+                    selectedFolder: folder
+                },
+                tagTreeService: null,
+                propertyTreeService: null
+            });
+            return null;
+        }
+
+        renderToStaticMarkup(React.createElement(Harness));
+
+        expect(captured).not.toBeNull();
+        if (!captured) {
+            throw new Error('Expected hook result');
+        }
+        const result = captured as NavigationPaneTreeSectionsResult;
+
+        expect(describePropertyItems(result.propertyItems)).toEqual([
+            [NavigationPaneItemType.PROPERTY_KEY, buildPropertyKeyNodeId('projects'), 0],
+            [NavigationPaneItemType.PROPERTY_VALUE, fiddleId, 1],
+            [NavigationPaneItemType.PROPERTY_VALUE, buildingSoftwarePlacementKey, 2],
+            [NavigationPaneItemType.PROPERTY_VALUE, buildPropertyPlacementKey([fiddleId, buildingSoftwareId, bulwarkId]), 3]
+        ]);
+        expect(result.firstPlacementByNodeId.get(bulwarkId)).toBe(buildPropertyPlacementKey([fiddleId, buildingSoftwareId, bulwarkId]));
+    });
+
+    it('expands one placement of a multi-parent value without expanding the other', () => {
+        dbFileDataByPath.clear();
+
+        // Clients.md carries categories: [[Areas]], [[Categories]], giving Clients two parents -
+        // the same shape as the real vault (Clients under both Areas and Categories). Acme.md
+        // carries categories: [[Clients]], and uses-acme.md is what makes "Acme" a value node of
+        // categories at all: it is the note that carries categories: [[Acme]].
+        const clientsFile = createTestTFile('notes/project/Clients.md');
+        const acmeFile = createTestTFile('notes/project/Acme.md');
+        const usesAcmeFile = createTestTFile('notes/project/uses-acme.md');
+        dbFileDataByPath.set(clientsFile.path, {
+            tags: null,
+            properties: [
+                { fieldKey: 'Categories', value: '[[Areas]]', valueKind: 'string' },
+                { fieldKey: 'Categories', value: '[[Categories]]', valueKind: 'string' }
+            ]
+        });
+        dbFileDataByPath.set(acmeFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Categories', value: '[[Clients]]', valueKind: 'string' }]
+        });
+        dbFileDataByPath.set(usesAcmeFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Categories', value: '[[Acme]]', valueKind: 'string' }]
+        });
+
+        const folder = createFolder('notes/project', [clientsFile, acmeFile, usesAcmeFile]);
+        Reflect.set(clientsFile, 'parent', folder);
+        Reflect.set(acmeFile, 'parent', folder);
+        Reflect.set(usesAcmeFile, 'parent', folder);
+
+        const app = new App();
+        app.metadataCache.getFirstLinkpathDest = (linkpath: string) =>
+            linkpath === 'Clients' ? clientsFile : linkpath === 'Acme' ? acmeFile : null;
+
+        const areasId = buildPropertyValueNodeId('categories', 'areas');
+        const categoriesId = buildPropertyValueNodeId('categories', 'categories');
+        const clientsId = buildPropertyValueNodeId('categories', 'clients');
+        const acmeId = buildPropertyValueNodeId('categories', 'acme');
+        const clientsUnderAreas = buildPropertyPlacementKey([areasId, clientsId]);
+        const clientsUnderCategories = buildPropertyPlacementKey([categoriesId, clientsId]);
+
+        let captured: NavigationPaneTreeSectionsResult | null = null;
+
+        function Harness() {
+            captured = useNavigationPaneTreeSections({
+                app,
+                settings: createSettings({
+                    showTags: false,
+                    showProperties: true,
+                    showAllPropertiesFolder: false,
+                    scopeTagsToCurrentContext: false,
+                    scopePropertiesToCurrentContext: true,
+                    propertyHierarchicalKeys: { categories: true }
+                }),
+                expansionState: {
+                    expandedFolders: new Set(),
+                    expandedTags: new Set(),
+                    // Both root placements (Areas, Categories) are expanded, but only the Areas
+                    // placement of Clients is - the Categories placement of Clients must stay collapsed.
+                    expandedProperties: new Set([buildPropertyKeyNodeId('categories'), areasId, categoriesId, clientsUnderAreas]),
+                    expandedVirtualFolders: new Set()
+                },
+                showHiddenItems: false,
+                includeDescendantNotes: true,
+                sourceState: createSourceState({
+                    propertyTree: new Map(),
+                    visiblePropertyNavigationKeySet: new Set(['categories'])
+                }),
+                selectionScope: {
+                    selectionType: ItemType.FOLDER,
+                    selectedFolder: folder
+                },
+                tagTreeService: null,
+                propertyTreeService: null
+            });
+            return null;
+        }
+
+        renderToStaticMarkup(React.createElement(Harness));
+
+        expect(captured).not.toBeNull();
+        if (!captured) {
+            throw new Error('Expected hook result');
+        }
+        const result = captured as NavigationPaneTreeSectionsResult;
+
+        // Clients appears under both Areas and Categories, but Acme (its only child) only renders
+        // under the Areas placement, whose placement key is the one that was expanded.
+        expect(describePropertyItems(result.propertyItems)).toEqual([
+            [NavigationPaneItemType.PROPERTY_KEY, buildPropertyKeyNodeId('categories'), 0],
+            [NavigationPaneItemType.PROPERTY_VALUE, areasId, 1],
+            [NavigationPaneItemType.PROPERTY_VALUE, clientsUnderAreas, 2],
+            [NavigationPaneItemType.PROPERTY_VALUE, buildPropertyPlacementKey([areasId, clientsId, acmeId]), 3],
+            [NavigationPaneItemType.PROPERTY_VALUE, categoriesId, 1],
+            [NavigationPaneItemType.PROPERTY_VALUE, clientsUnderCategories, 2]
+        ]);
     });
 });
