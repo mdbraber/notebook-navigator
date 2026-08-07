@@ -172,6 +172,10 @@ export function createListPaneSettingDefinitions(context: SettingsTabContext): S
                 name: strings.settings.items.showGroupHeaderItemCounts.name,
                 desc: strings.settings.items.showGroupHeaderItemCounts.desc
             }),
+            createToggleDefinition('inheritPropertyValueHeaderAppearance', {
+                name: strings.settings.items.inheritPropertyValueHeaderAppearance.name,
+                desc: strings.settings.items.inheritPropertyValueHeaderAppearance.desc
+            }),
             createRenderDefinition({
                 name: strings.settings.items.manualSortGroupHeaderProperty.name,
                 desc: strings.settings.items.manualSortGroupHeaderProperty.desc,
@@ -294,10 +298,6 @@ function createListAppearanceDefinitionGroup(context: SettingsTabContext): Setti
         createToggleDefinition('showSelectedNavigationPills', {
             name: strings.settings.items.showSelectedNavigationPills.name,
             desc: strings.settings.items.showSelectedNavigationPills.desc
-        }),
-        createToggleDefinition('inheritPropertyValueHeaderAppearance', {
-            name: strings.settings.items.inheritPropertyValueHeaderAppearance.name,
-            desc: strings.settings.items.inheritPropertyValueHeaderAppearance.desc
         })
     );
 

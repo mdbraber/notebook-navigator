@@ -545,9 +545,8 @@ function buildListItemsInternal(
         // Buckets match the extracted value parts element-wise and groups sort in the configured
         // direction: number-keyed groups first in numeric order, then text groups in natural string
         // order, following how Obsidian Bases groups by property. Files inside each group keep
-        // the active sort order. The bucket key joins parts with a separator that cannot appear in
-        // trimmed part values, so lists with different element boundaries such as ["a b", "c"] and
-        // ["a", "b c"] stay in separate groups.
+        // the active sort order. How the bucket key is formed depends on the per-value axis and is
+        // described where the buckets are built below.
         const propertyGroupingDirection = resolvePropertyGroupingDirection(groupingMode, sortOption);
         const propertyGroupingPerValue = getPropertyGroupingPerValue(groupingMode);
         const propertyGroups = new Map<string, { label: string; numericValue: number | null; files: TFile[] }>();
@@ -643,11 +642,13 @@ function buildListItemsInternal(
             // already-unwrapped label. Building the id from group.label would then diverge from the id
             // the tree actually assigns to that value, and the appearance lookup would silently never
             // match.
-            const normalizedValuePath = normalizePropertyTreeValuePath(group.bucketKey);
-            const propertyNodeId =
-                propertyGroupingPerValue && normalizedValuePath
+            let propertyNodeId: string | null = null;
+            if (propertyGroupingPerValue) {
+                const normalizedValuePath = normalizePropertyTreeValuePath(group.bucketKey);
+                propertyNodeId = normalizedValuePath
                     ? buildPropertyValueNodeId(normalizePropertyTreeKey(propertyGroupingKey), normalizedValuePath)
                     : null;
+            }
             renderPropertyGroup(group.label, group.files, `property-value:${group.bucketKey}`, propertyNodeId);
         });
 

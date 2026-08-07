@@ -1223,8 +1223,8 @@ export const STRINGS_EN = {
                 desc: 'When disabled, pills matching the current navigation selection are hidden (e.g. the "recipes" tag pill is hidden when browsing the "recipes" tag). Enable to keep all pills visible.'
             },
             inheritPropertyValueHeaderAppearance: {
-                name: 'Colour per-value group headers',
-                desc: "When grouping by each value of a property, group headers take that value's icon and colour from the navigation tree."
+                name: 'Color per-value group headers',
+                desc: "When grouping by each value of a property, group headers take that value's icon and color from the navigation tree."
             },
             stickyGroupHeaders: {
                 name: 'Sticky group headers',
