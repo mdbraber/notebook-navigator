@@ -25,6 +25,7 @@ import {
     createPropertyGroupingOption,
     getPropertyGroupingKey,
     getPropertyGroupingOrder,
+    getPropertyGroupingPerValue,
     MANUAL_SORT_NEW_NOTE_PLACEMENT_OPTIONS,
     normalizeListNoteGroupingOption,
     PROPERTY_SORT_SECONDARY_OPTIONS
@@ -53,7 +54,8 @@ import {
 import {
     getAvailablePropertyGroupKeys,
     pruneUnavailablePropertyGroupingOverrides,
-    reconcileDefaultNoteGrouping
+    reconcileDefaultNoteGrouping,
+    withPropertyGroupingOrder
 } from '../../utils/listGrouping';
 import { getManualSortGroupHeaderPropertyKey, isValidManualSortPropertyKey, normalizeManualSortPropertyKey } from '../../utils/manualSort';
 import { formatPixelSliderValue, renderSliderSetting } from './SliderSetting';
@@ -169,6 +171,10 @@ export function createListPaneSettingDefinitions(context: SettingsTabContext): S
             createToggleDefinition('showGroupHeaderItemCounts', {
                 name: strings.settings.items.showGroupHeaderItemCounts.name,
                 desc: strings.settings.items.showGroupHeaderItemCounts.desc
+            }),
+            createToggleDefinition('inheritPropertyValueHeaderAppearance', {
+                name: strings.settings.items.inheritPropertyValueHeaderAppearance.name,
+                desc: strings.settings.items.inheritPropertyValueHeaderAppearance.desc
             }),
             createRenderDefinition({
                 name: strings.settings.items.manualSortGroupHeaderProperty.name,
@@ -480,8 +486,11 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                     availableKey => casefold(availableKey) === casefold(propertyKey)
                 );
                 // Reconciliation resets unavailable property groupings, so a missing entry only occurs
-                // transiently; display the stock default rather than an empty selection.
-                return matchedKey ? createPropertyGroupingOption(matchedKey, 'follow') : DEFAULT_SETTINGS.noteGrouping;
+                // transiently; display the stock default rather than an empty selection. The per-value
+                // flag carries over so a per-value grouping selects its own entry, not its plain sibling.
+                return matchedKey
+                    ? createPropertyGroupingOption(matchedKey, 'follow', getPropertyGroupingPerValue(grouping))
+                    : DEFAULT_SETTINGS.noteGrouping;
             };
 
             const rebuildOptions = (): void => {
@@ -502,8 +511,15 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                 groupsGroupEl.createEl('option', { value: 'folder', text: strings.settings.items.groupNotes.options.folder });
                 getAvailablePropertyGroupKeys(plugin.settings).forEach(propertyKey => {
                     groupsGroupEl.createEl('option', {
-                        value: createPropertyGroupingOption(propertyKey, 'follow'),
+                        // The plain entry; its per-value sibling is the entry created right below.
+                        value: createPropertyGroupingOption(propertyKey, 'follow', false),
                         text: getPropertyDropdownOptionLabel(propertyKey)
+                    });
+                    // Per-value sibling: splits the property's list values into one group each instead
+                    // of one group for the whole value list. Reuses the property label with a suffix.
+                    groupsGroupEl.createEl('option', {
+                        value: createPropertyGroupingOption(propertyKey, 'follow', true),
+                        text: strings.settings.items.groupNotes.perValueSuffix.replace('{key}', getPropertyDropdownOptionLabel(propertyKey))
                     });
                 });
                 dropdown.setValue(getSelectedValue());
@@ -515,12 +531,17 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                     return;
                 }
                 // Switching to another property keeps the current group order; coming from a base
-                // mode the order starts at follow-sort.
+                // mode the order starts at follow-sort. The per-value flag comes from the newly
+                // selected entry itself, since this dropdown is the only control that sets it.
                 const propertyKey = getPropertyGroupingKey(normalized);
                 const next =
                     propertyKey === null
                         ? normalized
-                        : createPropertyGroupingOption(propertyKey, getPropertyGroupingOrder(plugin.settings.noteGrouping) ?? 'follow');
+                        : createPropertyGroupingOption(
+                              propertyKey,
+                              getPropertyGroupingOrder(plugin.settings.noteGrouping) ?? 'follow',
+                              getPropertyGroupingPerValue(normalized)
+                          );
                 if (plugin.settings.noteGrouping === next) {
                     return;
                 }
@@ -558,13 +579,14 @@ export function renderNoteGroupingSetting(setting: Setting, context: SettingsTab
                 if (value !== 'follow' && value !== 'asc' && value !== 'desc') {
                     return;
                 }
-                const propertyKey = getPropertyGroupingKey(plugin.settings.noteGrouping);
-                // The control is hidden for base grouping modes, but the guard keeps a stale
-                // change event from rewriting a base mode into a property grouping.
-                if (propertyKey === null) {
+                // This dropdown only changes order; the property key and the per-value axis are set by
+                // the mode dropdown above and carry over unchanged. The control is hidden for base
+                // grouping modes, and a null result keeps a stale change event from rewriting a base
+                // mode into a property grouping.
+                const next = withPropertyGroupingOrder(plugin.settings.noteGrouping, value);
+                if (next === null) {
                     return;
                 }
-                const next = createPropertyGroupingOption(propertyKey, value);
                 if (plugin.settings.noteGrouping === next) {
                     return;
                 }

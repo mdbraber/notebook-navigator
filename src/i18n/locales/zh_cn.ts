@@ -1210,6 +1210,7 @@ export const STRINGS_ZH_CN = {
                     headers: '标题',
                     groups: '分组'
                 },
+                perValueSuffix: '{key}（每个值）',
                 options: {
                     custom: '自定义',
                     date: '日期',
@@ -1219,6 +1220,10 @@ export const STRINGS_ZH_CN = {
             showSelectedNavigationPills: {
                 name: '始终显示所有标签和属性标记',
                 desc: '禁用时，与当前导航选择匹配的标记会被隐藏（例如，浏览"食谱"标签时，"食谱"标签标记会被隐藏）。启用后所有标记始终可见。'
+            },
+            inheritPropertyValueHeaderAppearance: {
+                name: '为每个值的分组标题着色',
+                desc: '按属性的每个值分组时，分组标题会从导航树中获取该值的图标和颜色。'
             },
             stickyGroupHeaders: {
                 name: '固定分组标题',

@@ -159,6 +159,7 @@ const BOOLEAN_SETTING_KEYS = [
     'showParentFolderIcon',
     'showWordCountPercentage',
     'showSelectedNavigationPills',
+    'inheritPropertyValueHeaderAppearance',
     'stickyGroupHeaders',
     'showFolderGroupPaths',
     'showGroupHeaderItemCounts',

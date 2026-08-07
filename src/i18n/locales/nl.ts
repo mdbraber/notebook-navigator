@@ -1224,6 +1224,7 @@ export const STRINGS_NL = {
                     headers: 'Koppen',
                     groups: 'Groepen'
                 },
+                perValueSuffix: '{key} (elke waarde)',
                 options: {
                     custom: 'Aangepast',
                     date: 'Datum',
@@ -1233,6 +1234,10 @@ export const STRINGS_NL = {
             showSelectedNavigationPills: {
                 name: 'Tag- en eigenschapspillen altijd tonen',
                 desc: 'Wanneer uitgeschakeld, worden pillen die overeenkomen met de huidige navigatieselectie verborgen (bijv. de "recepten"-tagpil wordt verborgen bij het bladeren door de "recepten"-tag). Inschakelen om alle pillen zichtbaar te houden.'
+            },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Groepskoppen per waarde kleuren',
+                desc: 'Bij groeperen per waarde van een eigenschap nemen groepskoppen het pictogram en de kleur van die waarde over uit de boomstructuur.'
             },
             stickyGroupHeaders: {
                 name: 'Plakkerige groepskoppen',

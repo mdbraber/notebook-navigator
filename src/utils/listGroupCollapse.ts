@@ -17,7 +17,7 @@
  */
 
 import { ItemType, type NavigationItemType } from '../types';
-import { createPropertyGroupingOption, getPropertyGroupingKey } from '../settings/types';
+import { createPropertyGroupingOption, getPropertyGroupingKey, getPropertyGroupingPerValue } from '../settings/types';
 import type { ListNoteGroupingOption } from '../settings/types';
 import type { PropertySelectionNodeId } from './propertyTree';
 
@@ -86,9 +86,14 @@ export function buildListGroupCollapseKeyPrefix({
     }
 
     // Property grouping keys normalize to the ascending prefix so collapse state survives
-    // flipping or following the group order.
+    // flipping or following the group order. The per-value axis is kept, not normalized away: the
+    // joined and per-value forms partition the list into different groups, so they get separate
+    // collapse namespaces, matching how areListGroupingOptionsSameKind treats them as different kinds.
     const propertyGroupingKey = getPropertyGroupingKey(groupingMode);
-    const scopeGroupingMode = propertyGroupingKey !== null ? createPropertyGroupingOption(propertyGroupingKey, 'asc') : groupingMode;
+    const scopeGroupingMode =
+        propertyGroupingKey !== null
+            ? createPropertyGroupingOption(propertyGroupingKey, 'asc', getPropertyGroupingPerValue(groupingMode))
+            : groupingMode;
 
     return `scope=${scope};group=${encodeKeyPart(scopeGroupingMode)};id=`;
 }

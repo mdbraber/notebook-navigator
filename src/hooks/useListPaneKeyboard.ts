@@ -28,7 +28,7 @@
  * - Page navigation
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { TFile, FileView } from 'obsidian';
 import { Virtualizer } from '@tanstack/react-virtual';
 import { useFileSelection, useNavigationSelection, useSelectionDispatch, resolvePrimarySelectedFile } from '../context/SelectionContext';
@@ -39,7 +39,8 @@ import { useUIDispatch } from '../context/UIStateContext';
 import { getSupportedLeaves, ListPaneItemType } from '../types';
 import type { ListPaneItem } from '../types/virtualization';
 import { deleteSelectedFiles } from '../utils/deleteOperations';
-import { getFilesInRange, mergeFilesIntoSelection } from '../utils/selectionUtils';
+import { buildFileIndexToListIndexMap } from './listPaneData/listItems';
+import { getFilesInRange, mergeFilesIntoSelection, resolveRowCursorFileIndex } from '../utils/selectionUtils';
 import { useKeyboardNavigation, KeyboardNavigationHelpers } from './useKeyboardNavigation';
 import { useMultiSelection } from './useMultiSelection';
 import { useFileOpener } from './useFileOpener';
@@ -72,6 +73,10 @@ interface UseListPaneKeyboardProps {
     orderedFiles: TFile[];
     /** Map from file paths to their position in visible file order */
     orderedFileIndexMap: Map<string, number>;
+    /** Reads the row the cursor sits on, as an index into orderedFiles, or null when none is remembered */
+    getRowCursor: () => number | null;
+    /** Stores the row the cursor moved to, as an index into orderedFiles */
+    setRowCursor: (fileIndex: number | null) => void;
     /** Handler for selecting a file from keyboard actions */
     onSelectFile: (file: TFile, options?: { markKeyboardNavigation?: boolean; suppressOpen?: boolean; debounceOpen?: boolean }) => void;
     /** Scrolls a list index into view while accounting for list overlays */
@@ -100,6 +105,8 @@ export function useListPaneKeyboard({
     pathToIndex,
     orderedFiles,
     orderedFileIndexMap,
+    getRowCursor,
+    setRowCursor,
     onSelectFile,
     scrollToIndexSafely,
     onScheduleKeyboardOpen,
@@ -125,16 +132,33 @@ export function useListPaneKeyboard({
     const uiDispatch = useUIDispatch();
     const { handleShiftArrowSelection, selectAll } = useMultiSelection();
 
+    // Row of each entry in orderedFiles. A note grouped per property value renders once per value, so
+    // the cursor position cannot be mapped back to a row through the path maps, which only know the
+    // first appearance.
+    const listIndexByFileIndex = useMemo(() => buildFileIndexToListIndexMap(items), [items]);
+
+    /**
+     * Get the cursor position within orderedFiles.
+     * The remembered row wins while it still holds the selected file; otherwise the note's first
+     * appearance is used, which is how the list behaved before rows could repeat.
+     */
+    const getCurrentFileIndex = useCallback(() => {
+        return resolveRowCursorFileIndex(orderedFiles, fileSelectionRef.current.selectedFile, getRowCursor(), orderedFileIndexMap);
+    }, [getRowCursor, orderedFileIndexMap, orderedFiles]);
+
     /**
      * Get current selection index
      */
     const getCurrentIndex = useCallback(() => {
         const selectedFile = fileSelectionRef.current.selectedFile;
-        if (selectedFile?.path) {
-            return pathToIndex.get(selectedFile.path) ?? -1;
+        if (!selectedFile?.path) {
+            return -1;
         }
-        return -1;
-    }, [pathToIndex]);
+
+        const cursorFileIndex = getCurrentFileIndex();
+        const cursorListIndex = cursorFileIndex >= 0 ? listIndexByFileIndex[cursorFileIndex] : undefined;
+        return cursorListIndex ?? pathToIndex.get(selectedFile.path) ?? -1;
+    }, [getCurrentFileIndex, listIndexByFileIndex, pathToIndex]);
 
     /**
      * Select item at given index
@@ -150,9 +174,12 @@ export function useListPaneKeyboard({
                     suppressOpen: options?.suppressOpen,
                     debounceOpen: options?.debounceOpen
                 });
+                // The row moved to becomes the cursor, so the next key repeats from this copy of the
+                // note rather than from its first appearance. fileIndex aligns 1:1 with orderedFiles.
+                setRowCursor(item.fileIndex ?? null);
             }
         },
-        [onSelectFile]
+        [onSelectFile, setRowCursor]
     );
 
     /**
@@ -181,6 +208,7 @@ export function useListPaneKeyboard({
                 selectedFile: targetFile,
                 lastMovementDirection: selectionChanged ? null : currentFileSelection.lastMovementDirection
             });
+            setRowCursor(targetIndex);
 
             // Open the file without changing focus
             if (!settings.enterToOpenFiles) {
@@ -192,12 +220,22 @@ export function useListPaneKeyboard({
                 return;
             }
 
-            const targetListIndex = pathToIndex.get(targetFile.path);
+            const targetListIndex = listIndexByFileIndex[targetIndex] ?? pathToIndex.get(targetFile.path);
             if (targetListIndex !== undefined) {
                 scrollToIndexSafely(targetListIndex, 'auto');
             }
         },
-        [orderedFiles, selectionDispatch, settings.enterToOpenFiles, openFileInWorkspace, virtualizer, pathToIndex, scrollToIndexSafely]
+        [
+            orderedFiles,
+            selectionDispatch,
+            setRowCursor,
+            settings.enterToOpenFiles,
+            openFileInWorkspace,
+            virtualizer,
+            listIndexByFileIndex,
+            pathToIndex,
+            scrollToIndexSafely
+        ]
     );
 
     /**
@@ -344,8 +382,10 @@ export function useListPaneKeyboard({
             if (matchesShortcut(e, shortcuts, KeyboardShortcutAction.LIST_EXTEND_SELECTION_DOWN)) {
                 e.preventDefault();
                 if (supportsKeyboardInteractions() && currentFileSelection.selectedFile?.path) {
-                    const currentFileIndex = orderedFileIndexMap.get(currentFileSelection.selectedFile.path);
-                    if (currentFileIndex !== undefined && currentFileIndex !== -1) {
+                    // Ranges extend from the row the cursor is on, so a note rendered under several
+                    // values extends from the copy the user is at rather than from its first row.
+                    const currentFileIndex = getCurrentFileIndex();
+                    if (currentFileIndex !== -1) {
                         // Only debounce workspace opens for physical arrow keys so keyup can commit the final selection.
                         const shouldDebounceOpen = e.key === 'ArrowDown';
                         const finalFileIndex = handleShiftArrowSelection('down', currentFileIndex, orderedFiles, {
@@ -356,8 +396,9 @@ export function useListPaneKeyboard({
                             onScheduleKeyboardOpen?.();
                         }
                         if (finalFileIndex >= 0) {
+                            setRowCursor(finalFileIndex);
                             const finalFile = orderedFiles[finalFileIndex];
-                            const itemIndex = pathToIndex.get(finalFile.path);
+                            const itemIndex = listIndexByFileIndex[finalFileIndex] ?? pathToIndex.get(finalFile.path);
                             if (itemIndex !== undefined) {
                                 scrollToIndexSafely(itemIndex, 'auto');
                             }
@@ -370,8 +411,8 @@ export function useListPaneKeyboard({
             if (matchesShortcut(e, shortcuts, KeyboardShortcutAction.LIST_EXTEND_SELECTION_UP)) {
                 e.preventDefault();
                 if (supportsKeyboardInteractions() && currentFileSelection.selectedFile?.path) {
-                    const currentFileIndex = orderedFileIndexMap.get(currentFileSelection.selectedFile.path);
-                    if (currentFileIndex !== undefined && currentFileIndex !== -1) {
+                    const currentFileIndex = getCurrentFileIndex();
+                    if (currentFileIndex !== -1) {
                         // Only debounce workspace opens for physical arrow keys so keyup can commit the final selection.
                         const shouldDebounceOpen = e.key === 'ArrowUp';
                         const finalFileIndex = handleShiftArrowSelection('up', currentFileIndex, orderedFiles, {
@@ -382,8 +423,9 @@ export function useListPaneKeyboard({
                             onScheduleKeyboardOpen?.();
                         }
                         if (finalFileIndex >= 0) {
+                            setRowCursor(finalFileIndex);
                             const finalFile = orderedFiles[finalFileIndex];
-                            const itemIndex = pathToIndex.get(finalFile.path);
+                            const itemIndex = listIndexByFileIndex[finalFileIndex] ?? pathToIndex.get(finalFile.path);
                             if (itemIndex !== undefined) {
                                 scrollToIndexSafely(itemIndex, 'auto');
                             }
@@ -517,8 +559,8 @@ export function useListPaneKeyboard({
             } else if (matchesShortcut(e, shortcuts, KeyboardShortcutAction.LIST_RANGE_TO_START)) {
                 e.preventDefault();
                 if (supportsKeyboardInteractions() && currentFileSelection.selectedFile?.path) {
-                    const currentFileIndex = orderedFileIndexMap.get(currentFileSelection.selectedFile.path);
-                    if (currentFileIndex !== undefined && currentFileIndex !== -1) {
+                    const currentFileIndex = getCurrentFileIndex();
+                    if (currentFileIndex !== -1) {
                         handleRangeSelection('home', currentFileIndex);
                     }
                 }
@@ -526,8 +568,8 @@ export function useListPaneKeyboard({
             } else if (matchesShortcut(e, shortcuts, KeyboardShortcutAction.LIST_RANGE_TO_END)) {
                 e.preventDefault();
                 if (supportsKeyboardInteractions() && currentFileSelection.selectedFile?.path) {
-                    const currentFileIndex = orderedFileIndexMap.get(currentFileSelection.selectedFile.path);
-                    if (currentFileIndex !== undefined && currentFileIndex !== -1) {
+                    const currentFileIndex = getCurrentFileIndex();
+                    if (currentFileIndex !== -1) {
                         handleRangeSelection('end', currentFileIndex);
                     }
                 }
@@ -566,11 +608,13 @@ export function useListPaneKeyboard({
         },
         [
             getCurrentIndex,
+            getCurrentFileIndex,
+            setRowCursor,
             enabled,
             settings,
-            orderedFileIndexMap,
             handleShiftArrowSelection,
             orderedFiles,
+            listIndexByFileIndex,
             pathToIndex,
             app,
             commandQueue,

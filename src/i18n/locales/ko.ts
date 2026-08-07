@@ -1219,6 +1219,7 @@ export const STRINGS_KO = {
                     headers: '머리글',
                     groups: '그룹'
                 },
+                perValueSuffix: '{key}(값별)',
                 options: {
                     custom: '사용자 지정',
                     date: '날짜',
@@ -1228,6 +1229,10 @@ export const STRINGS_KO = {
             showSelectedNavigationPills: {
                 name: '태그 및 속성 필을 항상 표시',
                 desc: '비활성화하면 현재 탐색 선택과 일치하는 필이 숨겨집니다(예: "레시피" 태그를 탐색할 때 "레시피" 태그 필이 숨겨짐). 활성화하면 모든 필이 항상 표시됩니다.'
+            },
+            inheritPropertyValueHeaderAppearance: {
+                name: '값별 그룹 헤더에 색상 적용',
+                desc: '속성의 값별로 그룹화할 때 그룹 헤더가 내비게이션 트리에서 해당 값의 아이콘과 색상을 가져옵니다.'
             },
             stickyGroupHeaders: {
                 name: '그룹 헤더 고정',

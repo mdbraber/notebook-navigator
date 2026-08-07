@@ -443,38 +443,55 @@ export type PropertyGroupingOrder = PropertyGroupingDirection | 'follow';
  * (group order follows the sort direction) so appearance records keep a single scalar `groupBy`
  * value across settings sync. The order lives in the prefix because keys may themselves contain
  * separator characters such as `:`.
+ *
+ * The `property-each` variants of all three carry a second, orthogonal axis: one group per value of
+ * a list-valued property, so a note appears under each value it holds rather than under a single
+ * group for the whole value list.
  */
 export type ListNoteGroupingOption =
-    ListNoteGroupingBaseOption | `property:${string}` | `property-desc:${string}` | `property-follow:${string}`;
+    | ListNoteGroupingBaseOption
+    | `property:${string}`
+    | `property-desc:${string}`
+    | `property-follow:${string}`
+    | `property-each:${string}`
+    | `property-each-desc:${string}`
+    | `property-each-follow:${string}`;
 
 const PROPERTY_GROUPING_PREFIX = 'property:';
 const PROPERTY_GROUPING_DESC_PREFIX = 'property-desc:';
 const PROPERTY_GROUPING_FOLLOW_PREFIX = 'property-follow:';
+const PROPERTY_GROUPING_EACH_PREFIX = 'property-each:';
+const PROPERTY_GROUPING_EACH_DESC_PREFIX = 'property-each-desc:';
+const PROPERTY_GROUPING_EACH_FOLLOW_PREFIX = 'property-each-follow:';
 
 function isListNoteGroupingBaseOption(value: unknown): value is ListNoteGroupingBaseOption {
     return value === 'custom' || value === 'date' || value === 'folder';
 }
 
-function parsePropertyGroupingOption(value: unknown): { propertyKey: string; order: PropertyGroupingOrder } | null {
+// The six prefixes are mutually prefix-independent: each one diverges from the others
+// at an early position, so no prefix is a prefix of another. This makes the table order
+// for readability only; any order would yield identical parse results.
+const PROPERTY_GROUPING_PREFIXES = [
+    { prefix: PROPERTY_GROUPING_EACH_FOLLOW_PREFIX, order: 'follow', perValue: true },
+    { prefix: PROPERTY_GROUPING_EACH_DESC_PREFIX, order: 'desc', perValue: true },
+    { prefix: PROPERTY_GROUPING_EACH_PREFIX, order: 'asc', perValue: true },
+    { prefix: PROPERTY_GROUPING_FOLLOW_PREFIX, order: 'follow', perValue: false },
+    { prefix: PROPERTY_GROUPING_DESC_PREFIX, order: 'desc', perValue: false },
+    { prefix: PROPERTY_GROUPING_PREFIX, order: 'asc', perValue: false }
+] as const;
+
+function parsePropertyGroupingOption(value: unknown): { propertyKey: string; order: PropertyGroupingOrder; perValue: boolean } | null {
     if (typeof value !== 'string') {
         return null;
     }
 
-    // The order-specific prefixes must be tested before the generic one because all prefixes
-    // start with `property`.
-    const order: PropertyGroupingOrder = value.startsWith(PROPERTY_GROUPING_FOLLOW_PREFIX)
-        ? 'follow'
-        : value.startsWith(PROPERTY_GROUPING_DESC_PREFIX)
-          ? 'desc'
-          : 'asc';
-    const prefix =
-        order === 'follow' ? PROPERTY_GROUPING_FOLLOW_PREFIX : order === 'desc' ? PROPERTY_GROUPING_DESC_PREFIX : PROPERTY_GROUPING_PREFIX;
-    if (!value.startsWith(prefix)) {
+    const match = PROPERTY_GROUPING_PREFIXES.find(candidate => value.startsWith(candidate.prefix));
+    if (!match) {
         return null;
     }
 
-    const propertyKey = value.slice(prefix.length).trim();
-    return propertyKey.length > 0 ? { propertyKey, order } : null;
+    const propertyKey = value.slice(match.prefix.length).trim();
+    return propertyKey.length > 0 ? { propertyKey, order: match.order, perValue: match.perValue } : null;
 }
 
 /** Returns the frontmatter key encoded in a property grouping option, or null for base grouping modes. */
@@ -487,9 +504,22 @@ export function getPropertyGroupingOrder(value: unknown): PropertyGroupingOrder 
     return parsePropertyGroupingOption(value)?.order ?? null;
 }
 
-export function createPropertyGroupingOption(propertyKey: string, order: PropertyGroupingOrder): ListNoteGroupingOption {
-    const prefix =
-        order === 'follow' ? PROPERTY_GROUPING_FOLLOW_PREFIX : order === 'desc' ? PROPERTY_GROUPING_DESC_PREFIX : PROPERTY_GROUPING_PREFIX;
+/** Whether a property grouping option splits list values into one group each. */
+export function getPropertyGroupingPerValue(value: unknown): boolean {
+    return parsePropertyGroupingOption(value)?.perValue ?? false;
+}
+
+/**
+ * Encodes a property grouping option from its three axes.
+ *
+ * `perValue` is required rather than defaulted: every writer rebuilding an option from an existing
+ * one has to decide whether the per-value axis carries over, and an omitted argument silently wrote
+ * the joined form (see `getPropertyGroupingPerValue` for reading it back off an existing option).
+ */
+export function createPropertyGroupingOption(propertyKey: string, order: PropertyGroupingOrder, perValue: boolean): ListNoteGroupingOption {
+    const match = PROPERTY_GROUPING_PREFIXES.find(candidate => candidate.order === order && candidate.perValue === perValue);
+    // The table covers every order/perValue pair, so this cannot be reached.
+    const prefix = match?.prefix ?? PROPERTY_GROUPING_PREFIX;
     return `${prefix}${propertyKey.trim()}`;
 }
 
@@ -510,7 +540,7 @@ export function normalizeListNoteGroupingOption(value: unknown): ListNoteGroupin
 
     // Re-encode property groupings so stored values always carry a trimmed key.
     const parsed = parsePropertyGroupingOption(value);
-    return parsed ? createPropertyGroupingOption(parsed.propertyKey, parsed.order) : null;
+    return parsed ? createPropertyGroupingOption(parsed.propertyKey, parsed.order, parsed.perValue) : null;
 }
 
 export interface AppearanceGroupingValue {
@@ -776,6 +806,7 @@ export interface NotebookNavigatorSettings {
     // reconciliation resets to the default grouping when the key is removed from the configured list.
     noteGrouping: ListNoteGroupingOption;
     showSelectedNavigationPills: boolean;
+    inheritPropertyValueHeaderAppearance: boolean;
     stickyGroupHeaders: boolean;
     showFolderGroupPaths: boolean;
     showGroupHeaderItemCounts: boolean;

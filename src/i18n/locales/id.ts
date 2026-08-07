@@ -1222,6 +1222,7 @@ export const STRINGS_ID = {
                     headers: 'Header',
                     groups: 'Grup'
                 },
+                perValueSuffix: '{key} (setiap nilai)',
                 options: {
                     custom: 'Kustom',
                     date: 'Tanggal',
@@ -1231,6 +1232,10 @@ export const STRINGS_ID = {
             showSelectedNavigationPills: {
                 name: 'Selalu tampilkan semua pil tag dan properti',
                 desc: 'Saat dinonaktifkan, pil yang cocok dengan pilihan navigasi saat ini disembunyikan (misalnya, pil tag "resep" disembunyikan saat menelusuri tag "resep"). Aktifkan untuk menampilkan semua pil.'
+            },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Warnai header per nilai',
+                desc: 'Saat mengelompokkan per nilai properti, header grup mengambil ikon dan warna nilai tersebut dari pohon navigasi.'
             },
             stickyGroupHeaders: {
                 name: 'Header grup tetap',

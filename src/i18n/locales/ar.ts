@@ -1217,6 +1217,7 @@ export const STRINGS_AR = {
                     headers: 'العناوين',
                     groups: 'المجموعات'
                 },
+                perValueSuffix: '{key} (كل قيمة)',
                 options: {
                     custom: 'مخصص',
                     date: 'التاريخ',
@@ -1226,6 +1227,10 @@ export const STRINGS_AR = {
             showSelectedNavigationPills: {
                 name: 'إظهار جميع شارات الوسوم والخصائص دائمًا',
                 desc: 'عند التعطيل، يتم إخفاء الشارات التي تتطابق مع اختيار التنقل الحالي (مثلاً، يتم إخفاء شارة وسم "وصفات" عند تصفح وسم "وصفات"). قم بالتفعيل لإبقاء جميع الشارات مرئية.'
+            },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'تلوين رؤوس المجموعات لكل قيمة',
+                desc: 'عند التجميع حسب كل قيمة لخاصية، تأخذ رؤوس المجموعات أيقونة تلك القيمة ولونها من شجرة التنقل.'
             },
             stickyGroupHeaders: {
                 name: 'تثبيت رؤوس المجموعات',

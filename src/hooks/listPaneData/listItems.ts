@@ -30,8 +30,10 @@ import {
     isDateSortOption,
     isPropertySortOption
 } from '../../utils/sortUtils';
-import { getPropertyGroupingKey } from '../../settings/types';
+import { getPropertyGroupingKey, getPropertyGroupingPerValue } from '../../settings/types';
+import { resolvePropertyDisplayText, normalizePropertyTreeValuePath } from '../../utils/propertyUtils';
 import { resolvePropertyGroupingDirection } from '../../utils/listGrouping';
+import { buildPropertyValueNodeId, normalizePropertyTreeKey } from '../../utils/propertyTree';
 import { partitionPinnedFiles } from '../../utils/fileFinder';
 import {
     formatManualSortGroupHeaderLabel,
@@ -118,6 +120,11 @@ interface BuildListItemsResult extends ListGroupItemCountData {
 
 const EMPTY_GROUP_ITEM_COUNT_BY_KEY = new Map<string, number>();
 const EMPTY_MANUAL_SORT_GROUP_HEADER_FILE_BY_MEMBER_PATH = new Map<string, TFile>();
+
+// Joins the parts of a multi-value property into one bucket key. A NUL cannot appear in a trimmed
+// frontmatter value, so lists with different element boundaries such as ["a b", "c"] and ["a", "b c"]
+// cannot collide on the same key.
+const JOINED_BUCKET_SEPARATOR = String.fromCharCode(0);
 
 function splitFolderPath(path: string): string[] {
     return path.split('/').filter(Boolean);
@@ -238,6 +245,8 @@ function buildListItemsInternal(
     let activeGroupHeaderItem: ListPaneItem | null = null;
     let activeGroupHeaderKey: string | null = null;
     let activeManualSortGroupHeaderFile: TFile | null = null;
+    // Scopes file row keys so a note rendered under several groups still has unique React keys.
+    let activeGroupKeyPrefix: string | null = null;
     let fileIndexCounter = 0;
     const getFileWordCount = (file: TFile): number => {
         return normalizeManualSortGroupHeaderWordCount(db.getFile(file.path)?.wordCount);
@@ -320,7 +329,7 @@ function buildListItemsInternal(
             type: ListPaneItemType.FILE,
             data: file,
             parentFolder: selectedFolder?.path,
-            key: file.path,
+            key: activeGroupKeyPrefix ? `${activeGroupKeyPrefix}:${file.path}` : file.path,
             fileIndex: fileIndexCounter++,
             matchedAliases: matchedAliases?.get(file.path),
             matchedProperties: matchedProperties?.get(file.path),
@@ -335,6 +344,7 @@ function buildListItemsInternal(
         data,
         key,
         headerFolderPath,
+        headerPropertyNodeId,
         headerFolderSegments,
         headerKind,
         collapseKey,
@@ -343,7 +353,14 @@ function buildListItemsInternal(
         groupFiles
     }: Pick<
         ListPaneItem,
-        'data' | 'key' | 'headerFolderPath' | 'headerFolderSegments' | 'headerKind' | 'collapseKey' | 'manualSortHeaderFilePath'
+        | 'data'
+        | 'key'
+        | 'headerFolderPath'
+        | 'headerPropertyNodeId'
+        | 'headerFolderSegments'
+        | 'headerKind'
+        | 'collapseKey'
+        | 'manualSortHeaderFilePath'
     > & {
         manualSortHeader?: ManualSortGroupHeaderData;
         groupFiles?: readonly TFile[];
@@ -351,6 +368,7 @@ function buildListItemsInternal(
         if (headerKind !== 'manual-sort-custom') {
             activeManualSortGroupHeaderFile = null;
         }
+        activeGroupKeyPrefix = collapseKey ?? key;
         if (activeListGroupCollapsed && activeCollapsedHeaderKind !== 'manual-sort-custom' && headerKind === 'manual-sort-custom') {
             return;
         }
@@ -371,6 +389,7 @@ function buildListItemsInternal(
             type: ListPaneItemType.HEADER,
             data,
             headerFolderPath,
+            headerPropertyNodeId,
             headerFolderSegments,
             manualSortHeaderFilePath,
             groupFilePaths: collectGroupItemCounts ? undefined : groupFiles ? groupFiles.map(file => file.path) : [],
@@ -526,10 +545,10 @@ function buildListItemsInternal(
         // Buckets match the extracted value parts element-wise and groups sort in the configured
         // direction: number-keyed groups first in numeric order, then text groups in natural string
         // order, following how Obsidian Bases groups by property. Files inside each group keep
-        // the active sort order. The bucket key joins parts with a separator that cannot appear in
-        // trimmed part values, so lists with different element boundaries such as ["a b", "c"] and
-        // ["a", "b c"] stay in separate groups.
+        // the active sort order. How the bucket key is formed depends on the per-value axis and is
+        // described where the buckets are built below.
         const propertyGroupingDirection = resolvePropertyGroupingDirection(groupingMode, sortOption);
+        const propertyGroupingPerValue = getPropertyGroupingPerValue(groupingMode);
         const propertyGroups = new Map<string, { label: string; numericValue: number | null; files: TFile[] }>();
         const ungroupedFiles: TFile[] = [];
 
@@ -543,19 +562,28 @@ function buildListItemsInternal(
                 return;
             }
 
-            const bucketKey = groupingValue.parts.join('\u0000');
-            const group = propertyGroups.get(bucketKey);
-            if (group) {
-                group.files.push(file);
-                return;
-            }
+            // Per-value grouping emits one bucket per part, so a note carrying several values
+            // appears under each of them. The joined form keeps its single bucket, where the
+            // separator cannot occur in trimmed parts so lists with different element boundaries
+            // such as ["a b", "c"] and ["a", "b c"] stay apart.
+            const bucketParts = propertyGroupingPerValue
+                ? Array.from(new Set(groupingValue.parts))
+                : [groupingValue.parts.join(JOINED_BUCKET_SEPARATOR)];
 
-            // The first file to create a bucket decides whether the group carries a numeric key,
-            // matching how the first encountered value becomes the group key in Obsidian Bases.
-            propertyGroups.set(bucketKey, {
-                label: groupingValue.parts.join(', '),
-                numericValue: groupingValue.numericValue,
-                files: [file]
+            bucketParts.forEach(bucketKey => {
+                const group = propertyGroups.get(bucketKey);
+                if (group) {
+                    group.files.push(file);
+                    return;
+                }
+
+                // The first file to create a bucket decides whether the group carries a numeric key,
+                // matching how the first encountered value becomes the group key in Obsidian Bases.
+                propertyGroups.set(bucketKey, {
+                    label: propertyGroupingPerValue ? resolvePropertyDisplayText(bucketKey) : groupingValue.parts.join(', '),
+                    numericValue: groupingValue.numericValue,
+                    files: [file]
+                });
             });
         });
 
@@ -588,12 +616,13 @@ function buildListItemsInternal(
                 return directionMultiplier * (left.bucketKey < right.bucketKey ? -1 : 1);
             });
 
-        const renderPropertyGroup = (label: string, groupFiles: TFile[], groupId: string): void => {
+        const renderPropertyGroup = (label: string, groupFiles: TFile[], groupId: string, propertyNodeId: string | null): void => {
             pushHeaderItem({
                 data: label,
                 collapseKey: createCollapseKey(groupId),
                 key: `header-${groupId}`,
                 headerKind: 'property',
+                headerPropertyNodeId: propertyNodeId,
                 groupFiles
             });
             groupFiles.forEach(file => {
@@ -604,12 +633,28 @@ function buildListItemsInternal(
         // Group ids use the bucket key rather than the display label so collapse state and item
         // counts stay stable if the label formatting changes.
         orderedPropertyGroups.forEach(group => {
-            renderPropertyGroup(group.label, group.files, `property-value:${group.bucketKey}`);
+            // Only a per-value group maps to a single tree node; a joined bucket has no single value.
+            // The id must be built the way the tree builds it: the key casefolded, and the raw value
+            // run through normalizePropertyTreeValuePath. group.label is pre-resolved through
+            // resolvePropertyDisplayText, which also unwraps markdown-style links (`[Apple](...)`) and
+            // bare URLs, not just wikilinks. normalizePropertyTreeValuePath only special-cases
+            // wikilinks, so for those other forms it casefolds the whole raw string instead of the
+            // already-unwrapped label. Building the id from group.label would then diverge from the id
+            // the tree actually assigns to that value, and the appearance lookup would silently never
+            // match.
+            let propertyNodeId: string | null = null;
+            if (propertyGroupingPerValue) {
+                const normalizedValuePath = normalizePropertyTreeValuePath(group.bucketKey);
+                propertyNodeId = normalizedValuePath
+                    ? buildPropertyValueNodeId(normalizePropertyTreeKey(propertyGroupingKey), normalizedValuePath)
+                    : null;
+            }
+            renderPropertyGroup(group.label, group.files, `property-value:${group.bucketKey}`, propertyNodeId);
         });
 
         // Files without the property collect into one trailing group, matching the Bases "None" group placement.
         if (ungroupedFiles.length > 0) {
-            renderPropertyGroup(strings.listPane.propertyGroupNoValue, ungroupedFiles, 'property-none');
+            renderPropertyGroup(strings.listPane.propertyGroupNoValue, ungroupedFiles, 'property-none', null);
         }
     } else {
         const baseFolderPath = selectedFolder?.path ?? null;
@@ -812,7 +857,9 @@ function buildListItemsInternal(
 export function buildFilePathToIndexMap(listItems: ListPaneItem[]): Map<string, number> {
     const filePathToIndex = new Map<string, number>();
     listItems.forEach((item, index) => {
-        if (item.type === ListPaneItemType.FILE && item.data instanceof TFile) {
+        // A note grouped per value appears more than once. Reveal and scroll-to-file should land on
+        // the first appearance, so an already-mapped path keeps its earlier index.
+        if (item.type === ListPaneItemType.FILE && item.data instanceof TFile && !filePathToIndex.has(item.data.path)) {
             filePathToIndex.set(item.data.path, index);
         }
     });
@@ -836,12 +883,32 @@ export function buildOrderedFiles(listItems: ListPaneItem[]): {
 
     listItems.forEach(item => {
         if (item.type === ListPaneItemType.FILE && item.data instanceof TFile) {
-            orderedFileIndexMap.set(item.data.path, orderedFiles.length);
+            // orderedFiles keeps every appearance so a cursor can address one specific copy, while the
+            // index map points at the first one and is the fallback when no cursor row is available.
+            if (!orderedFileIndexMap.has(item.data.path)) {
+                orderedFileIndexMap.set(item.data.path, orderedFiles.length);
+            }
             orderedFiles.push(item.data);
         }
     });
 
     return { orderedFiles, orderedFileIndexMap };
+}
+
+/**
+ * Maps each position in `orderedFiles` back to the list row it was rendered from.
+ * `buildOrderedFiles` appends one entry per rendered file row in render order, so position n here is
+ * the row of the nth file. A note grouped per value occupies several rows, so this is the only way
+ * back from a cursor position to the row the user is on.
+ */
+export function buildFileIndexToListIndexMap(listItems: ListPaneItem[]): number[] {
+    const listIndexByFileIndex: number[] = [];
+    listItems.forEach((item, index) => {
+        if (item.type === ListPaneItemType.FILE && item.data instanceof TFile) {
+            listIndexByFileIndex.push(index);
+        }
+    });
+    return listIndexByFileIndex;
 }
 
 export function findCollapsedListGroupRevealTarget(

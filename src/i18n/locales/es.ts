@@ -1223,6 +1223,7 @@ export const STRINGS_ES = {
                     headers: 'Encabezados',
                     groups: 'Grupos'
                 },
+                perValueSuffix: '{key} (cada valor)',
                 options: {
                     custom: 'Personalizada',
                     date: 'Fecha',
@@ -1232,6 +1233,10 @@ export const STRINGS_ES = {
             showSelectedNavigationPills: {
                 name: 'Mostrar siempre todas las etiquetas y propiedades',
                 desc: 'Cuando está desactivado, las etiquetas que coinciden con la selección de navegación actual se ocultan (p. ej., la etiqueta "recetas" se oculta al navegar por la etiqueta "recetas"). Activar para mantener todas las etiquetas visibles.'
+            },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Colorear encabezados por valor',
+                desc: 'Al agrupar por cada valor de una propiedad, los encabezados toman el icono y el color de ese valor del árbol de navegación.'
             },
             stickyGroupHeaders: {
                 name: 'Encabezados de grupo fijos',

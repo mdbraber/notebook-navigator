@@ -22,17 +22,23 @@ import { DEFAULT_SETTINGS } from '../../../src/settings/defaultSettings';
 import type { PropertyItem } from '../../../src/storage/IndexedDBStorage';
 import type { IndexedDBStorage } from '../../../src/storage/IndexedDBStorage';
 import {
+    buildFileIndexToListIndexMap,
+    buildFilePathToIndexMap,
     buildListGroupItemCountData,
     buildListItems,
+    buildOrderedFiles,
     findCollapsedListGroupRevealTarget,
     resolveListGroupExpansionToggleState,
     type ListPaneConfig
 } from '../../../src/hooks/listPaneData/listItems';
+import { resolveRowCursorFileIndex } from '../../../src/utils/selectionUtils';
 import { FILE_VISIBILITY } from '../../../src/utils/fileTypeUtils';
 import { createTestTFile } from '../../utils/createTestTFile';
 import { ItemType, ListPaneItemType, PINNED_SECTION_HEADER_KEY } from '../../../src/types';
 import { buildListGroupCollapseKey, buildListGroupCollapseKeyPrefix } from '../../../src/utils/listGroupCollapse';
 import { formatTextCount } from '../../../src/utils/wordCountUtils';
+import { buildPropertyValueNodeId } from '../../../src/utils/propertyTree';
+import { normalizePropertyTreeValuePath } from '../../../src/utils/propertyUtils';
 import type { ListPaneItem } from '../../../src/types/virtualization';
 
 interface FileMetadataRecord {
@@ -2246,5 +2252,212 @@ describe('buildListItems property grouping', () => {
 
         const soloHeader = items.find(item => item.type === ListPaneItemType.HEADER && item.data === 'Solo');
         expect(soloHeader?.groupFilePaths).toEqual([singleList.path, scalar.path]);
+    });
+});
+
+describe('per-value property grouping', () => {
+    // buildListItems reads grouping values straight from the metadata cache, so the stub returns
+    // frontmatter per path rather than going through the database records.
+    function createFrontmatterApp(frontmatterByPath: Record<string, Record<string, unknown>>): App {
+        const app = new App();
+        app.metadataCache.getFileCache = (file: TFile) => {
+            const frontmatter = frontmatterByPath[file.path];
+            return frontmatter ? { frontmatter } : null;
+        };
+        return app;
+    }
+
+    function headerLabels(items: ListPaneItem[]): string[] {
+        return items
+            .filter(item => item.type === ListPaneItemType.HEADER && typeof item.data === 'string')
+            .map(item => item.data as string);
+    }
+
+    function filePathsUnderHeaders(items: ListPaneItem[]): Record<string, string[]> {
+        const byHeader: Record<string, string[]> = {};
+        let current: string | null = null;
+        for (const item of items) {
+            if (item.type === ListPaneItemType.HEADER && typeof item.data === 'string') {
+                current = item.data;
+                byHeader[current] = [];
+            } else if (item.type === ListPaneItemType.FILE && item.data instanceof TFile && current !== null) {
+                byHeader[current].push(item.data.path);
+            }
+        }
+        return byHeader;
+    }
+
+    const multi = createTestTFile('Dune.md');
+    const single = createTestTFile('PKM.md');
+
+    function build(groupBy: string, frontmatter: Record<string, Record<string, unknown>>, files: TFile[]) {
+        const db = createDb({});
+        return buildListItems({
+            app: createFrontmatterApp(frontmatter),
+            dayKey: '2026-03-07',
+            fileVisibility: FILE_VISIBILITY.DOCUMENTS,
+            files,
+            getDB: () => db,
+            getFileTimestamps: () => ({ created: 0, modified: 0 }),
+            hiddenFileState: new Map(),
+            hiddenTags: [],
+            listConfig: { ...createListConfig({}), groupBy: groupBy as ListPaneConfig['groupBy'] },
+            searchMetaMap: new Map(),
+            selectedFolder: null,
+            selectionType: ItemType.FOLDER,
+            showHiddenItems: false,
+            sortOption: 'title-asc'
+        });
+    }
+
+    it('puts a note under every value it carries', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+
+        expect(headerLabels(items)).toEqual(['Projects', 'Topics']);
+        expect(filePathsUnderHeaders(items)).toEqual({ Projects: ['Dune.md'], Topics: ['Dune.md'] });
+    });
+
+    it('keeps the joined bucket for the original option', () => {
+        const items = build('property:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+
+        expect(headerLabels(items)).toEqual(['[[Topics]], [[Projects]]']);
+    });
+
+    it('labels wikilink values with their display text and plain values verbatim', () => {
+        const items = build('property-each:status', { 'PKM.md': { status: 'draft' } }, [single]);
+
+        expect(headerLabels(items)).toEqual(['draft']);
+    });
+
+    it('shows a note once when it repeats a value', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Topics]]'] } }, [multi]);
+
+        expect(headerLabels(items)).toEqual(['Topics']);
+        expect(filePathsUnderHeaders(items).Topics).toEqual(['Dune.md']);
+    });
+
+    it('still collects notes without the property into one trailing group', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]'] } }, [multi, single]);
+        const labels = headerLabels(items);
+
+        expect(labels[0]).toBe('Topics');
+        expect(labels).toHaveLength(2);
+        expect(filePathsUnderHeaders(items)[labels[1]]).toEqual(['PKM.md']);
+    });
+
+    it('orders per-value groups descending for the -desc form', () => {
+        const items = build('property-each-desc:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+
+        expect(headerLabels(items)).toEqual(['Topics', 'Projects']);
+    });
+
+    it('gives every row a unique key when a note repeats', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+        const keys = items.map(item => item.key);
+
+        expect(new Set(keys).size).toBe(keys.length);
+    });
+
+    it('resolves a repeated path to its first row', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]', '[[Projects]]'] } }, [multi]);
+
+        const fileRowIndexes = items
+            .map((item, index) => ({ item, index }))
+            .filter(entry => entry.item.type === ListPaneItemType.FILE)
+            .map(entry => entry.index);
+        expect(fileRowIndexes).toHaveLength(2);
+
+        expect(buildFilePathToIndexMap(items).get('Dune.md')).toBe(fileRowIndexes[0]);
+
+        const { orderedFiles, orderedFileIndexMap } = buildOrderedFiles(items);
+        // orderedFiles keeps both appearances so a cursor can point at either one; the path maps
+        // resolve to the first appearance only, which is why keyboard navigation carries a row cursor
+        // (see the arrow-key test below) instead of resolving the cursor from the path alone.
+        expect(orderedFiles.map(file => file.path)).toEqual(['Dune.md', 'Dune.md']);
+        expect(orderedFileIndexMap.get('Dune.md')).toBe(0);
+    });
+
+    it('advances past a repeated note when the cursor holds its second row', () => {
+        // Projects = [Dune], Topics = [Dune, PKM]. Dune renders twice, so resolving the cursor from
+        // its path alone always lands on the first copy: ArrowDown from the second copy would move to
+        // the row after the FIRST copy, cycling between two rows and leaving PKM unreachable.
+        const items = build(
+            'property-each:topics',
+            { 'Dune.md': { topics: ['[[Projects]]', '[[Topics]]'] }, 'PKM.md': { topics: ['[[Topics]]'] } },
+            [multi, single]
+        );
+        expect(filePathsUnderHeaders(items)).toEqual({ Projects: ['Dune.md'], Topics: ['Dune.md', 'PKM.md'] });
+
+        const { orderedFiles, orderedFileIndexMap } = buildOrderedFiles(items);
+        expect(orderedFiles.map(file => file.path)).toEqual(['Dune.md', 'Dune.md', 'PKM.md']);
+
+        // Mirrors findNextSelectableIndex in useKeyboardNavigation: the next file row after a row.
+        const nextFileRow = (fromListIndex: number): number =>
+            items.findIndex((item, index) => index > fromListIndex && item.type === ListPaneItemType.FILE);
+        const listIndexByFileIndex = buildFileIndexToListIndexMap(items);
+        expect(listIndexByFileIndex).toHaveLength(3);
+
+        // Cursor on the second Dune row (its appearance under Topics), which is where the user clicked
+        // or arrowed to. The row wins over the path lookup, so ArrowDown reaches PKM.
+        const cursorFileIndex = resolveRowCursorFileIndex(orderedFiles, multi, 1);
+        expect(cursorFileIndex).toBe(1);
+        const cursorListIndex = listIndexByFileIndex[cursorFileIndex];
+        expect(items[cursorListIndex].data).toBe(multi);
+        expect(items[nextFileRow(cursorListIndex)].data).toBe(single);
+
+        // Without a usable row the cursor degrades to the first appearance, which is the pre-cursor
+        // behavior: ArrowDown moves to the row after the first copy, which is the second copy.
+        const fallbackFileIndex = resolveRowCursorFileIndex(orderedFiles, multi, null);
+        expect(fallbackFileIndex).toBe(orderedFileIndexMap.get('Dune.md'));
+        const fallbackListIndex = listIndexByFileIndex[fallbackFileIndex];
+        expect(items[nextFileRow(fallbackListIndex)].data).toBe(multi);
+
+        // A row that no longer holds the selected note degrades the same way rather than moving the
+        // cursor onto the wrong note.
+        expect(resolveRowCursorFileIndex(orderedFiles, multi, 2)).toBe(0);
+        expect(resolveRowCursorFileIndex(orderedFiles, multi, 7)).toBe(0);
+        expect(resolveRowCursorFileIndex(orderedFiles, null, 1)).toBe(-1);
+    });
+
+    it('tags per-value headers with the property value node id the tree would use', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Topics]]'] } }, [multi]);
+        const header = items.find(item => item.type === ListPaneItemType.HEADER);
+
+        // The tree casefolds value paths (normalizePropertyTreeValuePath), so the id carries
+        // `topics`, not the display-cased `Topics`. Building it from the label would never match.
+        expect(header?.headerPropertyNodeId).toBe(buildPropertyValueNodeId('topics', 'topics'));
+    });
+
+    it('builds the node id from the raw value, not the display label', () => {
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[[Fruits/Apple|Apple]]'] } }, [multi]);
+        const header = items.find(item => item.type === ListPaneItemType.HEADER);
+
+        // Display text is the alias `Apple`; the tree's value path is the casefolded display text.
+        expect(header?.data).toBe('Apple');
+        expect(header?.headerPropertyNodeId).toBe(buildPropertyValueNodeId('topics', 'apple'));
+    });
+
+    it('diverges from a label-based id for a value normalizePropertyTreeValuePath does not unwrap', () => {
+        // A wikilink is a poor test of "built from the raw value, not the label": normalizePropertyTreeValuePath
+        // unwraps wikilinks itself, so a label-based id and a bucketKey-based id land on the same casefolded
+        // string either way. resolvePropertyDisplayText (which produces the label) also unwraps markdown-style
+        // links, but normalizePropertyTreeValuePath does not - it only special-cases wikilinks - so this value
+        // actually distinguishes the two: building from the label would produce `topics=apple`, while the tree's
+        // id, and the id this code must produce, casefolds the whole raw markdown-link string instead.
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[Apple](Fruits/Apple.md)'] } }, [multi]);
+        const header = items.find(item => item.type === ListPaneItemType.HEADER);
+
+        expect(header?.headerPropertyNodeId).toBe(
+            buildPropertyValueNodeId('topics', normalizePropertyTreeValuePath('[Apple](Fruits/Apple.md)'))
+        );
+        expect(header?.headerPropertyNodeId).not.toBe(buildPropertyValueNodeId('topics', 'apple'));
+    });
+
+    it('leaves the node id unset for joined groups and for the no-value group', () => {
+        const joined = build('property:topics', { 'Dune.md': { topics: ['[[Topics]]'] } }, [multi]);
+        expect(joined.find(item => item.type === ListPaneItemType.HEADER)?.headerPropertyNodeId ?? null).toBeNull();
+
+        const withNoValue = build('property-each:topics', {}, [single]);
+        expect(withNoValue.find(item => item.type === ListPaneItemType.HEADER)?.headerPropertyNodeId ?? null).toBeNull();
     });
 });

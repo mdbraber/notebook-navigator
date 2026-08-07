@@ -1221,6 +1221,7 @@ export const STRINGS_JA = {
                     headers: 'ヘッダー',
                     groups: 'グループ'
                 },
+                perValueSuffix: '{key}（値ごと）',
                 options: {
                     custom: 'カスタム',
                     date: '日付',
@@ -1230,6 +1231,10 @@ export const STRINGS_JA = {
             showSelectedNavigationPills: {
                 name: 'タグとプロパティのピルを常に表示',
                 desc: '無効の場合、現在のナビゲーション選択に一致するピルは非表示になります（例：「レシピ」タグを閲覧中は「レシピ」タグのピルが非表示になります）。有効にすると、すべてのピルが常に表示されます。'
+            },
+            inheritPropertyValueHeaderAppearance: {
+                name: '値ごとのグループヘッダーに色を付ける',
+                desc: 'プロパティの値ごとにグループ化するとき、グループヘッダーはナビゲーションツリーからその値のアイコンと色を引き継ぎます。'
             },
             stickyGroupHeaders: {
                 name: 'グループヘッダーを固定',

@@ -1220,6 +1220,7 @@ export const STRINGS_TR = {
                     headers: 'Başlıklar',
                     groups: 'Gruplar'
                 },
+                perValueSuffix: '{key} (her değer)',
                 options: {
                     custom: 'Özel',
                     date: 'Tarih',
@@ -1229,6 +1230,10 @@ export const STRINGS_TR = {
             showSelectedNavigationPills: {
                 name: 'Tüm etiket ve özellik rozetlerini her zaman göster',
                 desc: 'Devre dışı bırakıldığında, geçerli gezinme seçimiyle eşleşen rozetler gizlenir (ör. "tarifler" etiketine göz atarken "tarifler" etiketi rozeti gizlenir). Tüm rozetlerin görünür kalması için etkinleştirin.'
+            },
+            inheritPropertyValueHeaderAppearance: {
+                name: 'Değer başına grup başlıklarını renklendir',
+                desc: 'Bir özelliğin her değerine göre gruplarken grup başlıkları o değerin simgesini ve rengini gezinme ağacından alır.'
             },
             stickyGroupHeaders: {
                 name: 'Yapışkan grup başlıkları',

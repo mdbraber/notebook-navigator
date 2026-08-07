@@ -22,7 +22,7 @@ import { useFileSelection, useSelectionDispatch } from '../context/SelectionCont
 import { useServices } from '../context/ServicesContext';
 import { useSettingsState } from '../context/SettingsContext';
 import { useFileOpener } from './useFileOpener';
-import { findFileIndex, getFilesInRange, mergeFilesIntoSelection } from '../utils/selectionUtils';
+import { getFilesInRange, mergeFilesIntoSelection, resolveRowCursorFileIndex } from '../utils/selectionUtils';
 
 interface ShiftArrowSelectionOptions {
     /**
@@ -98,13 +98,17 @@ export function useMultiSelection() {
 
     /**
      * Handle Shift+Click for range selection
+     *
+     * `rowCursor` is the row the caller's cursor sits on. A note grouped per property value renders on
+     * one row per value, so the cursor decides which copy anchors the range; without it the range would
+     * always anchor on the note's first appearance and swallow every row in between.
      */
     const handleRangeSelectClick = useCallback(
-        (file: TFile, fileIndex: number, orderedFiles: TFile[]) => {
+        (file: TFile, fileIndex: number, orderedFiles: TFile[], rowCursor?: number | null) => {
             const selectionState = fileSelectionRef.current;
 
             // Find cursor position in the orderedFiles array
-            const cursorIndex = findFileIndex(orderedFiles, selectionState.selectedFile);
+            const cursorIndex = resolveRowCursorFileIndex(orderedFiles, selectionState.selectedFile, rowCursor);
 
             // If no cursor position (no selection), just select the clicked file
             if (cursorIndex === -1) {

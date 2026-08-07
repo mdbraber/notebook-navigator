@@ -10,6 +10,9 @@ main.js
 # Documentation
 docs/
 
+# Gitignored planning/scratch docs (superpowers skill workspace)
+.superpowers/
+
 # Obsidian
 .obsidian/
 *.obsidian/

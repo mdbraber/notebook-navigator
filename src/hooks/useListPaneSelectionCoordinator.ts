@@ -60,6 +60,14 @@ interface UseListPaneSelectionCoordinatorParams {
 }
 
 interface UseListPaneSelectionCoordinatorResult {
+    /**
+     * Reads the list row the cursor sits on, as an index into `orderedFiles`, or null when no row is
+     * remembered. Per-value grouping renders a note once per value it carries, so the selected path
+     * alone cannot say which of those rows the user is on.
+     */
+    getRowCursor: () => number | null;
+    /** Stores the list row the cursor sits on, or null to fall back to a note's first appearance. */
+    setRowCursor: (fileIndex: number | null) => void;
     selectFileFromList: (file: TFile, options?: SelectFileOptions) => void;
     selectAdjacentFile: (direction: 'next' | 'previous') => boolean;
     ensureSelectionForCurrentFilter: (options?: EnsureSelectionOptions) => EnsureSelectionResult;
@@ -96,6 +104,10 @@ export function useListPaneSelectionCoordinator({
     const commitPendingKeyboardSelectionOpenRef = useRef<() => void>(() => {});
     const focusedPaneRef = useRef(uiState.focusedPane);
     const lastSelectedFilePathRef = useRef<string | null>(null);
+    // Cursor row, as an index into orderedFiles. Selection identity stays the path, so every copy of a
+    // repeated note still highlights together; this only records which copy the cursor moved to. A ref
+    // rather than state: nothing renders from it, and a re-render per keystroke would be wasted work.
+    const rowCursorRef = useRef<number | null>(null);
 
     const debouncedOpenFileInWorkspace = useMemo(() => {
         return debounce(
@@ -118,6 +130,11 @@ export function useListPaneSelectionCoordinator({
             debouncedOpenFileInWorkspace.cancel();
         };
     }, [debouncedOpenFileInWorkspace]);
+
+    const getRowCursor = useCallback(() => rowCursorRef.current, []);
+    const setRowCursor = useCallback((fileIndex: number | null) => {
+        rowCursorRef.current = fileIndex;
+    }, []);
 
     const clearPendingKeyboardOpen = useCallback(() => {
         keyboardOpenRequestIdRef.current += 1;
@@ -357,7 +374,9 @@ export function useListPaneSelectionCoordinator({
     const selectAdjacentFile = useCallback(
         (direction: 'next' | 'previous') => {
             const currentFile = resolvePrimarySelectedFile(app, selectionState);
-            const targetFile = getAdjacentFile(orderedFiles, currentFile, direction);
+            // Steps from the row the cursor is on, not from the note's first appearance: a note repeated
+            // by per-value grouping would otherwise resolve to its own next copy and never move.
+            const targetFile = getAdjacentFile(orderedFiles, currentFile, direction, rowCursorRef.current);
             if (!targetFile) {
                 return false;
             }
@@ -397,13 +416,18 @@ export function useListPaneSelectionCoordinator({
             if (shouldMultiSelect) {
                 handleMultiSelectClick(file, fileIndex, clickOrderedFiles);
             } else if (modifierSelectEnabled && isShiftKey && fileIndex !== undefined) {
-                handleRangeSelectClick(file, fileIndex, clickOrderedFiles);
+                // The range anchors on the row the cursor is on, not on the selected note's first row.
+                handleRangeSelectClick(file, fileIndex, clickOrderedFiles, rowCursorRef.current);
             } else {
                 selectFileFromList(file, {
                     markUserSelection: true,
                     suppressOpen: shouldOpenInNewTab
                 });
             }
+
+            // The clicked row becomes the cursor. Manual sort edit clicks index into their own file
+            // array, so they clear the cursor rather than store a row from a different index space.
+            rowCursorRef.current = filesOverride ? null : (fileIndex ?? null);
 
             uiDispatch({ type: 'ACTIVATE_PANE', target: 'files' });
 
@@ -451,6 +475,13 @@ export function useListPaneSelectionCoordinator({
         const isKeyboardNavigation = selectionState.isKeyboardNavigation;
 
         if (isRevealOperation || isKeyboardNavigation) {
+            if (isRevealOperation) {
+                // A reveal selects from outside the list pane, so the remembered row no longer describes
+                // where the user is and may hold a different copy of a note repeated by per-value
+                // grouping. Clearing it makes the next arrow press resolve from the revealed note's first
+                // appearance. Only reveals clear it: keyboard navigation is what stores the row.
+                rowCursorRef.current = null;
+            }
             if (isKeyboardNavigation) {
                 selectionDispatch({ type: 'SET_KEYBOARD_NAVIGATION', isKeyboardNavigation: false });
             }
@@ -543,6 +574,8 @@ export function useListPaneSelectionCoordinator({
     ]);
 
     return {
+        getRowCursor,
+        setRowCursor,
         selectFileFromList,
         selectAdjacentFile,
         ensureSelectionForCurrentFilter,

@@ -286,6 +286,16 @@ export function renderListPaneTab(context: SettingsTabContext): void {
         }
     );
 
+    addToggleSetting(
+        groupHeadersGroup.addSetting,
+        strings.settings.items.inheritPropertyValueHeaderAppearance.name,
+        strings.settings.items.inheritPropertyValueHeaderAppearance.desc,
+        () => plugin.settings.inheritPropertyValueHeaderAppearance,
+        value => {
+            plugin.settings.inheritPropertyValueHeaderAppearance = value;
+        }
+    );
+
     groupHeadersGroup.addSetting(setting => {
         setting
             .setName(strings.settings.items.manualSortGroupHeaderProperty.name)
