@@ -25,6 +25,7 @@ import { useUIDispatch, useUIState } from '../context/UIStateContext';
 import { useUXPreferences } from '../context/UXPreferencesContext';
 import { useFileOpener } from './useFileOpener';
 import { useMultiSelection } from './useMultiSelection';
+import { buildFileIndexToListIndexMap } from './listPaneData/listItems';
 import { TIMEOUTS } from '../types/obsidian-extended';
 import { runAsyncAction } from '../utils/async';
 import { isKeyboardEventContextBlocked } from '../utils/domUtils';
@@ -33,6 +34,7 @@ import { openFileInContext } from '../utils/openFileInContext';
 import { supportsKeyboardInteractions } from '../utils/paneLayout';
 import { getAdjacentFile } from '../utils/selectionUtils';
 import type { Align } from '../types/scroll';
+import type { ListPaneItem } from '../types/virtualization';
 
 export interface SelectFileOptions {
     markKeyboardNavigation?: boolean;
@@ -57,6 +59,11 @@ interface UseListPaneSelectionCoordinatorParams {
     orderedFiles: TFile[];
     filePathToIndex: Map<string, number>;
     scrollToIndexSafely: (index: number, align: Align) => void;
+    /**
+     * Full virtualized row list (files, headers, spacers). Used only to map a landed row in
+     * `orderedFiles` to its virtualized list index for scrolling — see `listIndexByFileIndex` below.
+     */
+    listItems: ListPaneItem[];
 }
 
 interface UseListPaneSelectionCoordinatorResult {
@@ -83,7 +90,8 @@ export function useListPaneSelectionCoordinator({
     rootContainerRef,
     orderedFiles,
     filePathToIndex,
-    scrollToIndexSafely
+    scrollToIndexSafely,
+    listItems
 }: UseListPaneSelectionCoordinatorParams): UseListPaneSelectionCoordinatorResult {
     const { app, commandQueue, isMobile } = useServices();
     const openFileInWorkspace = useFileOpener();
@@ -95,6 +103,12 @@ export function useListPaneSelectionCoordinator({
     const uxPreferences = useUXPreferences();
     const isSearchActive = uxPreferences.searchActive;
     const { handleMultiSelectClick, handleRangeSelectClick, isFileSelected } = useMultiSelection();
+
+    // Row of each entry in orderedFiles, mirroring the map useListPaneKeyboard builds from the same
+    // listItems. A note grouped per value renders once per value, so the virtualized row for a given
+    // orderedFiles position cannot be recovered from filePathToIndex alone (that map only knows a note's
+    // first appearance).
+    const listIndexByFileIndex = useMemo(() => buildFileIndexToListIndexMap(listItems), [listItems]);
 
     const isUserSelectionRef = useRef(false);
     const keyboardOpenPendingRef = useRef(false);
@@ -392,21 +406,29 @@ export function useListPaneSelectionCoordinator({
             // instead of resolving back to its first appearance on the next call.
             rowCursorRef.current = targetFileIndex;
 
-            // filePathToIndex only records a note's first appearance (see buildFilePathToIndexMap), so for
-            // a repeated note this can scroll to a different copy than the row just selected. Translating
-            // targetFileIndex into the exact virtualized row would need the file-index -> list-index map
-            // that useListPaneKeyboard builds from `listItems` (buildFileIndexToListIndexMap), and this
-            // coordinator is never given `listItems` — only `orderedFiles`. Rather than plumb that
-            // dependency through, this keeps the existing path-based scroll target as a documented
-            // fallback; see the fix report for the tradeoff.
-            const virtualIndex = filePathToIndex.get(targetFile.path);
+            // Scroll to the row actually landed on, not just any row holding this path: filePathToIndex
+            // only records a note's first appearance (see buildFilePathToIndexMap), so for a repeated note
+            // it can point at a different copy than the one just selected. listIndexByFileIndex is
+            // index-aligned with orderedFiles (both built from listItems by the same FILE-row scan), so it
+            // translates targetFileIndex to the exact virtualized row. Fall back to the path-based lookup
+            // only if that ever comes up empty.
+            const virtualIndex = listIndexByFileIndex[targetFileIndex] ?? filePathToIndex.get(targetFile.path);
             if (virtualIndex !== undefined) {
                 scrollToIndexSafely(virtualIndex, 'auto');
             }
 
             return true;
         },
-        [app, filePathToIndex, orderedFiles, scrollToIndexSafely, selectFileFromList, selectionState, settings.enterToOpenFiles]
+        [
+            app,
+            filePathToIndex,
+            listIndexByFileIndex,
+            orderedFiles,
+            scrollToIndexSafely,
+            selectFileFromList,
+            selectionState,
+            settings.enterToOpenFiles
+        ]
     );
 
     const handleFileClick = useCallback(

@@ -312,8 +312,11 @@ export function orderFilesByReference(files: readonly TFile[], orderedFiles?: re
  *
  * Returns both the file and the row it landed on, not just the file: a repeated note cannot be told apart
  * from its own other copies by path alone, so a caller that drops the index has no way to advance its
- * cursor and will keep resolving from the note's first appearance on every subsequent call. Returning the
- * pair forces every caller to decide what to do with the landed row instead of silently discarding it.
+ * cursor and will keep resolving from the note's first appearance on every subsequent call. This return
+ * type makes the old bare-`TFile` mistake impossible to reintroduce by accident and puts the index in
+ * plain sight at every call site; it does not force a caller to use it — a caller with no cursor to
+ * advance, like the command-palette path in navigatorCommandHandlers.ts, still legitimately reads only
+ * `.file`.
  */
 export function getAdjacentFile(
     files: TFile[],

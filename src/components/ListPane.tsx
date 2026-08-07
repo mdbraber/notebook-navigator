@@ -1088,7 +1088,8 @@ export const ListPane = React.memo(
             rootContainerRef: props.rootContainerRef,
             orderedFiles,
             filePathToIndex,
-            scrollToIndexSafely
+            scrollToIndexSafely,
+            listItems
         });
         ensureSelectionForCurrentFilterRef.current = ensureSelectionForCurrentFilter;
         const toggleNoteShortcut = React.useCallback(async (file: TFile, shortcutKey: string | undefined) => {
