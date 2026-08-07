@@ -30,42 +30,64 @@ describe('getAdjacentFile', () => {
     const missingFile = createTestTFile('Notes/Missing.md');
 
     it('advances from the row the cursor sits on rather than the first appearance', () => {
-        expect(getAdjacentFile(repeatedFiles, dune, 'next', 1)?.path).toBe(pkm.path);
+        expect(getAdjacentFile(repeatedFiles, dune, 'next', 1)?.file.path).toBe(pkm.path);
     });
 
     it('advances to the second appearance when the cursor sits on the first', () => {
-        expect(getAdjacentFile(repeatedFiles, dune, 'next', 0)?.path).toBe(dune.path);
+        expect(getAdjacentFile(repeatedFiles, dune, 'next', 0)?.file.path).toBe(dune.path);
     });
 
     it('steps back from the row the cursor sits on', () => {
-        expect(getAdjacentFile(repeatedFiles, dune, 'previous', 1)?.path).toBe(dune.path);
+        expect(getAdjacentFile(repeatedFiles, dune, 'previous', 1)?.file.path).toBe(dune.path);
         expect(getAdjacentFile(repeatedFiles, dune, 'previous', 0)).toBeNull();
-        expect(getAdjacentFile(repeatedFiles, pkm, 'previous', 2)?.path).toBe(dune.path);
+        expect(getAdjacentFile(repeatedFiles, pkm, 'previous', 2)?.file.path).toBe(dune.path);
     });
 
     it('falls back to the first appearance when the cursor is stale, cleared or out of range', () => {
         // A cursor row holding a different path, or no row at all, must behave exactly as before.
-        expect(getAdjacentFile(repeatedFiles, dune, 'next', 2)?.path).toBe(dune.path);
-        expect(getAdjacentFile(repeatedFiles, dune, 'next', null)?.path).toBe(dune.path);
-        expect(getAdjacentFile(repeatedFiles, dune, 'next', 99)?.path).toBe(dune.path);
+        expect(getAdjacentFile(repeatedFiles, dune, 'next', 2)?.file.path).toBe(dune.path);
+        expect(getAdjacentFile(repeatedFiles, dune, 'next', null)?.file.path).toBe(dune.path);
+        expect(getAdjacentFile(repeatedFiles, dune, 'next', 99)?.file.path).toBe(dune.path);
     });
 
     it('returns the first or last file when there is no current file', () => {
-        expect(getAdjacentFile(repeatedFiles, null, 'next', null)?.path).toBe(dune.path);
-        expect(getAdjacentFile(repeatedFiles, null, 'previous', null)?.path).toBe(pkm.path);
+        expect(getAdjacentFile(repeatedFiles, null, 'next', null)?.file.path).toBe(dune.path);
+        expect(getAdjacentFile(repeatedFiles, null, 'previous', null)?.file.path).toBe(pkm.path);
         // A stored row is irrelevant without a current file to anchor it.
-        expect(getAdjacentFile(repeatedFiles, null, 'next', 1)?.path).toBe(dune.path);
+        expect(getAdjacentFile(repeatedFiles, null, 'next', 1)?.file.path).toBe(dune.path);
     });
 
     it('returns the first or last file when the current file is not in the list', () => {
-        expect(getAdjacentFile(repeatedFiles, missingFile, 'next', 1)?.path).toBe(dune.path);
-        expect(getAdjacentFile(repeatedFiles, missingFile, 'previous', 1)?.path).toBe(pkm.path);
+        expect(getAdjacentFile(repeatedFiles, missingFile, 'next', 1)?.file.path).toBe(dune.path);
+        expect(getAdjacentFile(repeatedFiles, missingFile, 'previous', 1)?.file.path).toBe(pkm.path);
     });
 
     it('returns null past either end of the list and for an empty list', () => {
         expect(getAdjacentFile(repeatedFiles, pkm, 'next', 2)).toBeNull();
         expect(getAdjacentFile([], dune, 'next', null)).toBeNull();
         expect(getAdjacentFile([], null, 'previous', null)).toBeNull();
+    });
+
+    describe('with three appearances of the same note', () => {
+        // orderedFiles = [Dune, Dune, PKM, Dune]. A cursor on any one row must walk to the very next row,
+        // not bounce back to Dune's first appearance, and the returned index must name that exact row —
+        // that is the point of returning { file, index } instead of just a TFile.
+        const threeAppearanceFiles = [dune, dune, pkm, dune];
+
+        it('from row 1 (second Dune), next returns PKM at index 2', () => {
+            const result = getAdjacentFile(threeAppearanceFiles, dune, 'next', 1);
+            expect(result).toEqual({ file: pkm, index: 2 });
+        });
+
+        it('from row 2 (PKM), next returns the third Dune at index 3', () => {
+            const result = getAdjacentFile(threeAppearanceFiles, pkm, 'next', 2);
+            expect(result).toEqual({ file: dune, index: 3 });
+        });
+
+        it('from row 3 (third Dune), next returns null (end of list)', () => {
+            const result = getAdjacentFile(threeAppearanceFiles, dune, 'next', 3);
+            expect(result).toBeNull();
+        });
     });
 });
 

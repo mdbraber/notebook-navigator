@@ -376,10 +376,11 @@ export function useListPaneSelectionCoordinator({
             const currentFile = resolvePrimarySelectedFile(app, selectionState);
             // Steps from the row the cursor is on, not from the note's first appearance: a note repeated
             // by per-value grouping would otherwise resolve to its own next copy and never move.
-            const targetFile = getAdjacentFile(orderedFiles, currentFile, direction, rowCursorRef.current);
-            if (!targetFile) {
+            const adjacent = getAdjacentFile(orderedFiles, currentFile, direction, rowCursorRef.current);
+            if (!adjacent) {
                 return false;
             }
+            const { file: targetFile, index: targetFileIndex } = adjacent;
 
             selectFileFromList(targetFile, {
                 markKeyboardNavigation: true,
@@ -387,6 +388,17 @@ export function useListPaneSelectionCoordinator({
                 suppressOpen: settings.enterToOpenFiles
             });
 
+            // The landed row becomes the cursor so a repeated note keeps stepping through its own copies
+            // instead of resolving back to its first appearance on the next call.
+            rowCursorRef.current = targetFileIndex;
+
+            // filePathToIndex only records a note's first appearance (see buildFilePathToIndexMap), so for
+            // a repeated note this can scroll to a different copy than the row just selected. Translating
+            // targetFileIndex into the exact virtualized row would need the file-index -> list-index map
+            // that useListPaneKeyboard builds from `listItems` (buildFileIndexToListIndexMap), and this
+            // coordinator is never given `listItems` — only `orderedFiles`. Rather than plumb that
+            // dependency through, this keeps the existing path-based scroll target as a documented
+            // fallback; see the fix report for the tradeoff.
             const virtualIndex = filePathToIndex.get(targetFile.path);
             if (virtualIndex !== undefined) {
                 scrollToIndexSafely(virtualIndex, 'auto');

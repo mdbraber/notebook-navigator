@@ -312,10 +312,11 @@ async function selectAdjacentFileWithoutNavigatorView(plugin: NotebookNavigatorP
 
     // No navigator view is mounted here, so there is no list pane cursor to honour. This file list comes
     // straight from the file finder and holds each note once, so first-appearance resolution is exact.
-    const targetFile = getAdjacentFile(files, currentFile, direction, null);
-    if (!targetFile) {
+    const adjacentFile = getAdjacentFile(files, currentFile, direction, null);
+    if (!adjacentFile) {
         return false;
     }
+    const targetFile = adjacentFile.file;
     const leaf = app.workspace.getLeaf(false);
     if (!leaf) {
         return false;

@@ -309,13 +309,18 @@ export function orderFilesByReference(files: readonly TFile[], orderedFiles?: re
  * first appearance would step onto the note's own next copy instead of leaving it. Callers outside the
  * list pane pass null and keep the first-appearance behaviour, which is correct for their deduplicated
  * file lists.
+ *
+ * Returns both the file and the row it landed on, not just the file: a repeated note cannot be told apart
+ * from its own other copies by path alone, so a caller that drops the index has no way to advance its
+ * cursor and will keep resolving from the note's first appearance on every subsequent call. Returning the
+ * pair forces every caller to decide what to do with the landed row instead of silently discarding it.
  */
 export function getAdjacentFile(
     files: TFile[],
     targetFile: TFile | null,
     direction: 'next' | 'previous',
     rowCursor: number | null
-): TFile | null {
+): { file: TFile; index: number } | null {
     if (files.length === 0) {
         return null;
     }
@@ -328,7 +333,12 @@ export function getAdjacentFile(
         return null;
     }
 
-    return files[targetIndex] ?? null;
+    const file = files[targetIndex];
+    if (!file) {
+        return null;
+    }
+
+    return { file, index: targetIndex };
 }
 
 /**
