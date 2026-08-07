@@ -32,7 +32,7 @@ import { isKeyboardEventContextBlocked } from '../utils/domUtils';
 import { isCmdCtrlModifierPressed, isMultiSelectModifierPressed } from '../utils/keyboardOpenContext';
 import { openFileInContext } from '../utils/openFileInContext';
 import { supportsKeyboardInteractions } from '../utils/paneLayout';
-import { getAdjacentFile } from '../utils/selectionUtils';
+import { resolveAdjacentFileSelection } from '../utils/selectionUtils';
 import type { Align } from '../types/scroll';
 import type { ListPaneItem } from '../types/virtualization';
 
@@ -389,14 +389,21 @@ export function useListPaneSelectionCoordinator({
         (direction: 'next' | 'previous') => {
             const currentFile = resolvePrimarySelectedFile(app, selectionState);
             // Steps from the row the cursor is on, not from the note's first appearance: a note repeated
-            // by per-value grouping would otherwise resolve to its own next copy and never move.
-            const adjacent = getAdjacentFile(orderedFiles, currentFile, direction, rowCursorRef.current);
-            if (!adjacent) {
+            // by per-value grouping would otherwise resolve to its own next copy and never move. See
+            // resolveAdjacentFileSelection for how the landing row and scroll target are chosen.
+            const resolved = resolveAdjacentFileSelection({
+                files: orderedFiles,
+                currentFile,
+                direction,
+                rowCursor: rowCursorRef.current,
+                listIndexByFileIndex,
+                filePathToIndex
+            });
+            if (!resolved) {
                 return false;
             }
-            const { file: targetFile, index: targetFileIndex } = adjacent;
 
-            selectFileFromList(targetFile, {
+            selectFileFromList(resolved.file, {
                 markKeyboardNavigation: true,
                 markUserSelection: true,
                 suppressOpen: settings.enterToOpenFiles
@@ -404,17 +411,10 @@ export function useListPaneSelectionCoordinator({
 
             // The landed row becomes the cursor so a repeated note keeps stepping through its own copies
             // instead of resolving back to its first appearance on the next call.
-            rowCursorRef.current = targetFileIndex;
+            rowCursorRef.current = resolved.rowCursor;
 
-            // Scroll to the row actually landed on, not just any row holding this path: filePathToIndex
-            // only records a note's first appearance (see buildFilePathToIndexMap), so for a repeated note
-            // it can point at a different copy than the one just selected. listIndexByFileIndex is
-            // index-aligned with orderedFiles (both built from listItems by the same FILE-row scan), so it
-            // translates targetFileIndex to the exact virtualized row. Fall back to the path-based lookup
-            // only if that ever comes up empty.
-            const virtualIndex = listIndexByFileIndex[targetFileIndex] ?? filePathToIndex.get(targetFile.path);
-            if (virtualIndex !== undefined) {
-                scrollToIndexSafely(virtualIndex, 'auto');
+            if (resolved.scrollIndex !== undefined) {
+                scrollToIndexSafely(resolved.scrollIndex, 'auto');
             }
 
             return true;

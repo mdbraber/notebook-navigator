@@ -345,6 +345,42 @@ export function getAdjacentFile(
 }
 
 /**
+ * Resolve everything a next/previous-note command in the list pane must apply: the landing file, the
+ * cursor row it lands on, and the row to scroll into view.
+ *
+ * Builds on `getAdjacentFile` for the landing file and row rather than re-deriving them, then adds the
+ * two effects a list-pane caller applies alongside selection: the landed row becomes the new cursor (so a
+ * repeated note keeps stepping through its own copies instead of resolving back to its first appearance
+ * on the next call), and the scroll target is read from `listIndexByFileIndex` at that landed row —
+ * `filePathToIndex` only records a note's first appearance (see `buildFilePathToIndexMap`), so for a
+ * repeated note it can point at a different copy than the one just selected. `filePathToIndex` is used
+ * only as a fallback when `listIndexByFileIndex` has no entry for the landed row; a `scrollIndex` of
+ * `undefined` means neither source has one and the caller should not scroll.
+ *
+ * Returns null when there is no adjacent file, mirroring `getAdjacentFile`.
+ */
+export function resolveAdjacentFileSelection(params: {
+    files: TFile[];
+    currentFile: TFile | null;
+    direction: 'next' | 'previous';
+    rowCursor: number | null;
+    listIndexByFileIndex: readonly number[];
+    filePathToIndex: ReadonlyMap<string, number>;
+}): { file: TFile; rowCursor: number; scrollIndex: number | undefined } | null {
+    const { files, currentFile, direction, rowCursor, listIndexByFileIndex, filePathToIndex } = params;
+
+    const adjacent = getAdjacentFile(files, currentFile, direction, rowCursor);
+    if (!adjacent) {
+        return null;
+    }
+
+    const { file, index } = adjacent;
+    const scrollIndex = listIndexByFileIndex[index] ?? filePathToIndex.get(file.path);
+
+    return { file, rowCursor: index, scrollIndex };
+}
+
+/**
  * Update selection after a file operation (delete, move, etc.)
  * Handles both selection state update and opening the file in editor
  * @param nextFile - The file to select, or null to clear selection
