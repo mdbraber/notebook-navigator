@@ -25,26 +25,8 @@ import { NavigationPaneItemType } from '../../src/types';
 import type { PropertyTreeNode } from '../../src/types/storage';
 import type { NavigationNoteCounts } from '../../src/hooks/navigationPane/data/useNavigationNoteCounts';
 import { useNavigationNoteCounts } from '../../src/hooks/navigationPane/data/useNavigationNoteCounts';
-import { buildPropertyKeyNodeId, buildPropertyValueNodeId } from '../../src/utils/propertyTree';
-
-function createPropertyKeyNode(key: string, name: string, notes: string[], values: PropertyTreeNode[] = []): PropertyTreeNode {
-    const node: PropertyTreeNode = {
-        id: buildPropertyKeyNodeId(key),
-        kind: 'key',
-        key,
-        valuePath: null,
-        name,
-        displayPath: name,
-        children: new Map(),
-        notesWithValue: new Set(notes)
-    };
-
-    values.forEach(valueNode => {
-        node.children.set(valueNode.id, valueNode);
-    });
-
-    return node;
-}
+import { buildPropertyValueNodeId } from '../../src/utils/propertyTree';
+import { EMPTY_PROPERTY_HIERARCHY_INDEX, type PropertyHierarchyIndex } from '../../src/utils/propertyHierarchy';
 
 function createPropertyValueNode(key: string, valuePath: string, name: string, notes: string[]): PropertyTreeNode {
     return {
@@ -59,62 +41,74 @@ function createPropertyValueNode(key: string, valuePath: string, name: string, n
     };
 }
 
+function captureNoteCounts(params: { valueNode: PropertyTreeNode; propertyHierarchyIndex: PropertyHierarchyIndex }): NavigationNoteCounts {
+    const app = new App();
+    let captured: NavigationNoteCounts | null = null;
+
+    function Harness() {
+        captured = useNavigationNoteCounts({
+            app,
+            isVisible: true,
+            settings: {
+                ...DEFAULT_SETTINGS,
+                showNoteCount: true
+            },
+            propertiesSectionActive: true,
+            itemsWithMetadata: [
+                {
+                    type: NavigationPaneItemType.PROPERTY_VALUE,
+                    data: params.valueNode,
+                    level: 1,
+                    key: params.valueNode.id
+                }
+            ],
+            includeDescendantNotes: true,
+            visibleTaggedCount: 0,
+            untaggedCount: 0,
+            propertyCollectionCount: undefined,
+            propertyHierarchyIndex: params.propertyHierarchyIndex,
+            effectiveFrontmatterExclusions: [],
+            hiddenFolders: [],
+            descendantExcludedFolders: [],
+            hiddenFileTags: [],
+            showHiddenItems: false,
+            folderCountFileNameMatcher: null,
+            fileVisibility: DEFAULT_SETTINGS.vaultProfiles[0].fileVisibility,
+            folderChangeVersion: 0,
+            vaultChangeVersion: 0,
+            metadataVisibilityVersion: 0,
+            tagDataVersion: 0
+        });
+        return null;
+    }
+
+    renderToStaticMarkup(React.createElement(Harness));
+
+    expect(captured).not.toBeNull();
+    if (!captured) {
+        throw new Error('Expected hook result');
+    }
+    return captured;
+}
+
 describe('useNavigationNoteCounts', () => {
-    it('uses the rendered property tree when computing scoped property totals', () => {
-        const globalValueNode = createPropertyValueNode('status', 'open', 'Open', ['notes/a.md', 'notes/b.md']);
-        const globalKeyNode = createPropertyKeyNode('status', 'Status', ['notes/a.md', 'notes/b.md'], [globalValueNode]);
-        const scopedValueNode = createPropertyValueNode('status', 'open', 'Open', ['notes/a.md']);
-        const scopedKeyNode = createPropertyKeyNode('status', 'Status', ['notes/a.md'], [scopedValueNode]);
+    it('falls back to the value node own note count when its key is not hierarchical', () => {
+        const valueNode = createPropertyValueNode('status', 'open', 'Open', ['notes/a.md']);
 
-        const app = new App();
-        let captured: NavigationNoteCounts | null = null;
+        const result = captureNoteCounts({ valueNode, propertyHierarchyIndex: EMPTY_PROPERTY_HIERARCHY_INDEX });
 
-        function Harness() {
-            captured = useNavigationNoteCounts({
-                app,
-                isVisible: true,
-                settings: {
-                    ...DEFAULT_SETTINGS,
-                    showNoteCount: true
-                },
-                propertiesSectionActive: true,
-                itemsWithMetadata: [
-                    {
-                        type: NavigationPaneItemType.PROPERTY_VALUE,
-                        data: scopedValueNode,
-                        level: 1,
-                        key: scopedValueNode.id
-                    }
-                ],
-                includeDescendantNotes: true,
-                visibleTaggedCount: 0,
-                untaggedCount: 0,
-                renderPropertyTree: new Map([[scopedKeyNode.key, scopedKeyNode]]),
-                propertyCollectionCount: undefined,
-                effectiveFrontmatterExclusions: [],
-                hiddenFolders: [],
-                descendantExcludedFolders: [],
-                hiddenFileTags: [],
-                showHiddenItems: false,
-                folderCountFileNameMatcher: null,
-                fileVisibility: DEFAULT_SETTINGS.vaultProfiles[0].fileVisibility,
-                folderChangeVersion: 0,
-                vaultChangeVersion: 0,
-                metadataVisibilityVersion: 0,
-                tagDataVersion: 0
-            });
-            return null;
-        }
+        expect(result.propertyCounts.get(valueNode.id)).toEqual({ current: 1, descendants: 0, total: 1 });
+    });
 
-        renderToStaticMarkup(React.createElement(Harness));
+    it('uses the hierarchy index subtree count for a hierarchical property value', () => {
+        const valueNode = createPropertyValueNode('projects', 'fiddle', 'Fiddle', ['notes/a.md']);
+        const propertyHierarchyIndex: PropertyHierarchyIndex = {
+            ...EMPTY_PROPERTY_HIERARCHY_INDEX,
+            subtreeCount: new Map([[valueNode.id, 3]])
+        };
 
-        expect(captured).not.toBeNull();
-        if (!captured) {
-            throw new Error('Expected hook result');
-        }
-        const result = captured as NavigationNoteCounts;
+        const result = captureNoteCounts({ valueNode, propertyHierarchyIndex });
 
-        expect(globalKeyNode.notesWithValue.size).toBe(2);
-        expect(result.propertyCounts.get(scopedValueNode.id)).toEqual({ current: 1, descendants: 0, total: 1 });
+        expect(result.propertyCounts.get(valueNode.id)).toEqual({ current: 1, descendants: 2, total: 3 });
     });
 });

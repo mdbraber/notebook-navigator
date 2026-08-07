@@ -46,6 +46,8 @@ interface PropertyTreeItemProps {
     onNameMouseDown?: (event: React.MouseEvent<HTMLSpanElement>) => void;
     onToggleAllSiblings?: () => void;
     countInfo?: NoteCountInfo;
+    /** Overrides the children.size check for hierarchical property values. Absent for key nodes and flat values. */
+    hasChildren?: boolean;
     showFileCount: boolean;
     color?: string;
     backgroundColor?: string;
@@ -72,6 +74,7 @@ export const PropertyTreeItem = React.memo(
             onNameMouseDown,
             onToggleAllSiblings,
             countInfo,
+            hasChildren: hasChildrenProp,
             showFileCount,
             color,
             backgroundColor,
@@ -119,7 +122,7 @@ export const PropertyTreeItem = React.memo(
         const operatorIconName =
             inclusionOperator === 'OR' ? 'lucide-squares-unite' : inclusionOperator === 'AND' ? 'lucide-squares-intersect' : null;
         const shouldDisplayOperatorIndicator = searchMatch === 'include' && operatorIconName !== null;
-        const hasChildren = useMemo(() => propertyNode.children.size > 0, [propertyNode.children.size]);
+        const hasChildren = useMemo(() => hasChildrenProp ?? propertyNode.children.size > 0, [hasChildrenProp, propertyNode.children.size]);
         const applyColorToName = Boolean(color) && !settings.colorIconOnly;
         const propertyNoteLinksEnabled = settings.enablePropertyNotes && settings.enablePropertyNoteLinks;
 

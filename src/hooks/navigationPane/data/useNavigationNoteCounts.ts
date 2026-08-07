@@ -30,7 +30,8 @@ import { getDBInstanceOrNull } from '../../../storage/fileOperations';
 import { getFolderNoteDetectionSettings } from '../../../utils/folderNoteLookup';
 import { calculateFolderNoteCounts } from '../../../utils/noteCountUtils';
 import type { PropertyTreeNode } from '../../../types/storage';
-import { getDirectPropertyKeyNoteCount, getTotalPropertyNoteCount } from '../../../utils/propertyTree';
+import { getDirectPropertyKeyNoteCount } from '../../../utils/propertyTree';
+import { createPropertyNoteCountInfo, type PropertyHierarchyIndex } from '../../../utils/propertyHierarchy';
 
 export interface NavigationNoteCounts {
     tagCounts: Map<string, NoteCountInfo>;
@@ -47,8 +48,9 @@ export interface UseNavigationNoteCountsParams {
     includeDescendantNotes: boolean;
     visibleTaggedCount: number;
     untaggedCount: number;
-    renderPropertyTree: Map<string, PropertyTreeNode>;
     propertyCollectionCount: NoteCountInfo | undefined;
+    /** Additive nesting over property values for keys marked Hierarchical. Empty when none are. */
+    propertyHierarchyIndex: PropertyHierarchyIndex;
     effectiveFrontmatterExclusions: string[];
     hiddenFolders: string[];
     descendantExcludedFolders: string[];
@@ -73,8 +75,8 @@ export function useNavigationNoteCounts(params: UseNavigationNoteCountsParams): 
         includeDescendantNotes,
         visibleTaggedCount,
         untaggedCount,
-        renderPropertyTree,
         propertyCollectionCount,
+        propertyHierarchyIndex,
         effectiveFrontmatterExclusions,
         hiddenFolders,
         descendantExcludedFolders,
@@ -194,21 +196,9 @@ export function useNavigationNoteCounts(params: UseNavigationNoteCountsParams): 
                 return;
             }
 
-            const current = node.notesWithValue.size;
-            if (!includeDescendantNotes || !node.valuePath) {
-                counts.set(node.id, { current, descendants: 0, total: current });
-                return;
-            }
-
-            const keyNode = renderPropertyTree.get(node.key);
-            if (!keyNode) {
-                counts.set(node.id, { current, descendants: 0, total: current });
-                return;
-            }
-
-            const total = getTotalPropertyNoteCount(keyNode, node.valuePath);
-            const descendants = Math.max(total - current, 0);
-            counts.set(node.id, { current, descendants, total });
+            // Falls back to the node's own count whenever it has no entry in the index, which is every
+            // node while its key is not hierarchical, so flat behaviour is preserved without a branch.
+            counts.set(node.id, createPropertyNoteCountInfo(node, propertyHierarchyIndex, includeDescendantNotes));
         });
 
         return counts;
@@ -218,7 +208,7 @@ export function useNavigationNoteCounts(params: UseNavigationNoteCountsParams): 
         itemsWithMetadata,
         propertiesSectionActive,
         propertyCollectionCount,
-        renderPropertyTree,
+        propertyHierarchyIndex,
         settings.showNoteCount
     ]);
 

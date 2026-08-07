@@ -245,6 +245,9 @@ export function NavigationPaneTreeRow({
             const searchMatch = getNavigationItemSearchMatch(item, searchHighlights);
             const inclusionOperator =
                 searchMatch === 'include' ? searchHighlights.getPropertyInclusionOperator(propertyNode.id) : undefined;
+            // Only a PROPERTY_VALUE item carries hasChildren, set from the hierarchy index. A key node
+            // falls back to its own children.size check inside PropertyTreeItem.
+            const hasChildren = item.type === NavigationPaneItemType.PROPERTY_VALUE ? item.hasChildren : undefined;
 
             return (
                 <PropertyTreeItem
@@ -258,6 +261,7 @@ export function NavigationPaneTreeRow({
                     onNameClick={event => tree.handlePropertyNameClick(propertyNode, event)}
                     onNameMouseDown={event => tree.handlePropertyNameMouseDown(propertyNode, event)}
                     onToggleAllSiblings={() => tree.handlePropertyToggleAllSiblings(propertyNode)}
+                    hasChildren={hasChildren}
                     color={item.color}
                     backgroundColor={getSolidBackground(item.backgroundColor)}
                     adjacentFilledClassName={adjacentFilledClassName}

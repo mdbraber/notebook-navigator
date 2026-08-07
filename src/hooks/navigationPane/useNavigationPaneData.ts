@@ -186,12 +186,12 @@ export function useNavigationPaneData({
         rootOrderingTagTree,
         resolvedRootTagKeys,
         tagsVirtualFolderHasChildren,
-        renderPropertyTree,
         rootOrderingPropertyTree,
         propertyItems,
         propertiesSectionActive,
         resolvedRootPropertyKeys,
-        propertyCollectionCount
+        propertyCollectionCount,
+        propertyHierarchyIndex
     } = treeSections;
 
     /**
@@ -250,8 +250,8 @@ export function useNavigationPaneData({
         includeDescendantNotes,
         visibleTaggedCount,
         untaggedCount,
-        renderPropertyTree,
         propertyCollectionCount,
+        propertyHierarchyIndex,
         effectiveFrontmatterExclusions,
         hiddenFolders,
         descendantExcludedFolders,

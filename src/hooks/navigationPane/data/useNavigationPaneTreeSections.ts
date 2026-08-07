@@ -39,8 +39,11 @@ import type { NavigationSelectionScope } from '../../../utils/selectionUtils';
 import { getFilesForNavigationSelection } from '../../../utils/selectionUtils';
 import { buildTagTreeFromFilePaths, excludeFromTagTree } from '../../../utils/tagTree';
 import { buildPropertyTreeFromFilePaths, getTotalPropertyNoteCount } from '../../../utils/propertyTree';
+import { buildPropertyHierarchyIndex, EMPTY_PROPERTY_HIERARCHY_INDEX, type PropertyHierarchyIndex } from '../../../utils/propertyHierarchy';
+import { resolvePropertyNote } from '../../../utils/propertyNoteLookup';
 import {
     flattenFolderTree,
+    flattenPropertyHierarchy,
     flattenTagTree,
     comparePropertyOrderWithFallback,
     compareTagOrderWithFallback
@@ -89,6 +92,10 @@ export interface NavigationPaneTreeSectionsResult {
     propertiesSectionActive: boolean;
     resolvedRootPropertyKeys: string[];
     propertyCollectionCount: NoteCountInfo | undefined;
+    /** Additive nesting over property values for keys marked Hierarchical. Empty when none are. */
+    propertyHierarchyIndex: PropertyHierarchyIndex;
+    /** First placement key emitted for each property value node id, for Task 5's per-placement reveal. */
+    firstPlacementByNodeId: Map<string, string>;
 }
 
 interface ResolvedRootTagOrdering {
@@ -735,6 +742,27 @@ export function useNavigationPaneTreeSections({
         return scopedPropertySectionSource?.propertyTree ?? globalVisiblePropertyTree;
     }, [globalVisiblePropertyTree, scopedPropertySectionSource, settings.showProperties]);
 
+    // Normalized property keys the user marked Hierarchical. Keyed the same way PropertyTreeNode.key
+    // and renderPropertyTree are, since settings.propertyHierarchicalKeys only ever holds true entries.
+    const hierarchicalPropertyKeys = useMemo(
+        () => new Set(Object.keys(settings.propertyHierarchicalKeys ?? {})),
+        [settings.propertyHierarchicalKeys]
+    );
+
+    // Its own memo so it does not recompute when unrelated settings change. The depth cap
+    // (propertyHierarchyMaxDepth) is deliberately not a dependency: the cap is applied by the
+    // flattener, so the index stays depth independent and subtree counts do not shift when it changes.
+    const propertyHierarchyIndex = useMemo(() => {
+        if (hierarchicalPropertyKeys.size === 0) {
+            return EMPTY_PROPERTY_HIERARCHY_INDEX;
+        }
+        return buildPropertyHierarchyIndex({
+            tree: renderPropertyTree,
+            hierarchicalKeys: hierarchicalPropertyKeys,
+            resolveValueNotePath: node => resolvePropertyNote(node, app)?.path ?? null
+        });
+    }, [app, hierarchicalPropertyKeys, renderPropertyTree]);
+
     const effectiveRootPropertyComparator = useMemo(
         () =>
             getEffectiveRootPropertyComparator({
@@ -823,14 +851,18 @@ export function useNavigationPaneTreeSections({
         sourceState.hasRootPropertyShortcut
     ]);
 
-    const { propertyItems, propertiesSectionActive } = useMemo((): {
+    const { propertyItems, propertiesSectionActive, firstPlacementByNodeId } = useMemo((): {
         propertyItems: CombinedNavigationItem[];
         propertiesSectionActive: boolean;
+        firstPlacementByNodeId: Map<string, string>;
     } => {
+        const firstPlacementByNodeId = new Map<string, string>();
+
         if (!propertySectionBase.propertiesSectionActive) {
             return {
                 propertyItems: [],
-                propertiesSectionActive: false
+                propertiesSectionActive: false,
+                firstPlacementByNodeId
             };
         }
 
@@ -861,9 +893,34 @@ export function useNavigationPaneTreeSections({
             });
 
             if (!expansionState.expandedVirtualFolders.has(rootId)) {
-                return { propertyItems: items, propertiesSectionActive: true };
+                return { propertyItems: items, propertiesSectionActive: true, firstPlacementByNodeId };
             }
         }
+
+        // Shared by both the flat and hierarchical branches so there is one comparator definition.
+        // Frequency sort must agree with the badge beside it: for a hierarchical key with descendants
+        // shown, the badge is the subtree count, so sorting uses it too instead of the own-count value
+        // getTotalPropertyNoteCount actually returns despite its name.
+        const createChildComparator = (keyNode: PropertyTreeNode): PropertyNodeComparator => {
+            const propertyTreeSortOverrides = settings.propertyTreeSortOverrides;
+            const hasChildSortOverride = Boolean(
+                propertyTreeSortOverrides && Object.prototype.hasOwnProperty.call(propertyTreeSortOverrides, keyNode.id)
+            );
+            const childSortOverride = hasChildSortOverride ? propertyTreeSortOverrides?.[keyNode.id] : undefined;
+            const isHierarchical = hierarchicalPropertyKeys.has(keyNode.key);
+            return createPropertyComparator({
+                order: childSortOverride ?? settings.propertySortOrder,
+                compareAlphabetically: comparePropertyValueNodesAlphabetically,
+                getFrequency: node => {
+                    if (isHierarchical && includeDescendantNotes) {
+                        return propertyHierarchyIndex.subtreeCount.get(node.id) ?? node.notesWithValue.size;
+                    }
+                    return includeDescendantNotes && node.valuePath
+                        ? getTotalPropertyNoteCount(keyNode, node.valuePath)
+                        : node.notesWithValue.size;
+                }
+            });
+        };
 
         const sortChildren = (keyNode: PropertyTreeNode, children: Iterable<PropertyTreeNode>): PropertyTreeNode[] => {
             const nodes = Array.from(children);
@@ -871,19 +928,7 @@ export function useNavigationPaneTreeSections({
                 return nodes;
             }
 
-            const propertyTreeSortOverrides = settings.propertyTreeSortOverrides;
-            const hasChildSortOverride = Boolean(
-                propertyTreeSortOverrides && Object.prototype.hasOwnProperty.call(propertyTreeSortOverrides, keyNode.id)
-            );
-            const childSortOverride = hasChildSortOverride ? propertyTreeSortOverrides?.[keyNode.id] : undefined;
-            const comparator = createPropertyComparator({
-                order: childSortOverride ?? settings.propertySortOrder,
-                compareAlphabetically: comparePropertyValueNodesAlphabetically,
-                getFrequency: node =>
-                    includeDescendantNotes && node.valuePath ? getTotalPropertyNoteCount(keyNode, node.valuePath) : node.notesWithValue.size
-            });
-
-            return nodes.sort(comparator);
+            return nodes.sort(createChildComparator(keyNode));
         };
 
         keyNodes.forEach(keyNode => {
@@ -894,27 +939,52 @@ export function useNavigationPaneTreeSections({
                 key: keyNode.id
             });
 
-            if (expansionState.expandedProperties.has(keyNode.id) && keyNode.children.size > 0) {
-                sortChildren(keyNode, keyNode.children.values()).forEach(child => {
-                    items.push({
-                        type: NavigationPaneItemType.PROPERTY_VALUE,
-                        data: child,
-                        level: childLevel,
-                        key: child.id
-                    });
-                });
+            if (!expansionState.expandedProperties.has(keyNode.id) || keyNode.children.size === 0) {
+                return;
             }
+
+            // A hierarchical key nests its values; every other key keeps the original flat emit.
+            if (hierarchicalPropertyKeys.has(keyNode.key)) {
+                const flattened = flattenPropertyHierarchy({
+                    keyNode,
+                    index: propertyHierarchyIndex,
+                    expandedPlacements: expansionState.expandedProperties,
+                    level: childLevel,
+                    maxDepth: settings.propertyHierarchyMaxDepth,
+                    comparator: createChildComparator(keyNode)
+                });
+                flattened.items.forEach(item => {
+                    const hasChildren = (propertyHierarchyIndex.childIds.get(item.data.id)?.length ?? 0) > 0;
+                    items.push({ ...item, hasChildren });
+                });
+                flattened.firstPlacementByNodeId.forEach((placementKey, nodeId) => {
+                    firstPlacementByNodeId.set(nodeId, placementKey);
+                });
+                return;
+            }
+
+            sortChildren(keyNode, keyNode.children.values()).forEach(child => {
+                items.push({
+                    type: NavigationPaneItemType.PROPERTY_VALUE,
+                    data: child,
+                    level: childLevel,
+                    key: child.id
+                });
+            });
         });
 
-        return { propertyItems: items, propertiesSectionActive: true };
+        return { propertyItems: items, propertiesSectionActive: true, firstPlacementByNodeId };
     }, [
         expansionState.expandedProperties,
         expansionState.expandedVirtualFolders,
+        hierarchicalPropertyKeys,
         includeDescendantNotes,
+        propertyHierarchyIndex,
         propertySectionBase.collectionCount,
         propertySectionBase.keyNodes,
         propertySectionBase.propertiesSectionActive,
         settings.interfaceIcons,
+        settings.propertyHierarchyMaxDepth,
         settings.propertySortOrder,
         settings.propertyTreeSortOverrides,
         settings.showAllPropertiesFolder,
@@ -934,6 +1004,8 @@ export function useNavigationPaneTreeSections({
         propertyItems,
         propertiesSectionActive,
         resolvedRootPropertyKeys,
-        propertyCollectionCount: propertySectionBase.collectionCount
+        propertyCollectionCount: propertySectionBase.collectionCount,
+        propertyHierarchyIndex,
+        firstPlacementByNodeId
     };
 }

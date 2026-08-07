@@ -143,6 +143,8 @@ export interface PropertyValueTreeItem {
     color?: string;
     backgroundColor?: string;
     icon?: string;
+    /** True when the hierarchy index gives this value children. Absent for non-hierarchical keys. */
+    hasChildren?: boolean;
 }
 
 export interface VirtualFolderItem {
