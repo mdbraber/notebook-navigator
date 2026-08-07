@@ -36,6 +36,7 @@ import { ItemType, ListPaneItemType, PINNED_SECTION_HEADER_KEY } from '../../../
 import { buildListGroupCollapseKey, buildListGroupCollapseKeyPrefix } from '../../../src/utils/listGroupCollapse';
 import { formatTextCount } from '../../../src/utils/wordCountUtils';
 import { buildPropertyValueNodeId } from '../../../src/utils/propertyTree';
+import { normalizePropertyTreeValuePath } from '../../../src/utils/propertyUtils';
 import type { ListPaneItem } from '../../../src/types/virtualization';
 
 interface FileMetadataRecord {
@@ -2388,6 +2389,22 @@ describe('per-value property grouping', () => {
         // Display text is the alias `Apple`; the tree's value path is the casefolded display text.
         expect(header?.data).toBe('Apple');
         expect(header?.headerPropertyNodeId).toBe(buildPropertyValueNodeId('topics', 'apple'));
+    });
+
+    it('diverges from a label-based id for a value normalizePropertyTreeValuePath does not unwrap', () => {
+        // A wikilink is a poor test of "built from the raw value, not the label": normalizePropertyTreeValuePath
+        // unwraps wikilinks itself, so a label-based id and a bucketKey-based id land on the same casefolded
+        // string either way. resolvePropertyDisplayText (which produces the label) also unwraps markdown-style
+        // links, but normalizePropertyTreeValuePath does not - it only special-cases wikilinks - so this value
+        // actually distinguishes the two: building from the label would produce `topics=apple`, while the tree's
+        // id, and the id this code must produce, casefolds the whole raw markdown-link string instead.
+        const items = build('property-each:topics', { 'Dune.md': { topics: ['[Apple](Fruits/Apple.md)'] } }, [multi]);
+        const header = items.find(item => item.type === ListPaneItemType.HEADER);
+
+        expect(header?.headerPropertyNodeId).toBe(
+            buildPropertyValueNodeId('topics', normalizePropertyTreeValuePath('[Apple](Fruits/Apple.md)'))
+        );
+        expect(header?.headerPropertyNodeId).not.toBe(buildPropertyValueNodeId('topics', 'apple'));
     });
 
     it('leaves the node id unset for joined groups and for the no-value group', () => {

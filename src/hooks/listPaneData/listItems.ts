@@ -635,10 +635,14 @@ function buildListItemsInternal(
         // counts stay stable if the label formatting changes.
         orderedPropertyGroups.forEach(group => {
             // Only a per-value group maps to a single tree node; a joined bucket has no single value.
-            // The id must be built the way the tree builds it: the key casefolded, and the value run
-            // through normalizePropertyTreeValuePath, which resolves a wikilink to its display text
-            // and casefolds it. Using group.label here would produce `…=Topics` against the tree's
-            // `…=topics` and the appearance lookup would silently never match.
+            // The id must be built the way the tree builds it: the key casefolded, and the raw value
+            // run through normalizePropertyTreeValuePath. group.label is pre-resolved through
+            // resolvePropertyDisplayText, which also unwraps markdown-style links (`[Apple](...)`) and
+            // bare URLs, not just wikilinks. normalizePropertyTreeValuePath only special-cases
+            // wikilinks, so for those other forms it casefolds the whole raw string instead of the
+            // already-unwrapped label. Building the id from group.label would then diverge from the id
+            // the tree actually assigns to that value, and the appearance lookup would silently never
+            // match.
             const normalizedValuePath = normalizePropertyTreeValuePath(group.bucketKey);
             const propertyNodeId =
                 propertyGroupingPerValue && normalizedValuePath
