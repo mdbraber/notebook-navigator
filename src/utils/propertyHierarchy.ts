@@ -172,8 +172,9 @@ export function buildPropertyHierarchyIndex({
  * The chain need not equal the flattener's first emitted placement, and does not need to: once every
  * prefix is expanded the target's row exists, and selection and highlighting are keyed by node id
  * regardless of which placement the user ends up looking at. Deliberately independent of expansion
- * state, unlike firstPlacementByNodeId, which only ever contains a node whose row is already visible
- * and therefore can never tell reveal what to expand.
+ * state: anything read back out of the flattener describes only rows that are already visible, because
+ * the flattener recurses into a placement's children solely when that placement is expanded, so it can
+ * never tell reveal what to expand.
  */
 export function resolvePropertyRevealChain(index: PropertyHierarchyIndex, nodeId: string): string[] | null {
     if (!index.parentIds.has(nodeId)) {

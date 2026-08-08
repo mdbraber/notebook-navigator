@@ -813,22 +813,39 @@ describe('handlePropertyToggle placement keys', () => {
         expect(expansionDispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: placementKey });
     });
 
-    it('falls through to the plain dispatch when collapseOtherBranchesOnExpand is on but the placement key differs from the node id', () => {
-        // Per-placement collapse-others is Task 6. Until then, node-id reasoning only applies when
-        // the placement key equals the node id, so a nested placement must skip that branch entirely.
+    it('branch replaces a nested placement by mouse, keeping the row it just expanded rendering', () => {
+        // Was: this fell through to the plain dispatch, because the mouse path carried a second
+        // suppression (placementKey === nodeId) beside the one on the shared target type, and the two
+        // drifted. Both are gone: the replacement set now names the key node id, every ancestor
+        // placement key and the target, which is exactly what the row needs to stay rendered.
         const clientsNode = createPropertyValueNode('projects', 'clients', 'Clients', ['notes/a.md']);
         const workNode = createPropertyValueNode('projects', 'work', 'Work', [], undefined);
-        const keyNode = createPropertyKeyNode('projects', 'Projects', [], [workNode, clientsNode]);
+        const acmeNode = createPropertyValueNode('projects', 'acme', 'Acme', ['notes/b.md']);
+        const keyNode = createPropertyKeyNode('projects', 'Projects', [], [workNode, clientsNode, acmeNode]);
         const propertyTree = new Map<string, PropertyTreeNode>([[keyNode.key, keyNode]]);
+        const propertyHierarchyIndex: PropertyHierarchyIndex = {
+            ...EMPTY_PROPERTY_HIERARCHY_INDEX,
+            childIds: new Map([
+                [workNode.id, [clientsNode.id]],
+                [clientsNode.id, [acmeNode.id]]
+            ])
+        };
         const placementKey = buildPropertyPlacementKey([workNode.id, clientsNode.id]);
         const expansionDispatch = vi.fn();
 
-        const result = renderInteractions({ propertyTree, expansionDispatch, collapseOtherBranchesOnExpand: true });
+        const result = renderInteractions({
+            propertyTree,
+            propertyHierarchyIndex,
+            expansionDispatch,
+            collapseOtherBranchesOnExpand: true
+        });
 
         result.handlePropertyToggle(placementKey, clientsNode.id);
 
-        expect(expansionDispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: placementKey });
-        expect(expansionDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_EXPANDED_PROPERTIES' }));
+        expect(expansionDispatch).toHaveBeenCalledWith({
+            type: 'SET_EXPANDED_PROPERTIES',
+            properties: new Set([keyNode.id, workNode.id, placementKey])
+        });
     });
 
     it('still takes the collapse-others branch for a key node', () => {

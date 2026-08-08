@@ -99,14 +99,6 @@ export interface NavigationPaneTreeSectionsResult {
     propertyCollectionCount: NoteCountInfo | undefined;
     /** Additive nesting over property values for keys marked Hierarchical. Empty when none are. */
     propertyHierarchyIndex: PropertyHierarchyIndex;
-    /**
-     * First placement key emitted for each property value node id. Reveal does not read this: the map
-     * only ever holds nodes whose rows are already on screen, because the flattener recurses into a
-     * placement's children only when that placement is expanded, so it can never say what to expand.
-     * resolvePropertyRevealChain walks the index instead. Kept because it describes what was rendered,
-     * which is what a scroll or highlight lookup needs.
-     */
-    firstPlacementByNodeId: Map<string, string>;
 }
 
 interface ResolvedRootTagOrdering {
@@ -863,18 +855,14 @@ export function useNavigationPaneTreeSections({
         sourceState.hasRootPropertyShortcut
     ]);
 
-    const { propertyItems, propertiesSectionActive, firstPlacementByNodeId } = useMemo((): {
+    const { propertyItems, propertiesSectionActive } = useMemo((): {
         propertyItems: CombinedNavigationItem[];
         propertiesSectionActive: boolean;
-        firstPlacementByNodeId: Map<string, string>;
     } => {
-        const firstPlacementByNodeId = new Map<string, string>();
-
         if (!propertySectionBase.propertiesSectionActive) {
             return {
                 propertyItems: [],
-                propertiesSectionActive: false,
-                firstPlacementByNodeId
+                propertiesSectionActive: false
             };
         }
 
@@ -905,7 +893,7 @@ export function useNavigationPaneTreeSections({
             });
 
             if (!expansionState.expandedVirtualFolders.has(rootId)) {
-                return { propertyItems: items, propertiesSectionActive: true, firstPlacementByNodeId };
+                return { propertyItems: items, propertiesSectionActive: true };
             }
         }
 
@@ -957,7 +945,7 @@ export function useNavigationPaneTreeSections({
 
             // A hierarchical key nests its values; every other key keeps the original flat emit.
             if (hierarchicalPropertyKeys.has(keyNode.key)) {
-                const flattened = flattenPropertyHierarchy({
+                const placements = flattenPropertyHierarchy({
                     keyNode,
                     index: propertyHierarchyIndex,
                     expandedPlacements: expansionState.expandedProperties,
@@ -965,12 +953,9 @@ export function useNavigationPaneTreeSections({
                     maxDepth: settings.propertyHierarchyMaxDepth,
                     comparator: createChildComparator(keyNode)
                 });
-                flattened.items.forEach(item => {
+                placements.forEach(item => {
                     const hasChildren = propertyNodeHasChildren(item.data, propertyHierarchyIndex);
                     items.push({ ...item, hasChildren });
-                });
-                flattened.firstPlacementByNodeId.forEach((placementKey, nodeId) => {
-                    firstPlacementByNodeId.set(nodeId, placementKey);
                 });
                 return;
             }
@@ -985,7 +970,7 @@ export function useNavigationPaneTreeSections({
             });
         });
 
-        return { propertyItems: items, propertiesSectionActive: true, firstPlacementByNodeId };
+        return { propertyItems: items, propertiesSectionActive: true };
     }, [
         expansionState.expandedProperties,
         expansionState.expandedVirtualFolders,
@@ -1017,7 +1002,6 @@ export function useNavigationPaneTreeSections({
         propertiesSectionActive,
         resolvedRootPropertyKeys,
         propertyCollectionCount: propertySectionBase.collectionCount,
-        propertyHierarchyIndex,
-        firstPlacementByNodeId
+        propertyHierarchyIndex
     };
 }

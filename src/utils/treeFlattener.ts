@@ -472,12 +472,6 @@ export function getPropertyPlacementAncestorKeys(chain: readonly string[]): stri
     return chain.slice(0, -1).map((_, index) => buildPropertyPlacementKey(chain.slice(0, index + 1)));
 }
 
-export interface FlattenPropertyHierarchyResult {
-    items: PropertyValueTreeItem[];
-    /** First placement key emitted for each node id. Auto-reveal targets this one. */
-    firstPlacementByNodeId: Map<string, string>;
-}
-
 interface FlattenPropertyHierarchyParams {
     keyNode: PropertyTreeNode;
     index: PropertyHierarchyIndex;
@@ -504,9 +498,8 @@ export function flattenPropertyHierarchy({
     maxDepth,
     comparator,
     getChildComparator
-}: FlattenPropertyHierarchyParams): FlattenPropertyHierarchyResult {
+}: FlattenPropertyHierarchyParams): PropertyValueTreeItem[] {
     const items: PropertyValueTreeItem[] = [];
-    const firstPlacementByNodeId = new Map<string, string>();
 
     const nodeById = new Map<string, PropertyTreeNode>();
     keyNode.children.forEach(node => {
@@ -534,10 +527,6 @@ export function flattenPropertyHierarchy({
             key: placementKey
         });
 
-        if (!firstPlacementByNodeId.has(node.id)) {
-            firstPlacementByNodeId.set(node.id, placementKey);
-        }
-
         if (currentLevel - level >= maxDepth || !expandedPlacements.has(placementKey)) {
             return;
         }
@@ -555,5 +544,5 @@ export function flattenPropertyHierarchy({
     const roots = resolveNodes(index.rootIds.get(keyNode.id) ?? []);
     roots.sort(comparator).forEach(root => addNode(root, level, []));
 
-    return { items, firstPlacementByNodeId };
+    return items;
 }

@@ -192,8 +192,8 @@ describe('buildPropertyHierarchyIndex', () => {
 describe('resolvePropertyRevealChain', () => {
     it('resolves a root-to-target chain with nothing expanded', () => {
         // Work <- Clients <- Datawerkplaats. No expansion state is involved at all, which is the whole
-        // point: the flattener's firstPlacementByNodeId only ever holds nodes whose rows are already
-        // visible, so it can never tell reveal which ancestors to expand.
+        // point: what the flattener emitted covers only rows that are already visible, so it can never
+        // tell reveal which ancestors to expand.
         const tree = createTree('projects', [
             { value: 'Work', notes: ['Clients.md'] },
             { value: 'Clients', notes: ['Datawerkplaats.md'] },

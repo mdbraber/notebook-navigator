@@ -22,6 +22,8 @@ import type { ExpansionAction } from '../../src/context/ExpansionContext';
 import {
     getFolderAncestorPaths,
     getNavigationExpansionTargetForItem,
+    getPropertyAncestorNodeIds,
+    getPropertyPlacementAncestorIds,
     isFolderEffectivelyExpanded,
     isFolderExpansionLocked,
     toggleNavigationExpansionTarget
@@ -50,6 +52,36 @@ describe('navigationExpansion', () => {
 
         expect(getFolderAncestorPaths(childFolder)).toEqual(['/', 'Projects']);
         expect(getFolderAncestorPaths(childFolder, { includeRootFolder: false })).toEqual(['Projects']);
+    });
+
+    it('replaces unrelated folder branches when branch collapse is enabled', () => {
+        // Folders share NavigationExpansionTarget and toggleNavigationExpansionTarget with properties.
+        // This pins their behavior across the removal of the property-specific escape hatch on the type.
+        const dispatch = vi.fn<(action: ExpansionAction) => void>();
+
+        const didExpand = toggleNavigationExpansionTarget(
+            {
+                type: 'folder',
+                id: 'Projects/Active',
+                hasChildren: true,
+                ancestorIds: ['/', 'Projects']
+            },
+            {
+                expandedFolders: new Set(['Archive', 'Archive/2024']),
+                expandedTags: new Set(),
+                expandedProperties: new Set(),
+                expandedVirtualFolders: new Set()
+            },
+            dispatch,
+            'expand',
+            { collapseOtherBranches: true }
+        );
+
+        expect(didExpand).toBe(true);
+        expect(dispatch).toHaveBeenCalledWith({
+            type: 'SET_EXPANDED_FOLDERS',
+            folders: new Set(['/', 'Projects', 'Projects/Active'])
+        });
     });
 
     it('replaces unrelated tag branches when branch collapse is enabled', () => {
@@ -171,17 +203,67 @@ describe('navigationExpansion keyboard expansion of property placements', () => 
         expect(dispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: CLIENTS_UNDER_WORK });
     });
 
-    it('does not replace the expanded set for a nested placement when branch collapse is on', () => {
-        // Branch replacement lists ancestors as node ids, which cannot name the intermediate placements
-        // this row depends on, so it would collapse the row it just expanded. Per-placement
-        // collapse-others is Task 6; until then a nested placement takes the plain toggle.
+    it('replaces the expanded set with the whole placement chain for a nested placement', () => {
+        // Was: a nested placement skipped branch replacement, because ancestorIds held node ids that
+        // could not name the intermediate placements the row renders under, so replacement would have
+        // collapsed the row it just expanded. Ancestors now come from the placement key itself.
         const item = createValueItem(createValueNode('clients', 'Clients'), CLIENTS_UNDER_WORK, true);
 
         const { didExpand, dispatch } = expandItem(item, new Set([KEY_ID, WORK_ID]), true);
 
         expect(didExpand).toBe(true);
-        expect(dispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: CLIENTS_UNDER_WORK });
-        expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_EXPANDED_PROPERTIES' }));
+        expect(dispatch).toHaveBeenCalledWith({
+            type: 'SET_EXPANDED_PROPERTIES',
+            properties: new Set([KEY_ID, WORK_ID, CLIENTS_UNDER_WORK])
+        });
+    });
+
+    it('keeps a three deep placement rendering by naming every intermediate placement key', () => {
+        // The load-bearing case: the middle entry of the replacement set is a placement key that
+        // equals no node id, so only key-derived ancestors can produce it. Without it the flattener
+        // never recurses deep enough to emit the row that was just expanded.
+        const targetNode = createValueNode('datawerkplaats mooi maasvallei', 'Datawerkplaats Mooi Maasvallei');
+        const placementKey = buildPropertyPlacementKey([WORK_ID, CLIENTS_ID, targetNode.id]);
+        const item = createValueItem(targetNode, placementKey, true);
+
+        const { didExpand, dispatch } = expandItem(item, new Set([KEY_ID, WORK_ID, CLIENTS_UNDER_WORK]), true);
+
+        expect(didExpand).toBe(true);
+        expect(dispatch).toHaveBeenCalledWith({
+            type: 'SET_EXPANDED_PROPERTIES',
+            properties: new Set([KEY_ID, WORK_ID, CLIENTS_UNDER_WORK, placementKey])
+        });
+    });
+
+    it('drops a previously expanded sibling branch when another root placement expands', () => {
+        const areasNode = createValueNode('areas', 'Areas');
+        const item = createValueItem(areasNode, areasNode.id, true);
+
+        const { didExpand, dispatch } = expandItem(item, new Set([KEY_ID, WORK_ID, CLIENTS_UNDER_WORK]), true);
+
+        expect(didExpand).toBe(true);
+        // The Work branch and its nested placement are both gone from the replacement set.
+        expect(dispatch).toHaveBeenCalledWith({
+            type: 'SET_EXPANDED_PROPERTIES',
+            properties: new Set([KEY_ID, areasNode.id])
+        });
+    });
+
+    it('leaves a flat non-hierarchical value replacing with the key node id alone, as before', () => {
+        // A flat value's placement key is its node id, so the key-derived ancestor list must reduce to
+        // exactly what getPropertyAncestorNodeIds returns. That equivalence is the regression guarantee
+        // for every existing user whose keys are not hierarchical.
+        const openNode = createValueNode('open', 'Open');
+        const childNode = createValueNode('open/blocked', 'Blocked');
+        openNode.children.set(childNode.id, childNode);
+        const item = createValueItem(openNode, openNode.id);
+
+        const { didExpand, dispatch } = expandItem(item, new Set([KEY_ID]), true);
+
+        expect(getPropertyPlacementAncestorIds(openNode.id)).toEqual(getPropertyAncestorNodeIds(openNode.id));
+        expect(getPropertyPlacementAncestorIds(openNode.id)).toEqual([KEY_ID]);
+        expect(didExpand).toBe(true);
+        expect(dispatch).toHaveBeenCalledWith({ type: 'SET_EXPANDED_PROPERTIES', properties: new Set([KEY_ID, openNode.id]) });
     });
 
     it('still replaces the expanded set for a root placement, whose key is its node id', () => {

@@ -244,8 +244,8 @@ describe('flattenPropertyHierarchy', () => {
 
         const result = flatten(tree, 'projects', []);
 
-        expect(result.items.map(item => item.data.name)).toEqual(['Fiddle', 'Work']);
-        expect(result.items.every(item => item.level === 1)).toBe(true);
+        expect(result.map(item => item.data.name)).toEqual(['Fiddle', 'Work']);
+        expect(result.every(item => item.level === 1)).toBe(true);
     });
 
     it('keys a root placement by the node id alone so flat expansion keeps working', () => {
@@ -253,7 +253,7 @@ describe('flattenPropertyHierarchy', () => {
 
         const result = flatten(tree, 'projects', []);
 
-        expect(result.items[0].key).toBe(id('projects', 'Fiddle'));
+        expect(result[0].key).toBe(id('projects', 'Fiddle'));
     });
 
     it('emits children with a chained key and an incremented level when expanded', () => {
@@ -265,11 +265,11 @@ describe('flattenPropertyHierarchy', () => {
 
         const result = flatten(tree, 'projects', [fiddleKey]);
 
-        expect(result.items.map(item => [item.data.name, item.level])).toEqual([
+        expect(result.map(item => [item.data.name, item.level])).toEqual([
             ['Fiddle', 1],
             ['Building software', 2]
         ]);
-        expect(result.items[1].key).toBe(buildPropertyPlacementKey([fiddleKey, id('projects', 'Building software')]));
+        expect(result[1].key).toBe(buildPropertyPlacementKey([fiddleKey, id('projects', 'Building software')]));
     });
 
     it('expands one placement of a two parent value without expanding the other', () => {
@@ -284,27 +284,13 @@ describe('flattenPropertyHierarchy', () => {
         const result = flatten(tree, 'categories', [id('categories', 'Areas'), id('categories', 'Categories'), underAreas]);
 
         // Clients appears under both parents, but only the Areas placement shows Acme.
-        expect(result.items.map(item => [item.data.name, item.level])).toEqual([
+        expect(result.map(item => [item.data.name, item.level])).toEqual([
             ['Areas', 1],
             ['Clients', 2],
             ['Acme', 3],
             ['Categories', 1],
             ['Clients', 2]
         ]);
-    });
-
-    it('records the first placement of each node id', () => {
-        const tree = createTree('categories', [
-            { value: 'Areas', notes: ['Clients.md'] },
-            { value: 'Categories', notes: ['Clients.md'] },
-            { value: 'Clients', notes: [] }
-        ]);
-
-        const result = flatten(tree, 'categories', [id('categories', 'Areas'), id('categories', 'Categories')]);
-
-        expect(result.firstPlacementByNodeId.get(id('categories', 'Clients'))).toBe(
-            buildPropertyPlacementKey([id('categories', 'Areas'), id('categories', 'Clients')])
-        );
     });
 
     it('stops at maxDepth without emitting deeper levels', () => {
@@ -317,10 +303,10 @@ describe('flattenPropertyHierarchy', () => {
         const clientsKey = buildPropertyPlacementKey([workKey, id('projects', 'Clients')]);
 
         const deep = flatten(tree, 'projects', [workKey, clientsKey], 10);
-        expect(deep.items.map(item => item.data.name)).toEqual(['Work', 'Clients', 'Acme']);
+        expect(deep.map(item => item.data.name)).toEqual(['Work', 'Clients', 'Acme']);
 
         const capped = flatten(tree, 'projects', [workKey, clientsKey], 1);
-        expect(capped.items.map(item => item.data.name)).toEqual(['Work', 'Clients']);
+        expect(capped.map(item => item.data.name)).toEqual(['Work', 'Clients']);
     });
 
     it('does not loop forever on a cycle in the index', () => {
@@ -335,7 +321,7 @@ describe('flattenPropertyHierarchy', () => {
 
         // B is expanded under A, and its only child is A, which is already in this chain, so the
         // walk stops there rather than recursing.
-        expect(result.items.map(item => [item.data.name, item.level])).toEqual([
+        expect(result.map(item => [item.data.name, item.level])).toEqual([
             ['A', 1],
             ['B', 2],
             ['B', 1],

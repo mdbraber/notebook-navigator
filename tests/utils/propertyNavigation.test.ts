@@ -139,7 +139,7 @@ describe('navigateToProperty - hierarchical ancestor expansion', () => {
             createValueNode('projects', 'clients', 'Clients'),
             createValueNode('projects', 'datawerkplaats mooi maasvallei', 'Datawerkplaats Mooi Maasvallei')
         ]);
-        // Nothing is expanded, which is exactly the state firstPlacementByNodeId cannot describe: the
+        // Nothing is expanded, which is exactly the state the flattener's output cannot describe: the
         // target's row does not exist yet, so only a parent walk over the index can find its chain.
         const propertyHierarchyIndex = createHierarchyIndex({
             [WORK_ID]: [],

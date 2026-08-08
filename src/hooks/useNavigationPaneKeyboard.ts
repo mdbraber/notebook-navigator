@@ -241,10 +241,9 @@ export function useNavigationPaneKeyboard({
                 const placementKey = item.type === NavigationPaneItemType.PROPERTY_VALUE ? item.key : propertyNode.id;
                 if (settings.autoExpandNavItems && propertyNodeHasChildren(propertyNode, propertyHierarchyIndex)) {
                     if (!expansionState.expandedProperties.has(placementKey)) {
-                        // The target below carries the placement key as its id, and marks itself
-                        // ineligible for branch replacement when that key is not also a node id, so a
-                        // nested placement expands through the plain toggle. Per-placement
-                        // collapse-others is Task 6.
+                        // The target below carries the placement key as its id, and its ancestors are
+                        // derived from that key, so branch replacement keeps the intermediate
+                        // placements a nested row renders under.
                         const expansionTarget = getNavigationExpansionTargetForItem(item, {
                             showHiddenItems,
                             showRootFolder: settings.showRootFolder

@@ -22,6 +22,7 @@ import { NavigationPaneItemType } from '../types';
 import type { CombinedNavigationItem } from '../types/virtualization';
 import { hasSubfolders } from './fileFilters';
 import { getPropertyKeyNodeIdFromNodeId } from './propertyTree';
+import { getPropertyPlacementAncestorKeys, PROPERTY_PLACEMENT_SEPARATOR } from './treeFlattener';
 
 export interface NavigationExpansionSets {
     expandedFolders: ReadonlySet<string>;
@@ -34,16 +35,11 @@ export interface NavigationExpansionTarget {
     type: 'folder' | 'tag' | 'property' | 'virtual-folder';
     id: string;
     hasChildren: boolean;
-    ancestorIds?: readonly string[];
     /**
-     * Set to false when branch replacement cannot express this target. ancestorIds is a list of ids in
-     * the same namespace as id, and a nested hierarchical property placement has ancestors that are
-     * placement keys rather than node ids, so replacing the expanded set would drop the intermediate
-     * placements the row depends on and collapse the row that was just expanded. Such a target takes
-     * the plain toggle path instead. Per-placement collapse-others is Task 6; this mirrors the
-     * placementKey === nodeId guard in handlePropertyToggle. Defaults to allowed.
+     * Ids that must stay expanded for the target's row to keep rendering, in root-to-parent order and
+     * in the same namespace as id. Branch replacement expands exactly these plus the target.
      */
-    supportsBranchCollapse?: boolean;
+    ancestorIds?: readonly string[];
 }
 
 type NavigationExpansionTreeType = Exclude<NavigationExpansionTarget['type'], 'virtual-folder'>;
@@ -164,7 +160,7 @@ export function toggleNavigationExpansionTarget(
         return false;
     }
 
-    if (options?.collapseOtherBranches && targetState.canExpand && target.supportsBranchCollapse !== false) {
+    if (options?.collapseOtherBranches && targetState.canExpand) {
         dispatch(buildBranchExpandAction(target));
     } else {
         dispatch(buildToggleAction(target));
@@ -221,6 +217,23 @@ export function getPropertyAncestorNodeIds(propertyNodeId: string): string[] {
     return keyNodeId && keyNodeId !== propertyNodeId ? [keyNodeId] : [];
 }
 
+/**
+ * Everything that has to stay expanded for a property placement's row to keep rendering: the key node
+ * id, then every ancestor placement key in root-to-parent order. Branch replacement expands exactly
+ * this plus the target placement, which is why collapse-others no longer collapses the row it just
+ * opened.
+ *
+ * A root placement's key is its own node id, and so is a non-hierarchical value's, so their chain has a
+ * single element, getPropertyPlacementAncestorKeys yields nothing, and the result is the key node id
+ * alone. That is byte for byte what getPropertyAncestorNodeIds returns for those rows, which is what
+ * keeps flat keys behaving exactly as they do today.
+ */
+export function getPropertyPlacementAncestorIds(placementKey: string): string[] {
+    const chain = placementKey.split(PROPERTY_PLACEMENT_SEPARATOR);
+    const targetNodeId = chain[chain.length - 1];
+    return [...getPropertyAncestorNodeIds(targetNodeId), ...getPropertyPlacementAncestorKeys(chain)];
+}
+
 export function getNavigationExpansionTargetForItem(
     item: CombinedNavigationItem,
     options: { showHiddenItems: boolean; showRootFolder: boolean }
@@ -265,8 +278,10 @@ export function getNavigationExpansionTargetForItem(
                 // comes from the hierarchy index; a flat value has no flag and falls back to the
                 // node's own children, which is the check this site always used.
                 hasChildren: item.hasChildren ?? item.data.children.size > 0,
-                ancestorIds: getPropertyAncestorNodeIds(item.data.id),
-                supportsBranchCollapse: item.key === item.data.id
+                // Derived from the placement key so branch replacement keeps the intermediate
+                // placements this row renders under. Reduces to the key node id for a root placement
+                // or a non-hierarchical value.
+                ancestorIds: getPropertyPlacementAncestorIds(item.key)
             };
         case NavigationPaneItemType.VIRTUAL_FOLDER:
             if (typeof item.tagCollectionId !== 'string' && typeof item.propertyCollectionId !== 'string') {

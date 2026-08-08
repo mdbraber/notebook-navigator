@@ -602,7 +602,6 @@ describe('useNavigationPaneTreeSections', () => {
             [NavigationPaneItemType.PROPERTY_VALUE, buildingSoftwarePlacementKey, 2],
             [NavigationPaneItemType.PROPERTY_VALUE, buildPropertyPlacementKey([fiddleId, buildingSoftwareId, bulwarkId]), 3]
         ]);
-        expect(result.firstPlacementByNodeId.get(bulwarkId)).toBe(buildPropertyPlacementKey([fiddleId, buildingSoftwareId, bulwarkId]));
     });
 
     it('expands one placement of a multi-parent value without expanding the other', () => {

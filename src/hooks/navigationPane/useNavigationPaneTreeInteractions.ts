@@ -50,7 +50,7 @@ import { getTagSearchModifierOperator } from '../../utils/tagUtils';
 import { isVirtualTagCollectionId } from '../../utils/virtualTagCollections';
 import {
     getFolderAncestorPaths,
-    getPropertyAncestorNodeIds,
+    getPropertyPlacementAncestorIds,
     getTagAncestorPaths,
     isFolderEffectivelyExpanded,
     isFolderExpansionLocked,
@@ -355,12 +355,7 @@ export function useNavigationPaneTreeInteractions({
 
     const handlePropertyToggle = useCallback(
         (placementKey: string, nodeId: string) => {
-            // Per-placement collapse-others is Task 6: it reworks toggleNavigationExpansionTarget,
-            // which folders and tags also use. Until then this branch is only taken when the
-            // placement key equals the node id - a root placement or a non-hierarchical value -
-            // which is exactly the case where node-id reasoning below is still correct. Every deeper
-            // placement falls through to the plain dispatch.
-            if (settings.collapseOtherBranchesOnExpand && placementKey === nodeId) {
+            if (settings.collapseOtherBranchesOnExpand) {
                 const propertyNode =
                     propertyTreeService?.findNode(nodeId) ??
                     Array.from(propertyTree.values()).find(node => node.id === nodeId || node.children.has(nodeId)) ??
@@ -370,7 +365,9 @@ export function useNavigationPaneTreeInteractions({
                     toggleNavigationExpansionTarget(
                         {
                             type: 'property',
-                            id: targetNode.id,
+                            // The placement key, because expansion is stored per placement. Equal to
+                            // the node id for a key row, a root placement or a non-hierarchical value.
+                            id: placementKey,
                             // A hierarchical value node is stored as a leaf child of its key, so its
                             // own children map is always empty and this must ask the index too.
                             // Without that, toggleNavigationExpansionTarget computes canExpand as
@@ -378,7 +375,7 @@ export function useNavigationPaneTreeInteractions({
                             // toggle, leaving the whole hierarchical tree unopenable by mouse
                             // whenever collapseOtherBranchesOnExpand is on.
                             hasChildren: propertyNodeHasChildren(targetNode, propertyHierarchyIndex),
-                            ancestorIds: getPropertyAncestorNodeIds(targetNode.id)
+                            ancestorIds: getPropertyPlacementAncestorIds(placementKey)
                         },
                         expansionState,
                         expansionDispatch,
