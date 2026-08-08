@@ -3,7 +3,7 @@
 Date: 2026-08-08
 Branch: `property-notes`
 Pre-fix HEAD: `4a0de420`
-Fix commit: `9cc5ac06`
+Fix commit: `0a25a295`
 
 ## Root cause
 
