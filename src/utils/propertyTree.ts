@@ -22,6 +22,7 @@ import { PROPERTIES_ROOT_VIRTUAL_FOLDER_ID } from '../types';
 import type { NotebookNavigatorSettings } from '../settings/types';
 import type { IPropertyTreeProvider } from '../interfaces/IPropertyTreeProvider';
 import { isPathInExcludedFolder } from './fileFilters';
+import { collectPropertyValueSubtreeNotePaths, type PropertyHierarchyIndex } from './propertyHierarchy';
 import { getCachedCommaSeparatedList } from './commaSeparatedListUtils';
 import { isPropertyLinkMarkupValue, normalizePropertyTreeValuePath, resolvePropertyDisplayText } from './propertyUtils';
 import { casefold } from './recordUtils';
@@ -122,12 +123,25 @@ export function matchesPropertyValuePath(candidateValuePath: string, selectedVal
 
 /**
  * Collects note paths for the selected property value.
+ *
+ * With `includeDescendants` and a hierarchy index for a key marked Hierarchical, this is the deduped
+ * union of the value's subtree, so selecting a parent lists what its badge counts, the way folders and
+ * tags already behave. Without either it is the value's own notes, which is every non-hierarchical key
+ * and every case before this option existed.
  */
-export function collectPropertyValueFilePaths(keyNode: PropertyTreeNode, valuePath: string): Set<string> {
+export function collectPropertyValueFilePaths(
+    keyNode: PropertyTreeNode,
+    valuePath: string,
+    options?: { includeDescendants?: boolean; hierarchyIndex?: PropertyHierarchyIndex }
+): Set<string> {
     const nodeId = buildPropertyValueNodeId(keyNode.key, valuePath);
     const valueNode = keyNode.children.get(nodeId);
     if (!valueNode) {
         return new Set<string>();
+    }
+
+    if (options?.includeDescendants && options.hierarchyIndex) {
+        return collectPropertyValueSubtreeNotePaths(keyNode, valueNode.id, options.hierarchyIndex);
     }
 
     return new Set<string>(valueNode.notesWithValue);

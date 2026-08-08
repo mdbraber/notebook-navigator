@@ -56,6 +56,7 @@ export type {
     ShortcutContextMenuTarget
 } from './navigationPaneShortcutTypes';
 import type { NavigationPaneShortcutsResult } from './navigationPaneShortcutTypes';
+import type { PropertyHierarchyIndex } from '../../utils/propertyHierarchy';
 
 interface UseNavigationPaneShortcutsProps {
     rootContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -69,6 +70,8 @@ interface UseNavigationPaneShortcutsProps {
     getFolderCounts: () => Map<string, NoteCountInfo>;
     getTagCounts: () => Map<string, NoteCountInfo>;
     getPropertyCounts: () => Map<string, NoteCountInfo>;
+    /** Hierarchy index from the navigation pane's tree sections, so shortcut badges match tree badges. */
+    propertyHierarchyIndex: PropertyHierarchyIndex;
     onConfigurePropertyKeys: () => void;
 }
 
@@ -84,6 +87,7 @@ export function useNavigationPaneShortcuts({
     getFolderCounts,
     getTagCounts,
     getPropertyCounts,
+    propertyHierarchyIndex,
     onConfigurePropertyKeys
 }: UseNavigationPaneShortcutsProps): NavigationPaneShortcutsResult {
     const { app, isMobile, plugin, tagTreeService, propertyTreeService } = useServices();
@@ -249,6 +253,7 @@ export function useNavigationPaneShortcuts({
         getPropertyCounts,
         tagTree: fileData.tagTree,
         propertyTree: fileData.propertyTree,
+        propertyHierarchyIndex,
         propertyTreeService,
         onToggleShortcutsPin: handleShortcutSplitToggle,
         isShortcutsPinned: uiState.pinShortcuts,

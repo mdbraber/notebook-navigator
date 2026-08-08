@@ -18,6 +18,7 @@
 
 import type { IPropertyTreeProvider } from '../interfaces/IPropertyTreeProvider';
 import type { PropertyTreeNode } from '../types/storage';
+import { EMPTY_PROPERTY_HIERARCHY_INDEX, type PropertyHierarchyIndex } from '../utils/propertyHierarchy';
 import {
     collectPropertyKeyFilePaths,
     collectPropertyValueFilePaths,
@@ -37,6 +38,7 @@ export class PropertyTreeService implements IPropertyTreeProvider {
         PropertyTreeNode,
         { direct: readonly string[] | null; withDescendants: readonly string[] | null }
     > = new WeakMap();
+    private hierarchyIndex: PropertyHierarchyIndex = EMPTY_PROPERTY_HIERARCHY_INDEX;
     private treeUpdateListeners = new Set<() => void>();
 
     /**
@@ -48,6 +50,25 @@ export class PropertyTreeService implements IPropertyTreeProvider {
         this.descendantNodeIdsByNode = new WeakMap();
         this.filePathsByNodeAndMode = new WeakMap();
         this.notifyTreeUpdateListeners();
+    }
+
+    /**
+     * Stores the hierarchy index for keys marked Hierarchical, so selecting a parent value can list its
+     * subtree instead of only its own notes. The navigation pane owns the index because building it
+     * needs link resolution, and it is the same index the row's badge is computed from, which is what
+     * keeps the badge and the list in agreement.
+     *
+     * Identity-compared and cache-invalidating rather than notifying: this is called during render, so
+     * telling listeners would be a state change mid-render. Every caller of collectFilePaths reads it
+     * on the next pass anyway, and the empty index leaves behaviour exactly as it was.
+     */
+    updateHierarchyIndex(index: PropertyHierarchyIndex): void {
+        if (this.hierarchyIndex === index) {
+            return;
+        }
+
+        this.hierarchyIndex = index;
+        this.filePathsByNodeAndMode = new WeakMap();
     }
 
     /**
@@ -139,19 +160,9 @@ export class PropertyTreeService implements IPropertyTreeProvider {
             return new Set();
         }
 
-        if (node.kind === 'value') {
-            const cachedValuePaths = this.filePathsByNodeAndMode.get(node);
-            const cached = cachedValuePaths?.direct ?? cachedValuePaths?.withDescendants;
-            if (cached) {
-                return new Set(cached);
-            }
-
-            const filePaths = this.collectNodeFilePaths(node, includeDescendants);
-            const normalizedPaths = Array.from(filePaths);
-            this.filePathsByNodeAndMode.set(node, { direct: normalizedPaths, withDescendants: normalizedPaths });
-            return new Set(normalizedPaths);
-        }
-
+        // Cached per mode for value nodes too. They used to share one entry because a value node had no
+        // descendants under any setting, which stopped being true once a hierarchical value's subtree
+        // became selectable: sharing would serve a parent's subtree to a later direct-mode read.
         const modeKey = includeDescendants ? 'withDescendants' : 'direct';
         const cacheEntry = this.filePathsByNodeAndMode.get(node);
         const cachedPaths = cacheEntry?.[modeKey];
@@ -230,6 +241,9 @@ export class PropertyTreeService implements IPropertyTreeProvider {
             return new Set<string>();
         }
 
-        return collectPropertyValueFilePaths(keyNode, node.valuePath);
+        return collectPropertyValueFilePaths(keyNode, node.valuePath, {
+            includeDescendants,
+            hierarchyIndex: this.hierarchyIndex
+        });
     }
 }

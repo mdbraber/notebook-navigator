@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { PropertyTreeNode } from '../../src/types/storage';
 import {
     buildPropertyHierarchyIndex,
+    collectPropertyValueSubtreeNotePaths,
     createPropertyNoteCountInfo,
     EMPTY_PROPERTY_HIERARCHY_INDEX,
-    resolvePropertyRevealChain
+    resolvePropertyRevealChain,
+    type PropertyHierarchyIndex
 } from '../../src/utils/propertyHierarchy';
 
 /**
@@ -189,6 +191,14 @@ describe('buildPropertyHierarchyIndex', () => {
     });
 });
 
+/**
+ * Calls resolvePropertyRevealChain the way navigateToProperty does: the key node id decides which
+ * rootIds list the walk may stop at, and the depth cap is the one the flattener renders with.
+ */
+function resolveChain(index: PropertyHierarchyIndex, key: string, nodeId: string, maxDepth = 10): string[] | null {
+    return resolvePropertyRevealChain({ index, keyNodeId: `key:${key}`, nodeId, maxDepth });
+}
+
 describe('resolvePropertyRevealChain', () => {
     it('resolves a root-to-target chain with nothing expanded', () => {
         // Work <- Clients <- Datawerkplaats. No expansion state is involved at all, which is the whole
@@ -205,7 +215,7 @@ describe('resolvePropertyRevealChain', () => {
             resolveValueNotePath: resolveByName
         });
 
-        expect(resolvePropertyRevealChain(index, id('projects', 'Datawerkplaats'))).toEqual([
+        expect(resolveChain(index, 'projects', id('projects', 'Datawerkplaats'))).toEqual([
             id('projects', 'Work'),
             id('projects', 'Clients'),
             id('projects', 'Datawerkplaats')
@@ -220,7 +230,7 @@ describe('resolvePropertyRevealChain', () => {
             resolveValueNotePath: resolveByName
         });
 
-        expect(resolvePropertyRevealChain(index, id('projects', 'Fiddle'))).toEqual([id('projects', 'Fiddle')]);
+        expect(resolveChain(index, 'projects', id('projects', 'Fiddle'))).toEqual([id('projects', 'Fiddle')]);
     });
 
     it('returns null for a node the index does not know, such as a non-hierarchical value', () => {
@@ -231,8 +241,51 @@ describe('resolvePropertyRevealChain', () => {
             resolveValueNotePath: resolveByName
         });
 
-        expect(resolvePropertyRevealChain(index, id('status', 'Open'))).toBeNull();
-        expect(resolvePropertyRevealChain(EMPTY_PROPERTY_HIERARCHY_INDEX, id('status', 'Open'))).toBeNull();
+        expect(resolveChain(index, 'status', id('status', 'Open'))).toBeNull();
+        expect(resolveChain(EMPTY_PROPERTY_HIERARCHY_INDEX, 'status', id('status', 'Open'))).toBeNull();
+    });
+
+    it('heads the chain at a node the key actually renders, never at a cycle member', () => {
+        // Root -> A, plus A <-> B. A's sorted parents are [B, Root], so taking the first parent heads
+        // the chain at B - which is not in rootIds and renders only under A. Expanding a placement key
+        // naming no rendered row is not a harmless no-op: with collapseOtherBranchesOnExpand on the
+        // replacement set drops Root, so revealing A collapses the only branch A was visible in.
+        const tree = createTree('projects', [
+            { value: 'Root', notes: ['A.md'] },
+            { value: 'B', notes: ['A.md'] },
+            { value: 'A', notes: ['B.md'] }
+        ]);
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set(['projects']),
+            resolveValueNotePath: resolveByName
+        });
+
+        expect(index.parentIds.get(id('projects', 'A'))).toEqual([id('projects', 'B'), id('projects', 'Root')]);
+        expect(index.rootIds.get('key:projects')).toEqual([id('projects', 'Root')]);
+
+        const chain = resolveChain(index, 'projects', id('projects', 'A'));
+        expect(chain).toEqual([id('projects', 'Root'), id('projects', 'A')]);
+        // The invariant, stated on its own so it holds for every chain and not just this shape.
+        expect(index.rootIds.get('key:projects')).toContain(chain?.[0]);
+    });
+
+    it('returns no chain when the target is deeper than the flattener would render', () => {
+        // Work <- Clients <- Datawerkplaats is two edges deep. At a cap of one, the target's row can
+        // never be emitted, so expanding its prefixes would only replace the user's open branches.
+        const tree = createTree('projects', [
+            { value: 'Work', notes: ['Clients.md'] },
+            { value: 'Clients', notes: ['Datawerkplaats.md'] },
+            { value: 'Datawerkplaats', notes: ['note.md'] }
+        ]);
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set(['projects']),
+            resolveValueNotePath: resolveByName
+        });
+
+        expect(resolveChain(index, 'projects', id('projects', 'Datawerkplaats'), 1)).toBeNull();
+        expect(resolveChain(index, 'projects', id('projects', 'Clients'), 1)).toEqual([id('projects', 'Work'), id('projects', 'Clients')]);
     });
 
     it('terminates on a cycle instead of looping', () => {
@@ -249,8 +302,49 @@ describe('resolvePropertyRevealChain', () => {
             resolveValueNotePath: resolveByName
         });
 
-        expect(resolvePropertyRevealChain(index, id('topics', 'A'))).toEqual([id('topics', 'B'), id('topics', 'A')]);
-        expect(index.rootIds.get('key:topics')).toContain(id('topics', 'B'));
+        expect(resolveChain(index, 'topics', id('topics', 'A'))).toEqual([id('topics', 'A')]);
+        expect(index.rootIds.get('key:topics')).toContain(id('topics', 'A'));
+    });
+});
+
+describe('collectPropertyValueSubtreeNotePaths', () => {
+    it('is the set subtreeCount counts, so a badge and a selection cannot disagree', () => {
+        // Bulwark.md carries both Fiddle and Building software, so it is one path in the union.
+        const tree = createTree('projects', [
+            { value: 'Fiddle', notes: ['Building software.md', 'Bulwark.md'] },
+            { value: 'Building software', notes: ['Bulwark.md', 'other.md'] }
+        ]);
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set(['projects']),
+            resolveValueNotePath: resolveByName
+        });
+        const keyNode = tree.get('projects') as PropertyTreeNode;
+
+        const paths = collectPropertyValueSubtreeNotePaths(keyNode, id('projects', 'Fiddle'), index);
+        expect(paths).toEqual(new Set(['Building software.md', 'Bulwark.md', 'other.md']));
+        expect(paths.size).toBe(index.subtreeCount.get(id('projects', 'Fiddle')));
+    });
+
+    it('terminates on a cycle and returns own notes when the key is not hierarchical', () => {
+        const cyclicTree = createTree('topics', [
+            { value: 'A', notes: ['B.md', 'x.md'] },
+            { value: 'B', notes: ['A.md', 'y.md'] }
+        ]);
+        const cyclicIndex = buildPropertyHierarchyIndex({
+            tree: cyclicTree,
+            hierarchicalKeys: new Set(['topics']),
+            resolveValueNotePath: resolveByName
+        });
+        const topicsKeyNode = cyclicTree.get('topics') as PropertyTreeNode;
+
+        expect(collectPropertyValueSubtreeNotePaths(topicsKeyNode, id('topics', 'A'), cyclicIndex)).toEqual(
+            new Set(['A.md', 'B.md', 'x.md', 'y.md'])
+        );
+        // No index entry, which is every value while its key is flat: own notes only.
+        expect(collectPropertyValueSubtreeNotePaths(topicsKeyNode, id('topics', 'A'), EMPTY_PROPERTY_HIERARCHY_INDEX)).toEqual(
+            new Set(['B.md', 'x.md'])
+        );
     });
 });
 

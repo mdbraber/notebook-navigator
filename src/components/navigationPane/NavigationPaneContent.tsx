@@ -368,6 +368,7 @@ export const NavigationPane = React.memo(
             getFolderCounts: () => folderCountsRef.current,
             getTagCounts: () => tagCountsRef.current,
             getPropertyCounts: () => propertyCountsRef.current,
+            propertyHierarchyIndex: props.navigationTreeSections.propertyHierarchyIndex,
             onConfigurePropertyKeys: handleConfigurePropertyKeysFromSectionMenu
         });
 

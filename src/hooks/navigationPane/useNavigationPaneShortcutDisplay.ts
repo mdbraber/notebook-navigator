@@ -26,7 +26,8 @@ import { getFolderNoteDetectionSettings } from '../../utils/folderNoteLookup';
 import { calculateFolderNoteCounts } from '../../utils/noteCountUtils';
 import { createTagNoteCountInfo, findTagNode } from '../../utils/tagTree';
 import { PROPERTIES_ROOT_VIRTUAL_FOLDER_ID } from '../../types';
-import { resolvePropertyTreeNode, getDirectPropertyKeyNoteCount, getTotalPropertyNoteCount } from '../../utils/propertyTree';
+import { resolvePropertyTreeNode, getDirectPropertyKeyNoteCount } from '../../utils/propertyTree';
+import { createPropertyNoteCountInfo, type PropertyHierarchyIndex } from '../../utils/propertyHierarchy';
 import { getPathBaseName } from '../../utils/pathUtils';
 import { resolveCanonicalTagPath } from '../../utils/tagUtils';
 import type { VirtualFolderTrailingAction } from '../../components/VirtualFolderItem';
@@ -53,6 +54,8 @@ interface UseNavigationPaneShortcutDisplayProps {
     getPropertyCounts: () => Map<string, NoteCountInfo>;
     tagTree: Map<string, TagTreeNode>;
     propertyTree: Map<string, PropertyTreeNode>;
+    /** Same index the tree rows use, so a shortcut to a hierarchical value shows the badge its row shows. */
+    propertyHierarchyIndex: PropertyHierarchyIndex;
     propertyTreeService: PropertyTreeService | null;
     onToggleShortcutsPin: () => void;
     isShortcutsPinned: boolean;
@@ -77,6 +80,7 @@ export function useNavigationPaneShortcutDisplay({
     getPropertyCounts,
     tagTree,
     propertyTree,
+    propertyHierarchyIndex,
     propertyTreeService,
     onToggleShortcutsPin,
     isShortcutsPinned,
@@ -217,21 +221,11 @@ export function useNavigationPaneShortcutDisplay({
                 return { current, descendants, total };
             }
 
-            const current = resolvedNode.notesWithValue.size;
-            if (!includeDescendantNotes || !resolvedNode.valuePath) {
-                return { current, descendants: 0, total: current };
-            }
-
-            const keyNode = propertyTreeService?.getKeyNode(resolvedNode.key) ?? propertyTree.get(resolvedNode.key) ?? null;
-            if (!keyNode) {
-                return { current, descendants: 0, total: current };
-            }
-
-            const total = getTotalPropertyNoteCount(keyNode, resolvedNode.valuePath);
-            const descendants = Math.max(total - current, 0);
-            return { current, descendants, total };
+            // The same count function the tree badges and the list contents use. For a value of a key
+            // that is not hierarchical it is the node's own count, which is what this returned before.
+            return createPropertyNoteCountInfo(resolvedNode, propertyHierarchyIndex, includeDescendantNotes);
         },
-        [getPropertyCounts, includeDescendantNotes, propertyTree, propertyTreeService, settings.showNoteCount]
+        [getPropertyCounts, includeDescendantNotes, propertyHierarchyIndex, propertyTree, propertyTreeService, settings.showNoteCount]
     );
 
     const getMissingNoteLabel = useCallback((path: string): string => {

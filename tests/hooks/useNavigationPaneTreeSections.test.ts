@@ -200,6 +200,87 @@ function createSourceState(params?: {
     };
 }
 
+/**
+ * Renders the hook once for a property section. Returned so a test can re-render with a different
+ * expansion set and compare the two, which is the only way to check a row's chevron against what
+ * expanding it actually produces.
+ */
+function renderPropertySection(params: {
+    app: App;
+    settings: NotebookNavigatorSettings;
+    expandedProperties: Set<string>;
+    folder: TFolder;
+    visiblePropertyNavigationKeySet: Set<string>;
+}): NavigationPaneTreeSectionsResult {
+    let captured: NavigationPaneTreeSectionsResult | null = null;
+
+    function Harness() {
+        captured = useNavigationPaneTreeSections({
+            app: params.app,
+            settings: params.settings,
+            expansionState: {
+                expandedFolders: new Set(),
+                expandedTags: new Set(),
+                expandedProperties: params.expandedProperties,
+                expandedVirtualFolders: new Set()
+            },
+            showHiddenItems: false,
+            includeDescendantNotes: true,
+            sourceState: createSourceState({
+                propertyTree: new Map(),
+                visiblePropertyNavigationKeySet: params.visiblePropertyNavigationKeySet
+            }),
+            selectionScope: {
+                selectionType: ItemType.FOLDER,
+                selectedFolder: params.folder
+            },
+            tagTreeService: null,
+            propertyTreeService: null
+        });
+        return null;
+    }
+
+    renderToStaticMarkup(React.createElement(Harness));
+
+    if (!captured) {
+        throw new Error('Expected hook result');
+    }
+    return captured;
+}
+
+/**
+ * The invariant the emitter and the flattener have to share: a placement whose chevron says it has
+ * children must gain rows when it is expanded, and one that says it has none must gain nothing.
+ * Every defect found in this feature lived in that seam rather than in either side alone.
+ */
+function expectChevronsMatchFlattenedRows(params: {
+    app: App;
+    settings: NotebookNavigatorSettings;
+    expandedProperties: Set<string>;
+    folder: TFolder;
+    visiblePropertyNavigationKeySet: Set<string>;
+}): void {
+    const base = renderPropertySection(params);
+
+    base.propertyItems.forEach(item => {
+        if (item.type !== NavigationPaneItemType.PROPERTY_VALUE || params.expandedProperties.has(item.key)) {
+            return;
+        }
+
+        const withItemExpanded = renderPropertySection({
+            ...params,
+            expandedProperties: new Set([...params.expandedProperties, item.key])
+        });
+        const addedRows = withItemExpanded.propertyItems.length - base.propertyItems.length;
+
+        if (item.hasChildren) {
+            expect(addedRows, `${item.key} claims children`).toBeGreaterThan(0);
+        } else {
+            expect(addedRows, `${item.key} claims no children`).toBe(0);
+        }
+    });
+}
+
 describe('useNavigationPaneTreeSections', () => {
     it('keeps global root tag ordering available while scoped rendering shows only current-context tags', () => {
         dbFileDataByPath.clear();
@@ -602,6 +683,182 @@ describe('useNavigationPaneTreeSections', () => {
             [NavigationPaneItemType.PROPERTY_VALUE, buildingSoftwarePlacementKey, 2],
             [NavigationPaneItemType.PROPERTY_VALUE, buildPropertyPlacementKey([fiddleId, buildingSoftwareId, bulwarkId]), 3]
         ]);
+    });
+
+    it('renders a key flat when its hierarchical entry is present but false', () => {
+        dbFileDataByPath.clear();
+
+        // sanitizeRecord keeps false values, and the service reader requires === true, so a
+        // hand-edited data.json holding {"projects": false} must render exactly as an absent entry
+        // does. Reading Object.keys instead rendered it hierarchical while the menu checkmark was off.
+        const buildingSoftwareFile = createTestTFile('notes/project/Building software.md');
+        const bulwarkFile = createTestTFile('notes/project/Bulwark.md');
+        dbFileDataByPath.set(buildingSoftwareFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Fiddle]]', valueKind: 'string' }]
+        });
+        dbFileDataByPath.set(bulwarkFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Building software]]', valueKind: 'string' }]
+        });
+
+        const folder = createFolder('notes/project', [buildingSoftwareFile, bulwarkFile]);
+        Reflect.set(buildingSoftwareFile, 'parent', folder);
+        Reflect.set(bulwarkFile, 'parent', folder);
+
+        const app = new App();
+        app.metadataCache.getFirstLinkpathDest = (linkpath: string) => (linkpath === 'Building software' ? buildingSoftwareFile : null);
+
+        const fiddleId = buildPropertyValueNodeId('projects', 'fiddle');
+        const buildingSoftwareId = buildPropertyValueNodeId('projects', 'building software');
+
+        const result = renderPropertySection({
+            app,
+            settings: createSettings({
+                showTags: false,
+                showProperties: true,
+                showAllPropertiesFolder: false,
+                scopeTagsToCurrentContext: false,
+                scopePropertiesToCurrentContext: true,
+                propertyHierarchicalKeys: { projects: false }
+            }),
+            expandedProperties: new Set([buildPropertyKeyNodeId('projects'), fiddleId]),
+            folder,
+            visiblePropertyNavigationKeySet: new Set(['projects'])
+        });
+
+        // Both values at the same level, keyed by node id, and no index at all.
+        expect(describePropertyItems(result.propertyItems)).toEqual([
+            [NavigationPaneItemType.PROPERTY_KEY, buildPropertyKeyNodeId('projects'), 0],
+            [NavigationPaneItemType.PROPERTY_VALUE, buildingSoftwareId, 1],
+            [NavigationPaneItemType.PROPERTY_VALUE, fiddleId, 1]
+        ]);
+        expect(result.propertyHierarchyIndex.rootIds.size).toBe(0);
+    });
+
+    it('gives a placement at the depth cap no chevron, because expanding it emits nothing', () => {
+        dbFileDataByPath.clear();
+
+        // Work <- Clients <- Acme, rendered with the cap at one level of nesting. Clients.md is what
+        // makes "Work" a value node, Acme.md makes "Clients" one, and uses-acme.md makes "Acme" one.
+        const clientsFile = createTestTFile('notes/project/Clients.md');
+        const acmeFile = createTestTFile('notes/project/Acme.md');
+        const usesAcmeFile = createTestTFile('notes/project/uses-acme.md');
+        dbFileDataByPath.set(clientsFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Work]]', valueKind: 'string' }]
+        });
+        dbFileDataByPath.set(acmeFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Clients]]', valueKind: 'string' }]
+        });
+        dbFileDataByPath.set(usesAcmeFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Acme]]', valueKind: 'string' }]
+        });
+
+        const folder = createFolder('notes/project', [clientsFile, acmeFile, usesAcmeFile]);
+        Reflect.set(clientsFile, 'parent', folder);
+        Reflect.set(acmeFile, 'parent', folder);
+        Reflect.set(usesAcmeFile, 'parent', folder);
+
+        const app = new App();
+        // "Work" resolves to no note, which is what makes it a root; the other two resolve, which is
+        // what nests Clients under Work and Acme under Clients.
+        app.metadataCache.getFirstLinkpathDest = (linkpath: string) =>
+            linkpath === 'Clients' ? clientsFile : linkpath === 'Acme' ? acmeFile : null;
+
+        const workId = buildPropertyValueNodeId('projects', 'work');
+        const clientsId = buildPropertyValueNodeId('projects', 'clients');
+        const acmeId = buildPropertyValueNodeId('projects', 'acme');
+        const renderParams = {
+            app,
+            settings: createSettings({
+                showTags: false,
+                showProperties: true,
+                showAllPropertiesFolder: false,
+                scopeTagsToCurrentContext: false,
+                scopePropertiesToCurrentContext: true,
+                propertyHierarchicalKeys: { projects: true },
+                propertyHierarchyMaxDepth: 1
+            }),
+            expandedProperties: new Set([buildPropertyKeyNodeId('projects'), workId]),
+            folder,
+            visiblePropertyNavigationKeySet: new Set(['projects'])
+        };
+
+        const result = renderPropertySection(renderParams);
+
+        expect(describePropertyItems(result.propertyItems)).toEqual([
+            [NavigationPaneItemType.PROPERTY_KEY, buildPropertyKeyNodeId('projects'), 0],
+            [NavigationPaneItemType.PROPERTY_VALUE, workId, 1],
+            [NavigationPaneItemType.PROPERTY_VALUE, buildPropertyPlacementKey([workId, clientsId]), 2]
+        ]);
+
+        // The index is depth independent by design, so it still reports Acme under Clients. Only the
+        // chevron has to know that this placement sits at the cap.
+        expect(result.propertyHierarchyIndex.childIds.get(clientsId)).toEqual([acmeId]);
+        expect((result.propertyItems[1] as PropertyValueTreeItem).hasChildren).toBe(true);
+        expect((result.propertyItems[2] as PropertyValueTreeItem).hasChildren).toBe(false);
+
+        expectChevronsMatchFlattenedRows(renderParams);
+    });
+
+    it('gives a placement whose only child is its own ancestor no chevron', () => {
+        dbFileDataByPath.clear();
+
+        // A.md carries topics: [[B]] and B.md carries topics: [[A]], so each is the other's parent and
+        // both are promoted to roots. Under A, B's only child is A, which A's own chain already holds.
+        const aFile = createTestTFile('notes/project/A.md');
+        const bFile = createTestTFile('notes/project/B.md');
+        dbFileDataByPath.set(aFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Topics', value: '[[B]]', valueKind: 'string' }]
+        });
+        dbFileDataByPath.set(bFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Topics', value: '[[A]]', valueKind: 'string' }]
+        });
+
+        const folder = createFolder('notes/project', [aFile, bFile]);
+        Reflect.set(aFile, 'parent', folder);
+        Reflect.set(bFile, 'parent', folder);
+
+        const app = new App();
+        app.metadataCache.getFirstLinkpathDest = (linkpath: string) => (linkpath === 'A' ? aFile : linkpath === 'B' ? bFile : null);
+
+        const aId = buildPropertyValueNodeId('topics', 'a');
+        const bId = buildPropertyValueNodeId('topics', 'b');
+        const renderParams = {
+            app,
+            settings: createSettings({
+                showTags: false,
+                showProperties: true,
+                showAllPropertiesFolder: false,
+                scopeTagsToCurrentContext: false,
+                scopePropertiesToCurrentContext: true,
+                propertyHierarchicalKeys: { topics: true }
+            }),
+            expandedProperties: new Set([buildPropertyKeyNodeId('topics'), aId, bId]),
+            folder,
+            visiblePropertyNavigationKeySet: new Set(['topics'])
+        };
+
+        const result = renderPropertySection(renderParams);
+
+        expect(describePropertyItems(result.propertyItems)).toEqual([
+            [NavigationPaneItemType.PROPERTY_KEY, buildPropertyKeyNodeId('topics'), 0],
+            [NavigationPaneItemType.PROPERTY_VALUE, aId, 1],
+            [NavigationPaneItemType.PROPERTY_VALUE, buildPropertyPlacementKey([aId, bId]), 2],
+            [NavigationPaneItemType.PROPERTY_VALUE, bId, 1],
+            [NavigationPaneItemType.PROPERTY_VALUE, buildPropertyPlacementKey([bId, aId]), 2]
+        ]);
+
+        expect(result.propertyHierarchyIndex.childIds.get(bId)).toEqual([aId]);
+        expect((result.propertyItems[2] as PropertyValueTreeItem).hasChildren).toBe(false);
+        expect((result.propertyItems[4] as PropertyValueTreeItem).hasChildren).toBe(false);
+
+        expectChevronsMatchFlattenedRows(renderParams);
     });
 
     it('expands one placement of a multi-parent value without expanding the other', () => {

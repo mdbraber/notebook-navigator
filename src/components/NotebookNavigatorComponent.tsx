@@ -1493,6 +1493,11 @@ export const NotebookNavigatorComponent = React.memo(
         // Latest-ref pattern: written during render (not in an effect) so it is current before any
         // event handler constructed by useNavigatorReveal above could possibly run.
         propertyHierarchyIndexRef.current = navigationTreeSections.propertyHierarchyIndex;
+        // Same reason, one layer further out: the list pane resolves a property selection through
+        // propertyTreeService during this render pass, so an effect would leave it one render behind
+        // and a hierarchical parent would list its own notes until something else re-rendered. The
+        // setter only stores the index and drops a cache, so it is safe to call during render.
+        propertyTreeService?.updateHierarchyIndex(navigationTreeSections.propertyHierarchyIndex);
         const fileItemPillDecorationModel = useFileItemPillDecorationState({
             sourceState: navigationSourceState,
             treeSections: navigationTreeSections,

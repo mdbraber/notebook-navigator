@@ -38,11 +38,11 @@ import { getDBInstanceOrNull } from '../../../storage/fileOperations';
 import type { NavigationSelectionScope } from '../../../utils/selectionUtils';
 import { getFilesForNavigationSelection } from '../../../utils/selectionUtils';
 import { buildTagTreeFromFilePaths, excludeFromTagTree } from '../../../utils/tagTree';
-import { buildPropertyTreeFromFilePaths, getTotalPropertyNoteCount } from '../../../utils/propertyTree';
+import { buildPropertyTreeFromFilePaths } from '../../../utils/propertyTree';
 import {
     buildPropertyHierarchyIndex,
+    createPropertyNoteCountInfo,
     EMPTY_PROPERTY_HIERARCHY_INDEX,
-    propertyNodeHasChildren,
     type PropertyHierarchyIndex
 } from '../../../utils/propertyHierarchy';
 import { resolvePropertyNote } from '../../../utils/propertyNoteLookup';
@@ -51,7 +51,8 @@ import {
     flattenPropertyHierarchy,
     flattenTagTree,
     comparePropertyOrderWithFallback,
-    compareTagOrderWithFallback
+    compareTagOrderWithFallback,
+    propertyPlacementHasChildren
 } from '../../../utils/treeFlattener';
 import { resolveUXIcon } from '../../../utils/uxIcons';
 import { getVirtualTagCollection, VIRTUAL_TAG_COLLECTION_IDS } from '../../../utils/virtualTagCollections';
@@ -745,12 +746,14 @@ export function useNavigationPaneTreeSections({
         return scopedPropertySectionSource?.propertyTree ?? globalVisiblePropertyTree;
     }, [globalVisiblePropertyTree, scopedPropertySectionSource, settings.showProperties]);
 
-    // Normalized property keys the user marked Hierarchical. Keyed the same way PropertyTreeNode.key
-    // and renderPropertyTree are, since settings.propertyHierarchicalKeys only ever holds true entries.
-    const hierarchicalPropertyKeys = useMemo(
-        () => new Set(Object.keys(settings.propertyHierarchicalKeys ?? {})),
-        [settings.propertyHierarchicalKeys]
-    );
+    // Normalized property keys the user marked Hierarchical, keyed the same way PropertyTreeNode.key
+    // and renderPropertyTree are. Filtered on === true, which is what the service reader and the
+    // context menu checkmark both test: sanitizeRecord preserves false values, so a hand-edited
+    // data.json holding {"projects": false} would otherwise render hierarchical with the mark off.
+    const hierarchicalPropertyKeys = useMemo(() => {
+        const record = settings.propertyHierarchicalKeys ?? {};
+        return new Set(Object.keys(record).filter(key => record[key] === true));
+    }, [settings.propertyHierarchicalKeys]);
 
     // Its own memo so it does not recompute when unrelated settings change. The depth cap
     // (propertyHierarchyMaxDepth) is deliberately not a dependency: the cap is applied by the
@@ -898,27 +901,19 @@ export function useNavigationPaneTreeSections({
         }
 
         // Shared by both the flat and hierarchical branches so there is one comparator definition.
-        // Frequency sort must agree with the badge beside it: for a hierarchical key with descendants
-        // shown, the badge is the subtree count, so sorting uses it too instead of the own-count value
-        // getTotalPropertyNoteCount actually returns despite its name.
+        // Frequency sort must agree with the badge beside it, so it reads the same count function the
+        // badge does: the subtree count for a hierarchical value with descendants shown, and the
+        // node's own count everywhere else.
         const createChildComparator = (keyNode: PropertyTreeNode): PropertyNodeComparator => {
             const propertyTreeSortOverrides = settings.propertyTreeSortOverrides;
             const hasChildSortOverride = Boolean(
                 propertyTreeSortOverrides && Object.prototype.hasOwnProperty.call(propertyTreeSortOverrides, keyNode.id)
             );
             const childSortOverride = hasChildSortOverride ? propertyTreeSortOverrides?.[keyNode.id] : undefined;
-            const isHierarchical = hierarchicalPropertyKeys.has(keyNode.key);
             return createPropertyComparator({
                 order: childSortOverride ?? settings.propertySortOrder,
                 compareAlphabetically: comparePropertyValueNodesAlphabetically,
-                getFrequency: node => {
-                    if (isHierarchical && includeDescendantNotes) {
-                        return propertyHierarchyIndex.subtreeCount.get(node.id) ?? node.notesWithValue.size;
-                    }
-                    return includeDescendantNotes && node.valuePath
-                        ? getTotalPropertyNoteCount(keyNode, node.valuePath)
-                        : node.notesWithValue.size;
-                }
+                getFrequency: node => createPropertyNoteCountInfo(node, propertyHierarchyIndex, includeDescendantNotes).total
             });
         };
 
@@ -954,7 +949,15 @@ export function useNavigationPaneTreeSections({
                     comparator: createChildComparator(keyNode)
                 });
                 placements.forEach(item => {
-                    const hasChildren = propertyNodeHasChildren(item.data, propertyHierarchyIndex);
+                    // The placement key, not the node id: whether this row can open depends on the
+                    // chain it renders under, because the depth cap and the cycle filter are both
+                    // properties of the chain rather than of the value.
+                    const hasChildren = propertyPlacementHasChildren(
+                        item.data,
+                        item.key,
+                        propertyHierarchyIndex,
+                        settings.propertyHierarchyMaxDepth
+                    );
                     items.push({ ...item, hasChildren });
                 });
                 return;

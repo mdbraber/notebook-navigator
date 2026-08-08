@@ -472,6 +472,60 @@ export function getPropertyPlacementAncestorKeys(chain: readonly string[]): stri
     return chain.slice(0, -1).map((_, index) => buildPropertyPlacementKey(chain.slice(0, index + 1)));
 }
 
+/**
+ * Whether a placement sits at the depth cap. `chain.length - 1` is the placement's depth, counted in
+ * edges from the key's root exactly as the flattener counts levels. Shared with the flattener so the
+ * cap has one expression: a chevron computed from a different one expands to nothing.
+ */
+function isPropertyPlacementAtDepthCap(chain: readonly string[], maxDepth: number): boolean {
+    return chain.length - 1 >= maxDepth;
+}
+
+/**
+ * Child value node ids the flattener would descend into from a placement. The index may hold a cycle
+ * edge, so a child already in the chain is dropped: the flattener refuses to descend into it, and a
+ * chevron that offered it would expand to nothing.
+ */
+function resolveRenderablePropertyChildIds(chain: readonly string[], index: PropertyHierarchyIndex): string[] {
+    const childIds = index.childIds.get(chain[chain.length - 1]) ?? [];
+    return childIds.filter(childId => !chain.includes(childId));
+}
+
+/**
+ * Whether one placement of a hierarchical value has children the flattener would actually emit. Both
+ * of the flattener's own limits apply, which is the point: raw `childIds.length > 0` gives a placement
+ * at the depth cap, or one whose only child is its own ancestor, a chevron that expands to nothing,
+ * writes a junk placement key to localStorage, and with collapseOtherBranchesOnExpand on trades the
+ * user's other open branches for no new rows.
+ */
+export function propertyPlacementHasRenderableChildren(placementKey: string, index: PropertyHierarchyIndex, maxDepth: number): boolean {
+    const chain = placementKey.split(PROPERTY_PLACEMENT_SEPARATOR);
+    if (isPropertyPlacementAtDepthCap(chain, maxDepth)) {
+        return false;
+    }
+
+    return resolveRenderablePropertyChildIds(chain, index).length > 0;
+}
+
+/**
+ * Whether a property row should show a chevron, for every row type the navigation pane emits.
+ *
+ * A key node and a non-hierarchical value are decided by their own `children` map, exactly as they are
+ * today: a non-hierarchical key has no index entry at all, and a key node's placement key is its node
+ * id, which the index never holds children for. A hierarchical value node's `children` map is always
+ * empty by design, since the tree is never reparented, so its answer comes from the placement instead.
+ * One function for every caller, because each of the two defects here was a caller checking children
+ * presence its own way.
+ */
+export function propertyPlacementHasChildren(
+    node: PropertyTreeNode,
+    placementKey: string,
+    index: PropertyHierarchyIndex,
+    maxDepth: number
+): boolean {
+    return node.children.size > 0 || propertyPlacementHasRenderableChildren(placementKey, index, maxDepth);
+}
+
 interface FlattenPropertyHierarchyParams {
     keyNode: PropertyTreeNode;
     index: PropertyHierarchyIndex;
@@ -527,12 +581,11 @@ export function flattenPropertyHierarchy({
             key: placementKey
         });
 
-        if (currentLevel - level >= maxDepth || !expandedPlacements.has(placementKey)) {
+        if (isPropertyPlacementAtDepthCap(nextChain, maxDepth) || !expandedPlacements.has(placementKey)) {
             return;
         }
 
-        const childIds = index.childIds.get(node.id) ?? [];
-        const children = resolveNodes(childIds).filter(child => !nextChain.includes(child.id));
+        const children = resolveNodes(resolveRenderablePropertyChildIds(nextChain, index));
         if (children.length === 0) {
             return;
         }

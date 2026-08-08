@@ -21,6 +21,11 @@ import { PROPERTIES_ROOT_VIRTUAL_FOLDER_ID } from '../../src/types';
 import { PropertyTreeService } from '../../src/services/PropertyTreeService';
 import type { PropertyTreeNode } from '../../src/types/storage';
 import { buildPropertyKeyNodeId, buildPropertyValueNodeId } from '../../src/utils/propertyTree';
+import {
+    buildPropertyHierarchyIndex,
+    createPropertyNoteCountInfo,
+    EMPTY_PROPERTY_HIERARCHY_INDEX
+} from '../../src/utils/propertyHierarchy';
 
 function createKeyNode(key: string, name: string, notes: string[]): PropertyTreeNode {
     return {
@@ -98,6 +103,66 @@ describe('PropertyTreeService', () => {
         expect(service.collectFilePaths(work.id, false)).toEqual(new Set(['b.md']));
         expect(service.collectFilePaths(work.id, true)).toEqual(new Set(['b.md']));
         expect(service.collectFilePaths('key:missing', true)).toEqual(new Set());
+    });
+
+    it('lists a hierarchical value subtree, matching the badge beside the row', () => {
+        // The spec's shape: Building software.md carries projects: [[Fiddle]], so Building software
+        // nests under Fiddle, and Bulwark.md carries both values, so it is one note in Fiddle's
+        // subtree rather than two. Selecting Fiddle used to list only its own notes while its badge
+        // counted the subtree, so the number next to the row disagreed with the list beside it.
+        const service = new PropertyTreeService();
+        const projectsKey = createKeyNode('projects', 'Projects', ['Building software.md', 'Bulwark.md']);
+        const fiddle = createValueNode('projects', 'fiddle', 'Fiddle', ['Building software.md', 'Bulwark.md']);
+        fiddle.assignmentValue = '[[Fiddle]]';
+        const buildingSoftware = createValueNode('projects', 'building software', 'Building software', ['Bulwark.md', 'Bulwark2.md']);
+        buildingSoftware.assignmentValue = '[[Building software]]';
+        projectsKey.children.set(fiddle.id, fiddle);
+        projectsKey.children.set(buildingSoftware.id, buildingSoftware);
+
+        const tree = new Map([[projectsKey.key, projectsKey]]);
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set(['projects']),
+            resolveValueNotePath: node => {
+                const match = /^\[\[([^\]|]+)\]\]$/.exec(node.assignmentValue ?? '');
+                return match ? `${match[1]}.md` : null;
+            }
+        });
+
+        service.updatePropertyTree(tree);
+        service.updateHierarchyIndex(index);
+
+        // Descendants on: the deduped union, and exactly the number the badge shows.
+        const withDescendants = service.collectFilePaths(fiddle.id, true);
+        expect(withDescendants).toEqual(new Set(['Building software.md', 'Bulwark.md', 'Bulwark2.md']));
+        expect(withDescendants.size).toBe(createPropertyNoteCountInfo(fiddle, index, true).total);
+        expect(index.subtreeCount.get(fiddle.id)).toBe(3);
+
+        // Descendants off: own notes only, and again the badge agrees.
+        const directOnly = service.collectFilePaths(fiddle.id, false);
+        expect(directOnly).toEqual(new Set(['Building software.md', 'Bulwark.md']));
+        expect(directOnly.size).toBe(createPropertyNoteCountInfo(fiddle, index, false).total);
+
+        // Cached per mode, so asking again in either order keeps giving each mode its own answer.
+        expect(service.collectFilePaths(fiddle.id, true)).toEqual(withDescendants);
+        expect(service.collectFilePaths(fiddle.id, false)).toEqual(directOnly);
+
+        // A leaf value is unaffected in both modes.
+        expect(service.collectFilePaths(buildingSoftware.id, true)).toEqual(new Set(['Bulwark.md', 'Bulwark2.md']));
+    });
+
+    it('leaves a value of a key that is not hierarchical listing only its own notes', () => {
+        // The regression guarantee: without an index entry, both modes are the node's own notes.
+        const service = new PropertyTreeService();
+        const statusKey = createKeyNode('status', 'Status', ['a.md', 'b.md']);
+        const work = createValueNode('status', 'work', 'Work', ['b.md']);
+        statusKey.children.set(work.id, work);
+
+        service.updatePropertyTree(new Map([[statusKey.key, statusKey]]));
+        service.updateHierarchyIndex(EMPTY_PROPERTY_HIERARCHY_INDEX);
+
+        expect(service.collectFilePaths(work.id, true)).toEqual(new Set(['b.md']));
+        expect(service.collectFilePaths(work.id, false)).toEqual(new Set(['b.md']));
     });
 
     it('collects file paths across normalized keys', () => {

@@ -30,7 +30,7 @@ import type { NavigationPaneTreeSectionsResult } from './navigationPane/data/use
 
 interface UseFileItemPillDecorationStateParams {
     sourceState: NavigationPaneSourceState;
-    treeSections: Pick<NavigationPaneTreeSectionsResult, 'renderTagTree' | 'renderedRootTagKeys'>;
+    treeSections: Pick<NavigationPaneTreeSectionsResult, 'renderTagTree' | 'renderedRootTagKeys' | 'propertyHierarchyIndex'>;
     includeDescendantNotes: boolean;
     navRainbowState: NavigationRainbowState;
 }
@@ -93,7 +93,8 @@ export function useFileItemPillDecorationState({
             showAllPropertiesFolder: settings.showAllPropertiesFolder,
             propertySortOrder: settings.propertySortOrder,
             propertyTreeSortOverrides: settings.propertyTreeSortOverrides,
-            includeDescendantNotes
+            includeDescendantNotes,
+            propertyHierarchyIndex: treeSections.propertyHierarchyIndex
         });
     }, [
         includeDescendantNotes,
@@ -105,7 +106,8 @@ export function useFileItemPillDecorationState({
         sourceState.propertyKeyComparator,
         sourceState.propertyTree,
         sourceState.rootPropertyOrderMap,
-        sourceState.visiblePropertyNavigationKeySet
+        sourceState.visiblePropertyNavigationKeySet,
+        treeSections.propertyHierarchyIndex
     ]);
 
     return useMemo(

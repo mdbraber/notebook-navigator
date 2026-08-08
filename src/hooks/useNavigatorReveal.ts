@@ -463,7 +463,10 @@ export function useNavigatorReveal({
                     expansionDispatch,
                     selectionDispatch,
                     activatePane,
-                    propertyHierarchyIndex: propertyHierarchyIndexRef.current,
+                    propertyHierarchy: {
+                        index: propertyHierarchyIndexRef.current,
+                        maxDepth: settings.propertyHierarchyMaxDepth
+                    },
                     requestScroll: (nodeId, scrollOptions) => {
                         navigationPaneRef.current?.requestScroll(nodeId, scrollOptions);
                     }
@@ -506,6 +509,7 @@ export function useNavigatorReveal({
             propertyHierarchyIndexRef,
             settings.showAllPropertiesFolder,
             settings.collapseOtherBranchesOnExpand,
+            settings.propertyHierarchyMaxDepth,
             settings.showProperties,
             getPropertyTree
         ]
@@ -959,7 +963,10 @@ export function useNavigatorReveal({
                     expansionDispatch,
                     selectionDispatch,
                     activatePane,
-                    propertyHierarchyIndex: propertyHierarchyIndexRef.current,
+                    propertyHierarchy: {
+                        index: propertyHierarchyIndexRef.current,
+                        maxDepth: settings.propertyHierarchyMaxDepth
+                    },
                     requestScroll: (nodeId, scrollOptions) => {
                         navigationPaneRef.current?.requestScroll(nodeId, scrollOptions);
                     }
@@ -978,6 +985,7 @@ export function useNavigatorReveal({
             selectionDispatch,
             settings.showAllPropertiesFolder,
             settings.collapseOtherBranchesOnExpand,
+            settings.propertyHierarchyMaxDepth,
             settings.showProperties,
             getPropertyTree
         ]

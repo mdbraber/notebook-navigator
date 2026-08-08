@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type { PropertyTreeNode, PropertyTreeNodeId } from '../types/storage';
+import type { PropertyTreeNode } from '../types/storage';
 import type { NoteCountInfo } from '../types/noteCounts';
 
 /**
@@ -52,6 +52,40 @@ interface BuildPropertyHierarchyIndexParams {
      * disagree about which note a value means.
      */
     resolveValueNotePath: (node: PropertyTreeNode) => string | null;
+}
+
+/**
+ * Deduped note paths of a value node and everything below it, following child edges with a cycle
+ * guard. One walk serves both the subtree count and the notes a selected row lists, which is what
+ * makes the badge and the list agree by construction rather than by two implementations staying in
+ * step. Nodes the map does not know are skipped, and their edges are not followed.
+ */
+function collectSubtreeNotePaths(
+    nodesById: ReadonlyMap<string, PropertyTreeNode>,
+    childIds: ReadonlyMap<string, readonly string[]>,
+    rootId: string
+): Set<string> {
+    const notePaths = new Set<string>();
+    const visited = new Set<string>();
+    const pending = [rootId];
+
+    while (pending.length > 0) {
+        const nodeId = pending.pop();
+        if (nodeId === undefined || visited.has(nodeId)) {
+            continue;
+        }
+        visited.add(nodeId);
+
+        const node = nodesById.get(nodeId);
+        if (!node) {
+            continue;
+        }
+
+        node.notesWithValue.forEach(notePath => notePaths.add(notePath));
+        (childIds.get(nodeId) ?? []).forEach(childId => pending.push(childId));
+    }
+
+    return notePaths;
 }
 
 export function buildPropertyHierarchyIndex({
@@ -99,10 +133,10 @@ export function buildPropertyHierarchyIndex({
             // under its own key, such as Categories, into a root rather than an unreachable island.
             const parents = notePath === null ? [] : (valuesByNotePath.get(notePath) ?? []).filter(id => id !== node.id);
             parentsById.set(node.id, parents);
-            // Sorted for the same reason rootIds and childIds are: the walk in
-            // resolvePropertyRevealChain takes the first parent, so it must not depend on the order
-            // notes happened to be scanned in. Every value node of a hierarchical key gets an entry,
-            // empty for a root, which is what lets that walk tell an unknown node from a root.
+            // Sorted for the same reason rootIds and childIds are: resolvePropertyRevealChain walks
+            // these lists in order, so which chain it finds must not depend on the order notes
+            // happened to be scanned in. Every value node of a hierarchical key gets an entry, empty
+            // for a root, which is what lets that walk tell an unknown node from a root.
             parentIds.set(node.id, parents.slice().sort());
         });
 
@@ -141,22 +175,11 @@ export function buildPropertyHierarchyIndex({
             childIds.set(parentId, children.slice().sort());
         });
 
-        // Deduped subtree counts, post-order with a cycle guard, matching getTotalNoteCount for tags.
-        const nodesById = new Map(valueNodes.map(node => [node.id, node]));
-        const collect = (nodeId: string, visiting: ReadonlySet<string>): ReadonlySet<string> => {
-            const node = nodesById.get(nodeId as PropertyTreeNodeId);
-            if (!node || visiting.has(nodeId)) {
-                return new Set<string>();
-            }
-            const nextVisiting = new Set(visiting).add(nodeId);
-            const notes = new Set<string>(node.notesWithValue);
-            (childIds.get(nodeId) ?? []).forEach(childId => {
-                collect(childId, nextVisiting).forEach(path => notes.add(path));
-            });
-            return notes;
-        };
+        // Deduped subtree counts, from the same walk selection uses, so a badge and the notes the row
+        // lists can only ever be the same set.
+        const nodesById = new Map<string, PropertyTreeNode>(valueNodes.map(node => [node.id, node]));
         valueNodes.forEach(node => {
-            subtreeCount.set(node.id, collect(node.id, new Set<string>()).size);
+            subtreeCount.set(node.id, collectSubtreeNotePaths(nodesById, childIds, node.id).size);
         });
     });
 
@@ -164,10 +187,52 @@ export function buildPropertyHierarchyIndex({
 }
 
 /**
- * Chain of value node ids from a root down to the target, or null when the node is unknown.
- * Walks parents deterministically, taking the first parent id, and stops on a node already in the
- * chain so a cycle terminates rather than looping. The user's rule is that auto-reveal targets the
- * first placement, and taking the first parent at each step is what makes that deterministic.
+ * Deduped note paths a hierarchical value row lists when descendant notes are on: its own notes
+ * unioned with its whole subtree's, so a note carrying both a parent and a child value appears once.
+ * Equals the set `index.subtreeCount` sized, because both come from the same walk.
+ *
+ * Falls back to the node's own notes whenever the node has no index entry, which is every node while
+ * its key is not hierarchical, so a flat key keeps listing exactly what it lists today. Deliberately
+ * ignores the flattener's depth cap, matching the counts: the cap is a rendering limit, so moving it
+ * must not change what a row contains.
+ */
+export function collectPropertyValueSubtreeNotePaths(
+    keyNode: PropertyTreeNode,
+    nodeId: string,
+    index: PropertyHierarchyIndex
+): Set<string> {
+    const nodesById = new Map<string, PropertyTreeNode>();
+    keyNode.children.forEach(node => {
+        if (node.kind === 'value') {
+            nodesById.set(node.id, node);
+        }
+    });
+
+    return collectSubtreeNotePaths(nodesById, index.childIds, nodeId);
+}
+
+interface ResolvePropertyRevealChainParams {
+    index: PropertyHierarchyIndex;
+    /** Key node id of the target, which is what `rootIds` is keyed by. */
+    keyNodeId: string;
+    /** Value node id to reveal. */
+    nodeId: string;
+    /** The flattener's depth cap. A chain deeper than this expands prefixes it never recurses into. */
+    maxDepth: number;
+}
+
+/**
+ * Chain of value node ids from a rendered root down to the target, or null when no such chain exists
+ * within the depth cap. The head is always a node in `index.rootIds` for the key, which is the whole
+ * point: a head that merely has no unseen parent left can be a cycle member that renders nowhere at
+ * the key's root, and expanding a placement key naming no rendered row is not a silent no-op. With
+ * collapseOtherBranchesOnExpand on, the expansion set is replaced wholesale, so revealing a value
+ * that way collapses the branch the value was actually visible in.
+ *
+ * Walks parents breadth first, so the chain found is the shallowest one and therefore the one most
+ * likely to fit under the cap. Parent lists are sorted by the index, which makes the result
+ * deterministic. Null means reveal expands the key alone, which is what a non-hierarchical value has
+ * always done.
  *
  * The chain need not equal the flattener's first emitted placement, and does not need to: once every
  * prefix is expanded the target's row exists, and selection and highlighting are keyed by node id
@@ -176,38 +241,54 @@ export function buildPropertyHierarchyIndex({
  * the flattener recurses into a placement's children solely when that placement is expanded, so it can
  * never tell reveal what to expand.
  */
-export function resolvePropertyRevealChain(index: PropertyHierarchyIndex, nodeId: string): string[] | null {
+export function resolvePropertyRevealChain({ index, keyNodeId, nodeId, maxDepth }: ResolvePropertyRevealChainParams): string[] | null {
     if (!index.parentIds.has(nodeId)) {
         return null;
     }
 
-    const chain = [nodeId];
-    const seen = new Set([nodeId]);
-    for (;;) {
-        const parentId = index.parentIds.get(chain[0])?.[0];
-        if (parentId === undefined || seen.has(parentId)) {
-            return chain;
-        }
-        chain.unshift(parentId);
-        seen.add(parentId);
+    const rootIds = new Set(index.rootIds.get(keyNodeId) ?? []);
+    // A root renders at the key's own level, so its chain is itself and nothing needs expanding.
+    // Checked first because a promoted cycle member is both a root and somebody's child.
+    if (rootIds.has(nodeId)) {
+        return [nodeId];
     }
-}
 
-/**
- * Whether a property tree node should show a chevron. A hierarchical value node's own `children` map
- * is always empty by design (the tree is never reparented), so every caller that only checked
- * `node.children.size > 0` reported "no children" for one and silently did nothing. Asking the index
- * too is what makes those checks correct for hierarchical values while leaving flat keys exactly as
- * they behave today, since a non-hierarchical key has no entry in the index at all.
- *
- * Known related defect, deliberately not fixed here: this mirrors the flattener's own
- * `hasChildren` computation, which is raw `childIds.length > 0` and ignores the flattener's depth cap
- * and its cycle filter. A placement at the cap, or one whose only child is its own ancestor, reports
- * children it cannot actually expand into. Centralizing the check here is what lets a later fix
- * correct every caller at once instead of hunting them down again.
- */
-export function propertyNodeHasChildren(node: PropertyTreeNode, index: PropertyHierarchyIndex): boolean {
-    return node.children.size > 0 || (index.childIds.get(node.id)?.length ?? 0) > 0;
+    // Breadth first upward. `cameFrom` maps each visited node to the node it was reached from, which
+    // is that node's child in the chain, so a hit rebuilds the chain by walking back down.
+    const cameFrom = new Map<string, string>();
+    const visited = new Set<string>([nodeId]);
+    let frontier = [nodeId];
+
+    for (let depth = 0; depth < maxDepth && frontier.length > 0; depth++) {
+        const nextFrontier: string[] = [];
+        for (const current of frontier) {
+            for (const parentId of index.parentIds.get(current) ?? []) {
+                if (visited.has(parentId)) {
+                    continue;
+                }
+                visited.add(parentId);
+                cameFrom.set(parentId, current);
+
+                if (rootIds.has(parentId)) {
+                    const chain = [parentId];
+                    let cursor = parentId;
+                    for (;;) {
+                        const child = cameFrom.get(cursor);
+                        if (child === undefined) {
+                            return chain;
+                        }
+                        chain.push(child);
+                        cursor = child;
+                    }
+                }
+
+                nextFrontier.push(parentId);
+            }
+        }
+        frontier = nextFrontier;
+    }
+
+    return null;
 }
 
 /**

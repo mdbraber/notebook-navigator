@@ -64,12 +64,16 @@ export interface PropertyNavigationEnvironment {
     resolveSelectionNodeId?: (nodeId: PropertySelectionNodeId) => PropertySelectionNodeId;
     /**
      * Additive nesting over the value nodes of keys marked Hierarchical, surfaced on the tree
-     * sections result. Lets reveal expand every ancestor placement of a nested value, not just its
-     * key. Optional because not every caller of navigateToProperty has a navigation pane render to
-     * read it from; omitting it just means a hierarchical value reveals no deeper than its key, same
-     * as before the index existed.
+     * sections result, together with the depth cap the pane renders it with. Lets reveal expand every
+     * ancestor placement of a nested value, not just its key. Optional because not every caller of
+     * navigateToProperty has a navigation pane render to read it from; omitting it just means a
+     * hierarchical value reveals no deeper than its key, same as before the index existed.
+     *
+     * The two travel together deliberately: a chain resolved without the cap can be deeper than the
+     * pane will ever render, and expanding prefixes of a row that cannot appear is not free. With
+     * collapseOtherBranchesOnExpand on it replaces the whole expanded set.
      */
-    propertyHierarchyIndex?: PropertyHierarchyIndex;
+    propertyHierarchy?: { index: PropertyHierarchyIndex; maxDepth: number };
     requestScroll?: (nodeId: PropertySelectionNodeId, options: { align: 'auto'; itemType: typeof ItemType.PROPERTY }) => void;
 }
 
@@ -158,8 +162,13 @@ export function navigateToProperty(
     // single-element one here, which yields no ancestor keys and preserves today's key-only expansion
     // for those exactly.
     const revealChain =
-        env.propertyHierarchyIndex && resolvedNodeId !== PROPERTIES_ROOT_VIRTUAL_FOLDER_ID
-            ? resolvePropertyRevealChain(env.propertyHierarchyIndex, resolvedNodeId)
+        env.propertyHierarchy && keyNodeId && resolvedNodeId !== PROPERTIES_ROOT_VIRTUAL_FOLDER_ID
+            ? resolvePropertyRevealChain({
+                  index: env.propertyHierarchy.index,
+                  keyNodeId,
+                  nodeId: resolvedNodeId,
+                  maxDepth: env.propertyHierarchy.maxDepth
+              })
             : null;
     const ancestorPlacementKeys = revealChain ? getPropertyPlacementAncestorKeys(revealChain) : [];
 

@@ -54,7 +54,8 @@ import {
     isFolderEffectivelyExpanded,
     toggleNavigationExpansionTarget
 } from '../utils/navigationExpansion';
-import { propertyNodeHasChildren, type PropertyHierarchyIndex } from '../utils/propertyHierarchy';
+import type { PropertyHierarchyIndex } from '../utils/propertyHierarchy';
+import { propertyPlacementHasChildren } from '../utils/treeFlattener';
 
 type VirtualTagCollectionItem = VirtualFolderItem & { tagCollectionId: string };
 type VirtualPropertyCollectionItem = VirtualFolderItem & { propertyCollectionId: string };
@@ -239,7 +240,10 @@ export function useNavigationPaneKeyboard({
                 // placement of the same value. Equal to the node id for a key node, a root placement,
                 // or a non-hierarchical value.
                 const placementKey = item.type === NavigationPaneItemType.PROPERTY_VALUE ? item.key : propertyNode.id;
-                if (settings.autoExpandNavItems && propertyNodeHasChildren(propertyNode, propertyHierarchyIndex)) {
+                if (
+                    settings.autoExpandNavItems &&
+                    propertyPlacementHasChildren(propertyNode, placementKey, propertyHierarchyIndex, settings.propertyHierarchyMaxDepth)
+                ) {
                     if (!expansionState.expandedProperties.has(placementKey)) {
                         // The target below carries the placement key as its id, and its ancestors are
                         // derived from that key, so branch replacement keeps the intermediate

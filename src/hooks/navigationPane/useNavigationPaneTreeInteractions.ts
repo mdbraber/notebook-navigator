@@ -41,7 +41,8 @@ import type { InclusionOperator } from '../../utils/filterSearch';
 import { getFolderNote, openFolderNoteFile, type FolderNoteOpenContext } from '../../utils/folderNotes';
 import { resolvePropertyNote } from '../../utils/propertyNoteLookup';
 import { openPropertyNoteFile } from '../../utils/propertyNotes';
-import { propertyNodeHasChildren, type PropertyHierarchyIndex } from '../../utils/propertyHierarchy';
+import type { PropertyHierarchyIndex } from '../../utils/propertyHierarchy';
+import { propertyPlacementHasChildren } from '../../utils/treeFlattener';
 import { runAsyncAction } from '../../utils/async';
 import { resolveFolderNoteClickOpenContext, resolveFolderNoteDefaultOpenContext } from '../../utils/keyboardOpenContext';
 import { findTagNode } from '../../utils/tagTree';
@@ -369,12 +370,19 @@ export function useNavigationPaneTreeInteractions({
                             // the node id for a key row, a root placement or a non-hierarchical value.
                             id: placementKey,
                             // A hierarchical value node is stored as a leaf child of its key, so its
-                            // own children map is always empty and this must ask the index too.
+                            // own children map is always empty and this must ask the placement too.
                             // Without that, toggleNavigationExpansionTarget computes canExpand as
                             // false, dispatches nothing, and the early return below swallows the
                             // toggle, leaving the whole hierarchical tree unopenable by mouse
-                            // whenever collapseOtherBranchesOnExpand is on.
-                            hasChildren: propertyNodeHasChildren(targetNode, propertyHierarchyIndex),
+                            // whenever collapseOtherBranchesOnExpand is on. It has to be the
+                            // placement rather than the node because a dead chevron here does not
+                            // merely do nothing: it replaces the user's open branches.
+                            hasChildren: propertyPlacementHasChildren(
+                                targetNode,
+                                placementKey,
+                                propertyHierarchyIndex,
+                                settings.propertyHierarchyMaxDepth
+                            ),
                             ancestorIds: getPropertyPlacementAncestorIds(placementKey)
                         },
                         expansionState,
@@ -394,7 +402,8 @@ export function useNavigationPaneTreeInteractions({
             propertyHierarchyIndex,
             propertyTree,
             propertyTreeService,
-            settings.collapseOtherBranchesOnExpand
+            settings.collapseOtherBranchesOnExpand,
+            settings.propertyHierarchyMaxDepth
         ]
     );
 
@@ -677,7 +686,12 @@ export function useNavigationPaneTreeInteractions({
                 return;
             }
 
-            const hasChildren = propertyNodeHasChildren(propertyNode, propertyHierarchyIndex);
+            const hasChildren = propertyPlacementHasChildren(
+                propertyNode,
+                placementKey,
+                propertyHierarchyIndex,
+                settings.propertyHierarchyMaxDepth
+            );
             const isExpanded = expansionState.expandedProperties.has(placementKey);
             const selectedPropertyNodeId = selectionState.selectionType === ItemType.PROPERTY ? selectionState.selectedProperty : null;
             // Resolved before applyTreeSelection so the selection dispatch below can carry
@@ -728,6 +742,7 @@ export function useNavigationPaneTreeInteractions({
             settings.autoOpenPropertyNote,
             settings.enablePropertyNotes,
             settings.multiSelectModifier,
+            settings.propertyHierarchyMaxDepth,
             settings.propertyNoteOpenLocation
         ]
     );
@@ -762,7 +777,7 @@ export function useNavigationPaneTreeInteractions({
 
             if (
                 settings.autoExpandNavItems &&
-                propertyNodeHasChildren(propertyNode, propertyHierarchyIndex) &&
+                propertyPlacementHasChildren(propertyNode, placementKey, propertyHierarchyIndex, settings.propertyHierarchyMaxDepth) &&
                 !expansionState.expandedProperties.has(placementKey)
             ) {
                 handlePropertyToggle(placementKey, propertyNode.id);

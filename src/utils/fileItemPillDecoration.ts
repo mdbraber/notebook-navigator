@@ -27,7 +27,8 @@ import {
     type PropertyRainbowColors,
     type TagRainbowColors
 } from './navigationRainbow';
-import { getPropertyKeyNodeIdFromNodeId, getTotalPropertyNoteCount, parsePropertyNodeId } from './propertyTree';
+import { getPropertyKeyNodeIdFromNodeId, parsePropertyNodeId } from './propertyTree';
+import { createPropertyNoteCountInfo, type PropertyHierarchyIndex } from './propertyHierarchy';
 import { naturalCompare, compareByAlphaSortOrder } from './sortUtils';
 import { normalizeTagPathValue } from './tagPrefixMatcher';
 import { collectAllTagPaths } from './tagTree';
@@ -85,10 +86,10 @@ function reverseComparator<T>(comparator: (a: T, b: T) => number): (a: T, b: T) 
 
 function createPropertyValueComparator(params: {
     order: TagSortOrder;
-    keyNode: PropertyTreeNode;
+    propertyHierarchyIndex: PropertyHierarchyIndex;
     includeDescendantNotes: boolean;
 }): (a: PropertyTreeNode, b: PropertyTreeNode) => number {
-    const { order, keyNode, includeDescendantNotes } = params;
+    const { order, propertyHierarchyIndex, includeDescendantNotes } = params;
     const compareAlphabetically = comparePropertyValuesAlphabetically;
 
     if (order === 'alpha-asc') {
@@ -100,13 +101,11 @@ function createPropertyValueComparator(params: {
     }
 
     const compareByFrequency = (a: PropertyTreeNode, b: PropertyTreeNode) => {
-        const getFrequency = (node: PropertyTreeNode): number => {
-            if (includeDescendantNotes && node.valuePath) {
-                return getTotalPropertyNoteCount(keyNode, node.valuePath);
-            }
-
-            return node.notesWithValue.size;
-        };
+        // The same count the navigation pane sorts and badges by: a hierarchical value's subtree count
+        // when descendant notes are on, and the node's own count for every other key, which is what
+        // this compared before. Pill colours follow navigation row order, so the two must not diverge.
+        const getFrequency = (node: PropertyTreeNode): number =>
+            createPropertyNoteCountInfo(node, propertyHierarchyIndex, includeDescendantNotes).total;
 
         const difference = getFrequency(a) - getFrequency(b);
         if (difference !== 0) {
@@ -253,6 +252,8 @@ export function buildFileItemPropertyRainbowColors(params: {
     propertySortOrder: TagSortOrder;
     propertyTreeSortOverrides?: Record<string, AlphaSortOrder>;
     includeDescendantNotes: boolean;
+    /** Hierarchy index from the navigation pane, so frequency order here matches the order there. */
+    propertyHierarchyIndex: PropertyHierarchyIndex;
 }): PropertyRainbowColors {
     const {
         propertyTree,
@@ -264,7 +265,8 @@ export function buildFileItemPropertyRainbowColors(params: {
         showAllPropertiesFolder,
         propertySortOrder,
         propertyTreeSortOverrides,
-        includeDescendantNotes
+        includeDescendantNotes,
+        propertyHierarchyIndex
     } = params;
 
     if (palette.length === 0 || propertyTree.size === 0 || visiblePropertyNavigationKeySet.size === 0) {
@@ -305,7 +307,7 @@ export function buildFileItemPropertyRainbowColors(params: {
             ? resolveAlphaSortComparator<PropertyTreeNode>(overrideOrder, node => node.valuePath ?? '')
             : createPropertyValueComparator({
                   order: propertySortOrder,
-                  keyNode,
+                  propertyHierarchyIndex,
                   includeDescendantNotes
               });
         childNodes.sort(childComparator).forEach(childNode => {
