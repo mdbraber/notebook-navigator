@@ -273,6 +273,11 @@ export function useListPaneData({
         settings.propertySortSecondary,
         activePropertyFields,
         settings.showProperties,
+        // Selecting a hierarchical property value lists its whole subtree, so marking a key
+        // Hierarchical changes this file set. Without this the badge updates on the settings save
+        // while the list keeps the previous count, which is the disagreement subtree selection exists
+        // to remove. The index itself is not a dependency: it is rebuilt from these keys.
+        settings.propertyHierarchicalKeys,
         selectedSortOverride,
         propertyTreeService,
         includeDescendantNotes,
