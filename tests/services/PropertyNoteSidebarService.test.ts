@@ -17,7 +17,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import type { WorkspaceLeaf } from 'obsidian';
+import type { TFile, WorkspaceLeaf } from 'obsidian';
 import type NotebookNavigatorPlugin from '../../src/main';
 import { PropertyNoteSidebarService } from '../../src/services/workspace/PropertyNoteSidebarService';
 import { createTestTFile } from '../utils/createTestTFile';
@@ -41,6 +41,26 @@ interface TestWorkspace {
 }
 
 /**
+ * A right sidebar leaf that reports the file it shows through its view state, the way a real
+ * document leaf does, including one Obsidian restored from the saved workspace layout.
+ */
+function createRightSidebarLeaf(rightSplit: object, viewType: string, filePath: string | null): TestLeaf {
+    let currentPath = filePath;
+    const openFile = vi.fn((file: TFile) => {
+        currentPath = file.path;
+        return Promise.resolve();
+    });
+    const leaf = {
+        parent: rightSplit,
+        view: {},
+        getViewState: vi.fn(() => ({ type: viewType, state: currentPath === null ? {} : { file: currentPath } })),
+        openFile
+    } as unknown as WorkspaceLeaf;
+
+    return { leaf, openFile };
+}
+
+/**
  * A workspace whose getRightLeaf(true) splits, creating a fresh right sidebar leaf on every
  * call. That is the real behavior that made property notes stack up before the service.
  */
@@ -60,14 +80,10 @@ function createTestWorkspace(): TestWorkspace {
                 return null;
             }
 
-            const openFile = vi.fn().mockResolvedValue(undefined);
-            const leaf = {
-                parent: rightSplit,
-                openFile
-            } as unknown as WorkspaceLeaf;
-            createdLeaves.push({ leaf, openFile });
-            attachedLeaves.push(leaf);
-            return leaf;
+            const created = createRightSidebarLeaf(rightSplit, 'markdown', null);
+            createdLeaves.push(created);
+            attachedLeaves.push(created.leaf);
+            return created.leaf;
         }),
         iterateAllLeaves: vi.fn((callback: (leaf: WorkspaceLeaf) => void) => {
             attachedLeaves.slice().forEach(callback);
@@ -84,9 +100,17 @@ function createTestPlugin(workspace: TestWorkspace): NotebookNavigatorPlugin {
     } as unknown as NotebookNavigatorPlugin;
 }
 
-/** Removes a leaf from the workspace, the way leaf.detach() does */
+/** Adds a leaf Obsidian restored from the saved workspace layout to the right sidebar */
+function addRestoredLeaf(workspace: TestWorkspace, viewType: string, filePath: string | null): TestLeaf {
+    const restored = createRightSidebarLeaf(workspace.rightSplit, viewType, filePath);
+    workspace.attachedLeaves.push(restored.leaf);
+    return restored;
+}
+
+/** Closes a leaf the way leaf.detach() does, which drops it from the workspace and nulls its parent */
 function detachLeaf(workspace: TestWorkspace, leaf: WorkspaceLeaf): void {
     workspace.attachedLeaves.splice(workspace.attachedLeaves.indexOf(leaf), 1);
+    (leaf as unknown as { parent: object | null }).parent = null;
 }
 
 describe('PropertyNoteSidebarService', () => {
@@ -145,7 +169,7 @@ describe('PropertyNoteSidebarService', () => {
 
         await service.openPropertyNote(createTestTFile('References/Apple.md'));
         const closedLeaf = workspace.createdLeaves[0];
-        // A detached leaf keeps its parent reference, so only the workspace knows it is gone.
+        // detach() nulls the leaf's parent, so the split check stops placing it in the sidebar.
         detachLeaf(workspace, closedLeaf.leaf);
 
         const secondNote = createTestTFile('References/Banana.md');
@@ -154,6 +178,49 @@ describe('PropertyNoteSidebarService', () => {
         expect(workspace.createdLeaves).toHaveLength(2);
         expect(closedLeaf.openFile).toHaveBeenCalledTimes(1);
         expect(workspace.createdLeaves[1].openFile).toHaveBeenCalledWith(secondNote, { active: false });
+    });
+
+    it('adopts a restored right sidebar leaf that already shows the note being opened', async () => {
+        const workspace = createTestWorkspace();
+        const propertyNote = createTestTFile('References/Apple.md');
+        // After a restart the service tracks nothing while Obsidian has restored the leaf.
+        const restoredLeaf = addRestoredLeaf(workspace, 'markdown', propertyNote.path);
+        const service = new PropertyNoteSidebarService(createTestPlugin(workspace));
+
+        await service.openPropertyNote(propertyNote);
+
+        expect(workspace.getRightLeaf).not.toHaveBeenCalled();
+        expect(workspace.createdLeaves).toHaveLength(0);
+        expect(restoredLeaf.openFile).toHaveBeenCalledWith(propertyNote, { active: false });
+        expect(workspace.revealLeaf).toHaveBeenCalledWith(restoredLeaf.leaf);
+    });
+
+    it('leaves a restored right sidebar leaf showing a different note alone', async () => {
+        const workspace = createTestWorkspace();
+        const restoredLeaf = addRestoredLeaf(workspace, 'markdown', 'References/Banana.md');
+        const service = new PropertyNoteSidebarService(createTestPlugin(workspace));
+
+        const propertyNote = createTestTFile('References/Apple.md');
+        await service.openPropertyNote(propertyNote);
+
+        expect(workspace.getRightLeaf).toHaveBeenCalledWith(true);
+        expect(workspace.createdLeaves).toHaveLength(1);
+        expect(restoredLeaf.openFile).not.toHaveBeenCalled();
+        expect(workspace.createdLeaves[0].openFile).toHaveBeenCalledWith(propertyNote, { active: false });
+    });
+
+    it('leaves a tool pane naming the same file alone', async () => {
+        const workspace = createTestWorkspace();
+        const propertyNote = createTestTFile('References/Apple.md');
+        // Backlink and outline panes record the file they describe in their own view state.
+        const backlinkLeaf = addRestoredLeaf(workspace, 'backlink', propertyNote.path);
+        const service = new PropertyNoteSidebarService(createTestPlugin(workspace));
+
+        await service.openPropertyNote(propertyNote);
+
+        expect(backlinkLeaf.openFile).not.toHaveBeenCalled();
+        expect(workspace.createdLeaves).toHaveLength(1);
+        expect(workspace.createdLeaves[0].openFile).toHaveBeenCalledWith(propertyNote, { active: false });
     });
 
     it('does nothing when the workspace cannot provide a right sidebar leaf', async () => {

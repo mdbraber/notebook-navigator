@@ -16,18 +16,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type { TFile, WorkspaceLeaf } from 'obsidian';
+import { FileView, TFile, type WorkspaceLeaf } from 'obsidian';
 import type NotebookNavigatorPlugin from '../../main';
 import { getLeafSplitLocation } from '../../utils/workspaceSplit';
+
+/** Leaf view types that can display a property note, which is any file a wikilink resolves to */
+const PROPERTY_NOTE_DOCUMENT_VIEW_TYPES = new Set(['markdown', 'canvas', 'base', 'excalidraw']);
 
 /**
  * Keeps property notes opened in the right sidebar to a single leaf.
  *
  * Without a tracked leaf, every open calls getRightLeaf(true), which splits, so property
- * notes stack up one leaf per open. Only leaves this service created are ever reused: the
- * right sidebar also holds unrelated tool panes (backlinks, outline, and so on), and taking
- * one of those over would be worse than the stacking it replaces. That rules out
- * getRightLeaf(false) as a reuse shortcut, since it returns whatever leaf happens to be there.
+ * notes stack up one leaf per open. The service reuses only a leaf it created itself or a leaf
+ * already showing the very note being opened: the right sidebar also holds unrelated tool panes
+ * (backlinks, outline, and so on), and taking one of those over would be worse than the stacking
+ * it replaces. That rules out getRightLeaf(false) as a reuse shortcut, since it returns whatever
+ * leaf happens to be there.
  */
 export class PropertyNoteSidebarService {
     private readonly plugin: NotebookNavigatorPlugin;
@@ -43,7 +47,7 @@ export class PropertyNoteSidebarService {
      * The note opens without taking focus, matching the inline right-sidebar open it replaces.
      */
     async openPropertyNote(propertyNote: TFile): Promise<void> {
-        const leaf = this.getOrCreateCompanionLeaf();
+        const leaf = this.getOrCreateCompanionLeaf(propertyNote);
         if (!leaf) {
             return;
         }
@@ -52,10 +56,16 @@ export class PropertyNoteSidebarService {
         await this.plugin.app.workspace.revealLeaf(leaf);
     }
 
-    private getOrCreateCompanionLeaf(): WorkspaceLeaf | null {
+    private getOrCreateCompanionLeaf(propertyNote: TFile): WorkspaceLeaf | null {
         const existingLeaf = this.getUsableCompanionLeaf();
         if (existingLeaf) {
             return existingLeaf;
+        }
+
+        const restoredLeaf = this.findRestoredCompanionLeaf(propertyNote);
+        if (restoredLeaf) {
+            this.companionLeaf = restoredLeaf;
+            return restoredLeaf;
         }
 
         const leaf = this.plugin.app.workspace.getRightLeaf(true) ?? this.plugin.app.workspace.getRightLeaf(false);
@@ -73,9 +83,9 @@ export class PropertyNoteSidebarService {
             return null;
         }
 
-        // A detached leaf keeps both its object identity and its parent reference, so the split
-        // check alone cannot tell it apart from an attached one. Ask the workspace instead.
-        if (!this.isLeafAttached(leaf) || getLeafSplitLocation(this.plugin.app, leaf) !== 'right-sidebar') {
+        // leaf.detach() nulls leaf.parent, so this one check covers both ways the leaf can stop
+        // being ours: the user closed it, or dragged it out of the right sidebar.
+        if (getLeafSplitLocation(this.plugin.app, leaf) !== 'right-sidebar') {
             this.companionLeaf = null;
             return null;
         }
@@ -83,14 +93,53 @@ export class PropertyNoteSidebarService {
         return leaf;
     }
 
-    private isLeafAttached(leaf: WorkspaceLeaf): boolean {
-        let attached = false;
-        this.plugin.app.workspace.iterateAllLeaves((candidate: WorkspaceLeaf) => {
-            if (candidate === leaf) {
-                attached = true;
+    /**
+     * Finds a right sidebar leaf already displaying this exact note, so it can be adopted.
+     *
+     * While a property note sits in the right sidebar, Obsidian saves that leaf in the workspace
+     * layout and restores it on the next launch, where companionLeaf starts null. Without this,
+     * the first open after every restart would split a second leaf beside the restored one.
+     * Only an exact path match is adopted: a leaf already showing the note being opened cannot be
+     * a tool pane or unrelated content, so reusing it cannot clobber anything. A restored leaf
+     * showing some other note is therefore left where it is, and opening a different property note
+     * after a restart does leave it behind until the user closes it.
+     */
+    private findRestoredCompanionLeaf(propertyNote: TFile): WorkspaceLeaf | null {
+        let match: WorkspaceLeaf | null = null;
+
+        this.plugin.app.workspace.iterateAllLeaves((leaf: WorkspaceLeaf) => {
+            if (match || getLeafSplitLocation(this.plugin.app, leaf) !== 'right-sidebar') {
+                return;
+            }
+
+            if (this.getFilePathFromLeaf(leaf) === propertyNote.path) {
+                match = leaf;
             }
         });
 
-        return attached;
+        return match;
+    }
+
+    /**
+     * The path of the file a leaf displays, or null when the leaf is not a document leaf.
+     * The view type gate carries the safety: tool panes such as backlinks and outline put the file
+     * they describe in their own view state, so matching on the path alone could hand one of those
+     * to openFile.
+     */
+    private getFilePathFromLeaf(leaf: WorkspaceLeaf): string | null {
+        const viewState = leaf.getViewState();
+        if (!PROPERTY_NOTE_DOCUMENT_VIEW_TYPES.has(viewState.type)) {
+            return null;
+        }
+
+        // A restored leaf can still be deferred, with no view instance to ask, which is why the
+        // saved view state is the fallback.
+        const view = leaf.view;
+        if (typeof FileView === 'function' && view instanceof FileView && view.file instanceof TFile) {
+            return view.file.path;
+        }
+
+        const filePath = viewState.state?.file;
+        return typeof filePath === 'string' && filePath.length > 0 ? filePath : null;
     }
 }
