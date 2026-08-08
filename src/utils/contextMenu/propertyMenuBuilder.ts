@@ -213,7 +213,8 @@ export function buildPropertyMenu(params: PropertyMenuBuilderParams): void {
                         commandQueue: services.commandQueue,
                         node: valueNode,
                         propertyNoteFolder: settings.propertyNoteFolder,
-                        openContext: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation)
+                        openContext: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation),
+                        openInRightSidebar: propertyNote => services.plugin.openPropertyNoteInRightSidebar(propertyNote)
                     });
                 });
             });

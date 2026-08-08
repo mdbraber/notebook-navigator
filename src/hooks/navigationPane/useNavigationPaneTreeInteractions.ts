@@ -90,6 +90,7 @@ interface UseNavigationPaneTreeInteractionsProps {
     setRecentNotesExpanded: Dispatch<SetStateAction<boolean>>;
     clearActiveShortcut: () => void;
     openFolderNoteInRightSidebar: (folderNote: TFile) => Promise<void>;
+    openPropertyNoteInRightSidebar: (propertyNote: TFile) => Promise<void>;
     onModifySearchWithTag: (tag: string, operator: InclusionOperator) => void;
     onModifySearchWithProperty: (key: string, value: string | null, operator: InclusionOperator) => void;
 }
@@ -154,6 +155,7 @@ export function useNavigationPaneTreeInteractions({
     setRecentNotesExpanded,
     clearActiveShortcut,
     openFolderNoteInRightSidebar,
+    openPropertyNoteInRightSidebar,
     onModifySearchWithTag,
     onModifySearchWithProperty
 }: UseNavigationPaneTreeInteractionsProps): NavigationPaneTreeInteractionsResult {
@@ -723,7 +725,8 @@ export function useNavigationPaneTreeInteractions({
                         app,
                         commandQueue,
                         propertyNote,
-                        context: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation)
+                        context: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation),
+                        openInRightSidebar: openPropertyNoteInRightSidebar
                     })
                 );
             }
@@ -735,6 +738,7 @@ export function useNavigationPaneTreeInteractions({
             expansionState.expandedProperties,
             handlePropertyToggle,
             onModifySearchWithProperty,
+            openPropertyNoteInRightSidebar,
             propertyHierarchyIndex,
             selectionDispatch,
             selectionState.selectedProperty,
@@ -788,7 +792,15 @@ export function useNavigationPaneTreeInteractions({
                 : resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation);
             focusListPaneAfterRightSidebarFolderNoteSelection(openContext);
 
-            runAsyncAction(() => openPropertyNoteFile({ app, commandQueue, propertyNote, context: openContext }));
+            runAsyncAction(() =>
+                openPropertyNoteFile({
+                    app,
+                    commandQueue,
+                    propertyNote,
+                    context: openContext,
+                    openInRightSidebar: openPropertyNoteInRightSidebar
+                })
+            );
         },
         [
             app,
@@ -797,6 +809,7 @@ export function useNavigationPaneTreeInteractions({
             focusListPaneAfterRightSidebarFolderNoteSelection,
             handlePropertyClick,
             handlePropertyToggle,
+            openPropertyNoteInRightSidebar,
             propertyHierarchyIndex,
             selectionDispatch,
             settings

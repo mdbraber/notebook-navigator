@@ -76,6 +76,7 @@ interface UseNavigationPaneShortcutActionsProps {
     onRevealFile: (file: TFile) => void;
     onRevealShortcutFile?: (file: TFile) => void;
     openFolderNoteInRightSidebar: (folderNote: TFile) => Promise<void>;
+    openPropertyNoteInRightSidebar: (propertyNote: TFile) => Promise<void>;
     tagTree: Map<string, import('../../types/storage').TagTreeNode>;
     hydratedShortcuts: HydratedShortcutActionItem[];
     propertyTreeService: PropertyTreeService | null;
@@ -100,6 +101,7 @@ export function useNavigationPaneShortcutActions({
     onRevealFile,
     onRevealShortcutFile,
     openFolderNoteInRightSidebar,
+    openPropertyNoteInRightSidebar,
     tagTree,
     hydratedShortcuts,
     propertyTreeService
@@ -415,7 +417,8 @@ export function useNavigationPaneShortcutActions({
                         app,
                         commandQueue,
                         propertyNote,
-                        context: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation)
+                        context: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation),
+                        openInRightSidebar: openPropertyNoteInRightSidebar
                     })
                 );
             }
@@ -427,6 +430,7 @@ export function useNavigationPaneShortcutActions({
             app,
             commandQueue,
             onRevealProperty,
+            openPropertyNoteInRightSidebar,
             propertyTreeService,
             rootContainerRef,
             scheduleShortcutRelease,
@@ -473,7 +477,15 @@ export function useNavigationPaneShortcutActions({
             const openContext = resolveFolderNoteClickOpenContext(event, settings.propertyNoteOpenLocation, settings.multiSelectModifier);
             focusListPaneAfterRightSidebarFolderNoteSelection(openContext);
 
-            runAsyncAction(() => openPropertyNoteFile({ app, commandQueue, propertyNote, context: openContext }));
+            runAsyncAction(() =>
+                openPropertyNoteFile({
+                    app,
+                    commandQueue,
+                    propertyNote,
+                    context: openContext,
+                    openInRightSidebar: openPropertyNoteInRightSidebar
+                })
+            );
             scheduleShortcutRelease();
         },
         [
@@ -481,6 +493,7 @@ export function useNavigationPaneShortcutActions({
             commandQueue,
             focusListPaneAfterRightSidebarFolderNoteSelection,
             handleShortcutPropertyActivate,
+            openPropertyNoteInRightSidebar,
             resolveShortcutPropertyNote,
             scheduleShortcutRelease,
             selectionDispatch,

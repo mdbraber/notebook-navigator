@@ -33,6 +33,12 @@ export interface OpenPropertyNoteFileParams {
     propertyNote: TFile;
     context: 'tab' | 'right-sidebar' | null;
     active?: boolean;
+    /**
+     * Routes the open through the plugin's property note sidebar leaf, which is reused across
+     * opens. Callers that can reach the plugin should always pass it: the fallback below creates
+     * a new leaf every time, so notes stack up in the sidebar.
+     */
+    openInRightSidebar?: (propertyNote: TFile) => Promise<void>;
 }
 
 export async function openPropertyNoteFile({
@@ -40,10 +46,16 @@ export async function openPropertyNoteFile({
     commandQueue,
     propertyNote,
     context,
-    active = true
+    active = true,
+    openInRightSidebar
 }: OpenPropertyNoteFileParams): Promise<void> {
     const openFile = async () => {
         if (context === 'right-sidebar') {
+            if (openInRightSidebar) {
+                await openInRightSidebar(propertyNote);
+                return;
+            }
+
             const leaf = app.workspace.getRightLeaf(true) ?? app.workspace.getRightLeaf(false);
             if (!leaf) {
                 return;
@@ -81,6 +93,7 @@ export interface CreatePropertyNoteParams {
     node: PropertyTreeNode;
     propertyNoteFolder: string;
     openContext: 'tab' | 'right-sidebar' | null;
+    openInRightSidebar?: (propertyNote: TFile) => Promise<void>;
 }
 
 /**
@@ -149,7 +162,8 @@ export async function createPropertyNote({
     commandQueue,
     node,
     propertyNoteFolder,
-    openContext
+    openContext,
+    openInRightSidebar
 }: CreatePropertyNoteParams): Promise<TFile | null> {
     const linkTarget = getPropertyNoteLinkTarget(node);
     if (!linkTarget) {
@@ -198,7 +212,7 @@ export async function createPropertyNote({
             templateErrorContext: 'property note'
         });
 
-        await openPropertyNoteFile({ app, commandQueue, propertyNote: file, context: openContext, active: true });
+        await openPropertyNoteFile({ app, commandQueue, propertyNote: file, context: openContext, active: true, openInRightSidebar });
         return file;
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

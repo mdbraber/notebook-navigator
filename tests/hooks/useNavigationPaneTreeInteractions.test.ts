@@ -178,6 +178,7 @@ describe('useNavigationPaneTreeInteractions', () => {
                 setRecentNotesExpanded: vi.fn(),
                 clearActiveShortcut: vi.fn(),
                 openFolderNoteInRightSidebar: vi.fn(),
+                openPropertyNoteInRightSidebar: vi.fn(),
                 onModifySearchWithTag: vi.fn(),
                 onModifySearchWithProperty: vi.fn()
             });
@@ -244,6 +245,7 @@ describe('useNavigationPaneTreeInteractions', () => {
                 setRecentNotesExpanded: vi.fn(),
                 clearActiveShortcut: vi.fn(),
                 openFolderNoteInRightSidebar,
+                openPropertyNoteInRightSidebar: vi.fn(),
                 onModifySearchWithTag: vi.fn(),
                 onModifySearchWithProperty: vi.fn()
             });
@@ -305,6 +307,7 @@ describe('useNavigationPaneTreeInteractions', () => {
                 setRecentNotesExpanded: vi.fn(),
                 clearActiveShortcut: vi.fn(),
                 openFolderNoteInRightSidebar: vi.fn(),
+                openPropertyNoteInRightSidebar: vi.fn(),
                 onModifySearchWithTag: vi.fn(),
                 onModifySearchWithProperty: vi.fn()
             });
@@ -365,6 +368,7 @@ describe('useNavigationPaneTreeInteractions', () => {
                 setRecentNotesExpanded: vi.fn(),
                 clearActiveShortcut: vi.fn(),
                 openFolderNoteInRightSidebar: vi.fn(),
+                openPropertyNoteInRightSidebar: vi.fn(),
                 onModifySearchWithTag: vi.fn(),
                 onModifySearchWithProperty: vi.fn()
             });
@@ -419,6 +423,7 @@ describe('useNavigationPaneTreeInteractions', () => {
                 setRecentNotesExpanded: vi.fn(),
                 clearActiveShortcut: vi.fn(),
                 openFolderNoteInRightSidebar: vi.fn(),
+                openPropertyNoteInRightSidebar: vi.fn(),
                 onModifySearchWithTag: vi.fn(),
                 onModifySearchWithProperty: vi.fn()
             });
@@ -499,6 +504,7 @@ describe('property note name clicks', () => {
                 setRecentNotesExpanded: vi.fn(),
                 clearActiveShortcut: vi.fn(),
                 openFolderNoteInRightSidebar: vi.fn(),
+                openPropertyNoteInRightSidebar: vi.fn(),
                 onModifySearchWithTag: vi.fn(),
                 onModifySearchWithProperty
             });
@@ -783,6 +789,7 @@ describe('handlePropertyToggle placement keys', () => {
                 setRecentNotesExpanded: vi.fn(),
                 clearActiveShortcut: vi.fn(),
                 openFolderNoteInRightSidebar: vi.fn(),
+                openPropertyNoteInRightSidebar: vi.fn(),
                 onModifySearchWithTag: vi.fn(),
                 onModifySearchWithProperty: vi.fn()
             });
@@ -938,6 +945,7 @@ describe('handlePropertyToggleAllSiblings placement keys', () => {
                 setRecentNotesExpanded: vi.fn(),
                 clearActiveShortcut: vi.fn(),
                 openFolderNoteInRightSidebar: vi.fn(),
+                openPropertyNoteInRightSidebar: vi.fn(),
                 onModifySearchWithTag: vi.fn(),
                 onModifySearchWithProperty: vi.fn()
             });

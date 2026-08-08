@@ -491,6 +491,7 @@ export const NavigationPane = React.memo(
             setRecentNotesExpanded: shortcuts.setRecentNotesExpanded,
             clearActiveShortcut: shortcuts.clearActiveShortcut,
             openFolderNoteInRightSidebar: folderNote => plugin.openFolderNoteInRightSidebar(folderNote),
+            openPropertyNoteInRightSidebar: propertyNote => plugin.openPropertyNoteInRightSidebar(propertyNote),
             onModifySearchWithTag,
             onModifySearchWithProperty
         });

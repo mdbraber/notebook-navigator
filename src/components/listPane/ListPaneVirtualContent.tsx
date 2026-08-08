@@ -1075,9 +1075,17 @@ export function ListPaneVirtualContent({
         (event: React.MouseEvent<HTMLSpanElement>, propertyNote: TFile) => {
             event.stopPropagation();
             const context = resolveFolderNoteClickOpenContext(event, settings.propertyNoteOpenLocation, settings.multiSelectModifier);
-            runAsyncAction(() => openPropertyNoteFile({ app, commandQueue, propertyNote, context }));
+            runAsyncAction(() =>
+                openPropertyNoteFile({
+                    app,
+                    commandQueue,
+                    propertyNote,
+                    context,
+                    openInRightSidebar: propertyNoteFile => plugin.openPropertyNoteInRightSidebar(propertyNoteFile)
+                })
+            );
         },
-        [app, commandQueue, settings.propertyNoteOpenLocation, settings.multiSelectModifier]
+        [app, commandQueue, plugin, settings.propertyNoteOpenLocation, settings.multiSelectModifier]
     );
 
     const handlePropertyNoteHeaderMouseDown = useCallback(

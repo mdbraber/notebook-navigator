@@ -117,6 +117,38 @@ describe('openPropertyNoteFile', () => {
         expect(revealLeaf).toHaveBeenCalledWith(leaf);
     });
 
+    it('routes a right sidebar open through the reusable sidebar leaf when one is offered', async () => {
+        const app = new App();
+        const getRightLeaf = vi.fn();
+        const revealLeaf = vi.fn();
+        app.workspace.getRightLeaf = getRightLeaf;
+        app.workspace.revealLeaf = revealLeaf;
+        const openInRightSidebar = vi.fn().mockResolvedValue(undefined);
+        const file = createTestTFile('Apple.md');
+
+        await openPropertyNoteFile({ app, commandQueue: null, propertyNote: file, context: 'right-sidebar', openInRightSidebar });
+
+        expect(openInRightSidebar).toHaveBeenCalledWith(file);
+        // The inline fallback splits a new leaf per open, so it must stay out of the way here.
+        expect(getRightLeaf).not.toHaveBeenCalled();
+        expect(revealLeaf).not.toHaveBeenCalled();
+    });
+
+    it('leaves the sidebar route unused for a tab open', async () => {
+        const app = new App();
+        const openFile = vi.fn().mockResolvedValue(undefined);
+        const getLeaf = vi.fn().mockReturnValue({ openFile });
+        app.workspace.getLeaf = getLeaf;
+        const openInRightSidebar = vi.fn().mockResolvedValue(undefined);
+        const file = createTestTFile('Apple.md');
+
+        await openPropertyNoteFile({ app, commandQueue: null, propertyNote: file, context: 'tab', openInRightSidebar });
+
+        expect(openInRightSidebar).not.toHaveBeenCalled();
+        expect(getLeaf).toHaveBeenCalledWith('tab');
+        expect(openFile).toHaveBeenCalledWith(file, { active: true });
+    });
+
     it('does nothing when the right sidebar has no leaf', async () => {
         const app = new App();
         const revealLeaf = vi.fn();
@@ -229,6 +261,27 @@ describe('createPropertyNote', () => {
         });
 
         expect(file?.path).toBe('References/Apple.md');
+    });
+
+    it('opens a note it creates through the reusable sidebar leaf', async () => {
+        const app = createAppWithFolder('References');
+        const getRightLeaf = vi.fn();
+        app.workspace.getRightLeaf = getRightLeaf;
+        const openInRightSidebar = vi.fn().mockResolvedValue(undefined);
+        const node = createValueNode('references', 'apple', '[[Apple]]', ['note.md']);
+
+        const file = await createPropertyNote({
+            app,
+            commandQueue: null,
+            node,
+            propertyNoteFolder: 'References',
+            openContext: 'right-sidebar',
+            openInRightSidebar
+        });
+
+        expect(file?.path).toBe('References/Apple.md');
+        expect(openInRightSidebar).toHaveBeenCalledWith(file);
+        expect(getRightLeaf).not.toHaveBeenCalled();
     });
 
     it('creates a pathed link at its own path, ignoring the folder setting', async () => {

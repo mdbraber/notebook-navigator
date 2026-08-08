@@ -42,7 +42,7 @@ export interface PropertyNoteLink {
  * that resolves to an existing note.
  */
 export function usePropertyNoteLink(): PropertyNoteLink {
-    const { app } = useServices();
+    const { app, plugin } = useServices();
     const commandQueue = useCommandQueue();
     const settings = useSettingsState();
     const selectionState = useSelectionState();
@@ -82,9 +82,17 @@ export function usePropertyNoteLink(): PropertyNoteLink {
             event.stopPropagation();
 
             const context = resolveFolderNoteClickOpenContext(event, settings.propertyNoteOpenLocation, settings.multiSelectModifier);
-            runAsyncAction(() => openPropertyNoteFile({ app, commandQueue, propertyNote, context }));
+            runAsyncAction(() =>
+                openPropertyNoteFile({
+                    app,
+                    commandQueue,
+                    propertyNote,
+                    context,
+                    openInRightSidebar: propertyNoteFile => plugin.openPropertyNoteInRightSidebar(propertyNoteFile)
+                })
+            );
         },
-        [propertyNote, app, commandQueue, settings.propertyNoteOpenLocation, settings.multiSelectModifier]
+        [propertyNote, app, commandQueue, plugin, settings.propertyNoteOpenLocation, settings.multiSelectModifier]
     );
 
     const handleMouseDown = useCallback(

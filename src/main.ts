@@ -59,6 +59,7 @@ import { runAsyncAction } from './utils/async';
 import WorkspaceCoordinator from './services/workspace/WorkspaceCoordinator';
 import HomepageController from './services/workspace/HomepageController';
 import { FolderNoteSidebarService } from './services/workspace/FolderNoteSidebarService';
+import { PropertyNoteSidebarService } from './services/workspace/PropertyNoteSidebarService';
 import registerWorkspaceEvents from './services/workspace/registerWorkspaceEvents';
 import registerNavigatorCommands from './services/commands/registerNavigatorCommands';
 import type { RevealFileOptions } from './hooks/useNavigatorReveal';
@@ -165,6 +166,8 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
     // Handles homepage file opening and startup behavior
     private homepageController: HomepageController | null = null;
     private folderNoteSidebarService: FolderNoteSidebarService | null = null;
+    // Keeps right-sidebar property notes in a single reused leaf instead of one leaf per open
+    private propertyNoteSidebarService: PropertyNoteSidebarService | null = null;
     private settingTab: LazyNotebookNavigatorSettingTab | null = null;
     private pendingUpdateNotice: ReleaseUpdateNotice | null = null;
     private hasWorkspaceLayoutReady = false;
@@ -729,6 +732,7 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
         this.commandQueue = new CommandQueueService();
         this.folderNoteSidebarService = new FolderNoteSidebarService(this);
         this.folderNoteSidebarService.start();
+        this.propertyNoteSidebarService = new PropertyNoteSidebarService(this);
         this.fileSystemOps = new FileSystemOperations(
             this.app,
             () => this.tagTreeService,
@@ -896,6 +900,10 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
 
     public async openFolderNoteInRightSidebar(folderNote: TFile): Promise<void> {
         await this.folderNoteSidebarService?.openFolderNote(folderNote);
+    }
+
+    public async openPropertyNoteInRightSidebar(propertyNote: TFile): Promise<void> {
+        await this.propertyNoteSidebarService?.openPropertyNote(propertyNote);
     }
 
     public async syncFolderNoteSidebarToFolder(folder: TFolder | null): Promise<void> {
@@ -1406,6 +1414,7 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
 
         this.folderNoteSidebarService?.dispose();
         this.folderNoteSidebarService = null;
+        this.propertyNoteSidebarService = null;
 
         // Clear all listeners first to prevent any callbacks during cleanup
         this.settingsUpdateListeners.clear();

@@ -368,7 +368,8 @@ export function useNavigationPaneKeyboard({
                             commandQueue,
                             propertyNote,
                             context: resolveFolderNoteDefaultOpenContext(settings.propertyNoteOpenLocation),
-                            active: false
+                            active: false,
+                            openInRightSidebar: propertyNoteFile => plugin.openPropertyNoteInRightSidebar(propertyNoteFile)
                         })
                     );
                     return;
