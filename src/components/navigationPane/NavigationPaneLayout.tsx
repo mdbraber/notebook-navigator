@@ -22,6 +22,7 @@ import type { CombinedNavigationItem } from '../../types/virtualization';
 import type { CSSPropertiesWithVars } from '../../types';
 import { getNavigationItemRenderKey } from '../../utils/navigationIndex';
 import { NavigationPaneHeader } from '../NavigationPaneHeader';
+import type { PropertyHierarchyIndex } from '../../utils/propertyHierarchy';
 import { VaultTitleArea } from '../VaultTitleArea';
 import type { NavigationInlineRenameTarget, NavigationPaneRowHotState } from './NavigationPaneItemRenderer.types';
 
@@ -43,6 +44,8 @@ interface NavigationPaneLayoutProps {
     rootReorderActive: boolean;
     rootReorderDisabled: boolean;
     showVaultTitleInHeader: boolean;
+    /** Forwarded to the header, whose expand all and collapse all need the latest placement structure. */
+    propertyHierarchyIndexRef: { readonly current: PropertyHierarchyIndex };
     shouldShowVaultTitleInNavigationPane: boolean;
     showAndroidToolbar: boolean;
     navigationToolbar: React.ReactNode;
@@ -150,6 +153,7 @@ export function NavigationPaneLayout({
     rootReorderActive,
     rootReorderDisabled,
     showVaultTitleInHeader,
+    propertyHierarchyIndexRef,
     shouldShowVaultTitleInNavigationPane,
     showAndroidToolbar,
     navigationToolbar,
@@ -196,6 +200,7 @@ export function NavigationPaneLayout({
                     rootReorderActive={rootReorderActive}
                     rootReorderDisabled={rootReorderDisabled}
                     showVaultTitleInHeader={showVaultTitleInHeader}
+                    propertyHierarchyIndexRef={propertyHierarchyIndexRef}
                 />
                 {shouldShowVaultTitleInNavigationPane ? <VaultTitleArea /> : null}
                 {showAndroidToolbar ? navigationToolbar : null}

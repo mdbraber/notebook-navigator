@@ -19,6 +19,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PropertyItem, FileData } from '../src/storage/IndexedDBStorage';
 import { PROPERTIES_ROOT_VIRTUAL_FOLDER_ID } from '../src/types';
+import type { PropertyTreeNode } from '../src/types/storage';
 import { DEFAULT_SETTINGS } from '../src/settings/defaultSettings';
 import {
     canRestorePropertySelectionNodeId,
@@ -33,7 +34,6 @@ import {
     getDirectPropertyKeyNoteCount,
     getPropertyKeyNodeIdFromNodeId,
     resolvePropertySelectionNodeId,
-    getTotalPropertyNoteCount,
     normalizePropertyTreeValuePath,
     parsePropertyNodeId
 } from '../src/utils/propertyTree';
@@ -62,6 +62,16 @@ function createFileData(properties: PropertyItem[] | null): FileData {
         featureImageKey: null,
         metadata: null
     };
+}
+
+/**
+ * Notes carried by one value node itself, read straight off the node. A value node's own count and its
+ * subtree count are different numbers for a key marked Hierarchical, and the deleted helper these
+ * assertions used to call was named as though it returned the second while returning the first.
+ */
+function ownNoteCountForValue(keyNode: PropertyTreeNode, valuePath: string): number {
+    const nodeId = buildPropertyValueNodeId(keyNode.key, valuePath);
+    return keyNode.children.get(nodeId)?.notesWithValue.size ?? 0;
 }
 
 function createMockDb(files: MockFile[]): PropertyTreeDatabaseLike {
@@ -490,9 +500,9 @@ describe('property value matching', () => {
             return;
         }
 
-        expect(getTotalPropertyNoteCount(keyNode, normalizePropertyTreeValuePath('Work'))).toBe(1);
-        expect(getTotalPropertyNoteCount(keyNode, normalizePropertyTreeValuePath('Work/Done'))).toBe(2);
-        expect(getTotalPropertyNoteCount(keyNode, normalizePropertyTreeValuePath('true'))).toBe(1);
+        expect(ownNoteCountForValue(keyNode, normalizePropertyTreeValuePath('Work'))).toBe(1);
+        expect(ownNoteCountForValue(keyNode, normalizePropertyTreeValuePath('Work/Done'))).toBe(2);
+        expect(ownNoteCountForValue(keyNode, normalizePropertyTreeValuePath('true'))).toBe(1);
 
         const directPaths = collectPropertyValueFilePaths(keyNode, normalizePropertyTreeValuePath('Work'));
         expect(directPaths).toEqual(new Set(['notes/c.md']));
@@ -530,7 +540,7 @@ describe('property value matching', () => {
         }
 
         const workPath = normalizePropertyTreeValuePath('Work');
-        expect(getTotalPropertyNoteCount(keyNode, workPath)).toBe(0);
+        expect(ownNoteCountForValue(keyNode, workPath)).toBe(0);
 
         const startedNodeId = buildPropertyValueNodeId('status', normalizePropertyTreeValuePath('Work/Started'));
         keyNode.children.set(startedNodeId, {
@@ -544,7 +554,7 @@ describe('property value matching', () => {
             notesWithValue: new Set(['notes/c.md'])
         });
 
-        expect(getTotalPropertyNoteCount(keyNode, workPath)).toBe(0);
+        expect(ownNoteCountForValue(keyNode, workPath)).toBe(0);
     });
 });
 

@@ -539,7 +539,7 @@ export const NotebookNavigatorComponent = React.memo(
         });
 
         // Get navigation actions
-        const { handleExpandCollapseAll } = useNavigationActions();
+        const { handleExpandCollapseAll } = useNavigationActions({ propertyHierarchyIndexRef });
 
         const focusPane = useCallback(
             (pane: ContentPane) => {

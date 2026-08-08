@@ -26,6 +26,7 @@ import { useVaultProfileMenu } from '../hooks/useVaultProfileMenu';
 import { strings } from '../i18n';
 import { ServiceIcon } from './ServiceIcon';
 import { useNavigationActions } from '../hooks/useNavigationActions';
+import type { PropertyHierarchyIndex } from '../utils/propertyHierarchy';
 import { runAsyncAction } from '../utils/async';
 import { showNotice } from '../utils/noticeUtils';
 import { usesMobileChrome } from '../utils/paneLayout';
@@ -37,6 +38,8 @@ interface NavigationPaneHeaderProps {
     rootReorderActive?: boolean;
     rootReorderDisabled?: boolean;
     showVaultTitleInHeader: boolean;
+    /** Latest property hierarchy index, so expand all and collapse all handle nested placements. */
+    propertyHierarchyIndexRef: { readonly current: PropertyHierarchyIndex };
 }
 
 export const NavigationPaneHeader = React.memo(function NavigationPaneHeader({
@@ -44,7 +47,8 @@ export const NavigationPaneHeader = React.memo(function NavigationPaneHeader({
     onToggleRootFolderReorder,
     rootReorderActive,
     rootReorderDisabled,
-    showVaultTitleInHeader
+    showVaultTitleInHeader,
+    propertyHierarchyIndexRef
 }: NavigationPaneHeaderProps) {
     const { plugin } = useServices();
     const settings = useSettingsState();
@@ -61,7 +65,9 @@ export const NavigationPaneHeader = React.memo(function NavigationPaneHeader({
     });
 
     // Hook providing shared navigation actions (expand/collapse, folder creation, toggle visibility)
-    const { shouldCollapseItems, handleExpandCollapseAll, handleNewFolder, handleToggleShowExcludedFolders } = useNavigationActions();
+    const { shouldCollapseItems, handleExpandCollapseAll, handleNewFolder, handleToggleShowExcludedFolders } = useNavigationActions({
+        propertyHierarchyIndexRef
+    });
     const navigationVisibility = settings.toolbarVisibility.navigation;
     // Mobile chrome (profile-only header, actions in the tab bar) applies to phones only.
     // Tablets render the desktop header in both pane layouts so the toolbars stay at the

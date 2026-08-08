@@ -28,6 +28,8 @@ import type { ItemScope } from '../settings/types';
 import { PROPERTIES_ROOT_VIRTUAL_FOLDER_ID, TAGGED_TAG_ID, TAGS_ROOT_VIRTUAL_FOLDER_ID } from '../types';
 import type { PropertyTreeNode } from '../types/storage';
 import { getPropertyKeyNodeIdFromNodeId } from '../utils/propertyTree';
+import { resolvePropertyRevealChain, type PropertyHierarchyIndex } from '../utils/propertyHierarchy';
+import { collectExpandablePropertyPlacementKeys, getPropertyPlacementAncestorKeys } from '../utils/treeFlattener';
 import { collectAllTagPaths } from '../utils/tagTree';
 import {
     expandNavigationTreeItems,
@@ -40,6 +42,15 @@ interface CollapseBehaviorScope {
     affectFolders: boolean;
     affectTags: boolean;
     affectProperties: boolean;
+}
+
+/**
+ * The hierarchy index plus the flattener's depth cap, which travel together everywhere: an index
+ * without the cap answers questions about rows the pane would never render.
+ */
+export interface PropertyHierarchySnapshot {
+    index: PropertyHierarchyIndex;
+    maxDepth: number;
 }
 
 interface CollapsedExpansionState {
@@ -55,6 +66,7 @@ interface CollapseStateForSelectionParams {
     selectedFolder?: TFolder | null;
     selectedTag?: string | null;
     selectedPropertyNodeId?: string | null;
+    propertyHierarchy?: PropertyHierarchySnapshot | null;
     showAllTagsFolder: boolean;
     showAllPropertiesFolder: boolean;
     showRootFolder: boolean;
@@ -145,7 +157,8 @@ export function buildCollapsedExpansionState(params: {
     currentExpandedVirtualFolders: Set<string>;
     selectedFolderParentPaths?: Iterable<string>;
     selectedTagParentPaths?: Iterable<string>;
-    selectedPropertyKeyNodeId?: string | null;
+    /** Property expansion keys the selected row needs to stay visible: its key node, then its ancestor placements. */
+    selectedPropertyParentKeys?: Iterable<string>;
     revealTagsRoot?: boolean;
     revealPropertiesRoot?: boolean;
     preserveRootFolder?: boolean;
@@ -177,8 +190,10 @@ export function buildCollapsedExpansionState(params: {
         }
     }
 
-    if (scope.affectProperties && params.selectedPropertyKeyNodeId) {
-        properties.add(params.selectedPropertyKeyNodeId);
+    if (scope.affectProperties && params.selectedPropertyParentKeys) {
+        for (const expansionKey of params.selectedPropertyParentKeys) {
+            properties.add(expansionKey);
+        }
     }
 
     const virtualFolders = setVirtualRootExpansion(params.currentExpandedVirtualFolders, {
@@ -207,7 +222,9 @@ function buildCollapsedExpansionStateForSelection(
             ? buildSelectedFolderParentPaths(params.selectedFolder ?? null, params.showRootFolder)
             : undefined,
         selectedTagParentPaths: includeSelection ? buildSelectedTagParentPaths(params.selectedTag ?? null) : undefined,
-        selectedPropertyKeyNodeId: includeSelection ? getSelectedPropertyKeyNodeId(params.selectedPropertyNodeId ?? null) : undefined,
+        selectedPropertyParentKeys: includeSelection
+            ? buildSelectedPropertyParentKeys(params.selectedPropertyNodeId ?? null, params.propertyHierarchy ?? null)
+            : undefined,
         revealTagsRoot: includeSelection ? shouldRevealTagsRoot(params.selectedTag ?? null, params.showAllTagsFolder) : undefined,
         revealPropertiesRoot: includeSelection
             ? shouldRevealPropertiesRoot(params.selectedPropertyNodeId ?? null, params.showAllPropertiesFolder)
@@ -238,13 +255,94 @@ function buildSelectedTagParentPaths(selectedTag: string | null): string[] {
     return parentPaths;
 }
 
-function getSelectedPropertyKeyNodeId(selectedPropertyNodeId: string | null): string | null {
+/**
+ * Property expansion keys smart collapse must keep on for the selected value to stay on screen, the
+ * counterpart of buildSelectedFolderParentPaths and buildSelectedTagParentPaths.
+ *
+ * A value under a flat key has exactly one ancestor, its key node, so preserving the key was complete
+ * until values could nest. A hierarchical value also needs every ancestor placement, because the
+ * flattener only recurses into a placement that is expanded: preserving the key alone collapses the
+ * rows the selection renders under and the selected row disappears from the pane.
+ *
+ * The chain comes from the same resolver auto-reveal uses, so both agree on which placement of a
+ * multi-parent value is the one to keep open. No chain, no hierarchy, or a key node selection all fall
+ * back to exactly today's answer.
+ */
+export function buildSelectedPropertyParentKeys(
+    selectedPropertyNodeId: string | null,
+    propertyHierarchy: PropertyHierarchySnapshot | null
+): string[] {
     if (!selectedPropertyNodeId) {
-        return null;
+        return [];
     }
 
     const keyNodeId = getPropertyKeyNodeIdFromNodeId(selectedPropertyNodeId);
-    return keyNodeId && keyNodeId !== selectedPropertyNodeId ? keyNodeId : null;
+    if (!keyNodeId || keyNodeId === selectedPropertyNodeId) {
+        return [];
+    }
+
+    if (!propertyHierarchy) {
+        return [keyNodeId];
+    }
+
+    const revealChain = resolvePropertyRevealChain({
+        index: propertyHierarchy.index,
+        keyNodeId,
+        nodeId: selectedPropertyNodeId,
+        maxDepth: propertyHierarchy.maxDepth
+    });
+
+    return revealChain ? [keyNodeId, ...getPropertyPlacementAncestorKeys(revealChain)] : [keyNodeId];
+}
+
+/**
+ * Property expansion keys for expand all. A key node is expandable when it has value nodes, exactly as
+ * before. A key marked Hierarchical additionally contributes one key per placement that has children
+ * to reveal, because expansion is keyed by placement: without them expand all opens the key and stops,
+ * showing the root values flat while the same command expands a whole tag tree.
+ *
+ * Keys that are not hierarchical have no entry in the index, so they take the original path and their
+ * value nodes are skipped by the same empty-children test as before. With an empty index this function
+ * returns precisely what the previous walk returned.
+ */
+export function collectExpandablePropertyExpansionKeys(
+    propertyTree: ReadonlyMap<string, PropertyTreeNode>,
+    propertyHierarchy: PropertyHierarchySnapshot | null
+): Set<string> {
+    const expansionKeys = new Set<string>();
+
+    const collectFlat = (node: PropertyTreeNode) => {
+        if (node.children.size === 0) {
+            return;
+        }
+
+        expansionKeys.add(node.id);
+        node.children.forEach(childNode => {
+            collectFlat(childNode);
+        });
+    };
+
+    for (const keyNode of propertyTree.values()) {
+        if (!propertyHierarchy || !propertyHierarchy.index.rootIds.has(keyNode.id)) {
+            collectFlat(keyNode);
+            continue;
+        }
+
+        if (keyNode.children.size === 0) {
+            continue;
+        }
+
+        expansionKeys.add(keyNode.id);
+        collectExpandablePropertyPlacementKeys({
+            keyNodeId: keyNode.id,
+            index: propertyHierarchy.index,
+            maxDepth: propertyHierarchy.maxDepth
+        }).forEach(placementKey => {
+            expansionKeys.add(placementKey);
+        });
+    }
+
+    return expansionKeys;
 }
 
 function shouldRevealTagsRoot(selectedTag: string | null, showAllTagsFolder: boolean): boolean {
@@ -259,13 +357,24 @@ function setsMatch(currentValues: Set<string>, expectedValues: Set<string>): boo
     return currentValues.size === expectedValues.size && Array.from(currentValues).every(value => expectedValues.has(value));
 }
 
+interface UseNavigationActionsParams {
+    /**
+     * Latest hierarchy index, read at call time rather than taken as a value. The index lives on
+     * navigationTreeSections, and NotebookNavigatorComponent calls this hook before that exists in its
+     * render, which is the same ordering the ref beside useNavigatorReveal already works around. Every
+     * caller passes a ref so expand all and collapse all cannot disagree between the toolbar, the
+     * header and the command.
+     */
+    propertyHierarchyIndexRef: { readonly current: PropertyHierarchyIndex };
+}
+
 /**
  * Custom hook that provides shared actions for navigation pane toolbars.
  * Used by both NavigationPaneHeader (desktop) and NavigationToolbar (mobile) to avoid code duplication.
  *
  * @returns Object containing action handlers and computed values for navigation pane operations
  */
-export function useNavigationActions() {
+export function useNavigationActions({ propertyHierarchyIndexRef }: UseNavigationActionsParams) {
     const { app } = useServices();
     const settings = useSettingsState();
     const uxPreferences = useUXPreferences();
@@ -276,6 +385,15 @@ export function useNavigationActions() {
     const selectionState = useSelectionState();
     const fileSystemOps = useFileSystemOps();
     const { fileData } = useFileCache();
+
+    // Read when a handler runs, not when this hook renders, so the index cannot be one render behind.
+    const readPropertyHierarchy = useCallback(
+        (): PropertyHierarchySnapshot => ({
+            index: propertyHierarchyIndexRef.current,
+            maxDepth: settings.propertyHierarchyMaxDepth
+        }),
+        [propertyHierarchyIndexRef, settings.propertyHierarchyMaxDepth]
+    );
 
     const shouldCollapseItems = useCallback(() => {
         const behavior = settings.collapseBehavior;
@@ -305,6 +423,7 @@ export function useNavigationActions() {
                     selectedFolder: selectionState.selectedFolder,
                     selectedTag: selectionState.selectedTag,
                     selectedPropertyNodeId: selectionState.selectedProperty,
+                    propertyHierarchy: readPropertyHierarchy(),
                     showAllTagsFolder: settings.showAllTagsFolder,
                     showAllPropertiesFolder: settings.showAllPropertiesFolder,
                     showRootFolder: settings.showRootFolder,
@@ -345,7 +464,8 @@ export function useNavigationActions() {
         expansionState.expandedVirtualFolders,
         selectionState.selectedFolder,
         selectionState.selectedProperty,
-        selectionState.selectedTag
+        selectionState.selectedTag,
+        readPropertyHierarchy
     ]);
 
     const handleExpandCollapseAll = useCallback(() => {
@@ -366,6 +486,7 @@ export function useNavigationActions() {
                         selectedFolder: selectionState.selectedFolder,
                         selectedTag: selectionState.selectedTag,
                         selectedPropertyNodeId: selectionState.selectedProperty,
+                        propertyHierarchy: readPropertyHierarchy(),
                         showAllTagsFolder: settings.showAllTagsFolder,
                         showAllPropertiesFolder: settings.showAllPropertiesFolder,
                         showRootFolder: settings.showRootFolder,
@@ -422,17 +543,6 @@ export function useNavigationActions() {
 
             if (scope.affectTags || scope.affectProperties) {
                 const allTagPaths = new Set<string>();
-                const allPropertyNodeIds = new Set<string>();
-                const collectExpandablePropertyNodeIds = (node: PropertyTreeNode) => {
-                    if (node.children.size === 0) {
-                        return;
-                    }
-
-                    allPropertyNodeIds.add(node.id);
-                    node.children.forEach(childNode => {
-                        collectExpandablePropertyNodeIds(childNode);
-                    });
-                };
 
                 if (scope.affectTags) {
                     for (const tagNode of fileData.tagTree.values()) {
@@ -442,10 +552,10 @@ export function useNavigationActions() {
                 }
 
                 if (scope.affectProperties) {
-                    for (const propertyNode of fileData.propertyTree.values()) {
-                        collectExpandablePropertyNodeIds(propertyNode);
-                    }
-                    expansionDispatch({ type: 'SET_EXPANDED_PROPERTIES', properties: allPropertyNodeIds });
+                    expansionDispatch({
+                        type: 'SET_EXPANDED_PROPERTIES',
+                        properties: collectExpandablePropertyExpansionKeys(fileData.propertyTree, readPropertyHierarchy())
+                    });
                 }
 
                 expansionDispatch({
@@ -473,6 +583,7 @@ export function useNavigationActions() {
         selectionState.selectedTag,
         fileData.propertyTree,
         fileData.tagTree,
+        readPropertyHierarchy,
         shouldCollapseItems
     ]);
 

@@ -102,19 +102,6 @@ function getConfiguredPropertyKeyToken(configuredKeys: ReadonlySet<string>): str
 }
 
 /**
- * Returns the number of notes for a property value.
- */
-export function getTotalPropertyNoteCount(keyNode: PropertyTreeNode, valuePath: string): number {
-    if (!valuePath) {
-        return 0;
-    }
-
-    const nodeId = buildPropertyValueNodeId(keyNode.key, valuePath);
-    const valueNode = keyNode.children.get(nodeId);
-    return valueNode?.notesWithValue.size ?? 0;
-}
-
-/**
  * Returns true when two normalized property value paths represent the same value.
  */
 export function matchesPropertyValuePath(candidateValuePath: string, selectedValuePath: string): boolean {

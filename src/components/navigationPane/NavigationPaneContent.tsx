@@ -67,6 +67,7 @@ import {
     getNavigationItemRenderKey,
     normalizeNavigationPath
 } from '../../utils/navigationIndex';
+import type { PropertyHierarchyIndex } from '../../utils/propertyHierarchy';
 import { collectAllTagPaths } from '../../utils/tagTree';
 import {
     getNavigationExpansionTargetForItem,
@@ -184,6 +185,12 @@ export const NavigationPane = React.memo(
         }, [settings.calendarWeeksToShow]);
 
         const navigationPaneRef = useRef<HTMLDivElement | null>(null);
+        // Latest-ref pattern, written during render. The toolbar and the header run expand all and
+        // collapse all through useNavigationActions, which takes a ref rather than the value because
+        // NotebookNavigatorComponent calls the same hook before navigationTreeSections exists in its
+        // render. Same index either way, so all three entry points agree.
+        const propertyHierarchyIndexRef = useRef<PropertyHierarchyIndex>(props.navigationTreeSections.propertyHierarchyIndex);
+        propertyHierarchyIndexRef.current = props.navigationTreeSections.propertyHierarchyIndex;
         const navigationBannerRef = useRef<HTMLDivElement | null>(null);
         const pinnedShortcutsContainerRef = useRef<HTMLDivElement | null>(null);
         const [pinnedShortcutsScrollElement, setPinnedShortcutsScrollElement] = useState<HTMLDivElement | null>(null);
@@ -968,6 +975,7 @@ export const NavigationPane = React.memo(
                     rootReorderActive={isRootReorderMode}
                     rootReorderDisabled={!canReorderRootItems}
                     useFloatingLayout={shouldUseFloatingToolbars}
+                    propertyHierarchyIndexRef={propertyHierarchyIndexRef}
                 />
             );
         }, [canReorderRootItems, handleToggleRootReorder, handleTreeUpdateComplete, isRootReorderMode, shouldUseFloatingToolbars]);
@@ -1216,6 +1224,7 @@ export const NavigationPane = React.memo(
                         rootReorderActive={isRootReorderMode}
                         rootReorderDisabled={!canReorderRootItems}
                         showVaultTitleInHeader={showVaultTitleInHeader}
+                        propertyHierarchyIndexRef={propertyHierarchyIndexRef}
                         shouldShowVaultTitleInNavigationPane={shouldShowVaultTitleInNavigationPane}
                         showAndroidToolbar={useMobileChrome && isAndroid}
                         navigationToolbar={navigationToolbar}

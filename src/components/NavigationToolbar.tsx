@@ -22,6 +22,7 @@ import { useUXPreferenceActions, useUXPreferences } from '../context/UXPreferenc
 import { strings } from '../i18n';
 import { ServiceIcon } from './ServiceIcon';
 import { useNavigationActions } from '../hooks/useNavigationActions';
+import type { PropertyHierarchyIndex } from '../utils/propertyHierarchy';
 import { runAsyncAction } from '../utils/async';
 import { resolveUXIcon } from '../utils/uxIcons';
 
@@ -31,6 +32,8 @@ interface NavigationToolbarProps {
     rootReorderActive?: boolean;
     rootReorderDisabled?: boolean;
     useFloatingLayout?: boolean;
+    /** Latest property hierarchy index, so expand all and collapse all handle nested placements. */
+    propertyHierarchyIndexRef: { readonly current: PropertyHierarchyIndex };
 }
 
 export function NavigationToolbar({
@@ -38,7 +41,8 @@ export function NavigationToolbar({
     onToggleRootFolderReorder,
     rootReorderActive,
     rootReorderDisabled,
-    useFloatingLayout = false
+    useFloatingLayout = false,
+    propertyHierarchyIndexRef
 }: NavigationToolbarProps) {
     const settings = useSettingsState();
     const uxPreferences = useUXPreferences();
@@ -49,7 +53,9 @@ export function NavigationToolbar({
     const navigationVisibility = settings.toolbarVisibility.navigation;
 
     // Hook providing shared navigation actions (expand/collapse, folder creation, toggle visibility)
-    const { shouldCollapseItems, handleExpandCollapseAll, handleNewFolder, handleToggleShowExcludedFolders } = useNavigationActions();
+    const { shouldCollapseItems, handleExpandCollapseAll, handleNewFolder, handleToggleShowExcludedFolders } = useNavigationActions({
+        propertyHierarchyIndexRef
+    });
     const showExpandCollapseButton = navigationVisibility.expandCollapse;
     const showCalendarButton = navigationVisibility.calendar && settings.calendarEnabled && settings.calendarPlacement !== 'right-sidebar';
     const showHiddenItemsButton = navigationVisibility.hiddenItems;

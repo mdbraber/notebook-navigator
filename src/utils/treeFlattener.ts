@@ -526,6 +526,56 @@ export function propertyPlacementHasChildren(
     return node.children.size > 0 || propertyPlacementHasRenderableChildren(placementKey, index, maxDepth);
 }
 
+/**
+ * Ceiling on how many placement keys one hierarchical key contributes to expand all. A DAG permits
+ * exponentially many simple paths, and this is the only path that walks them all without a user
+ * expanding each row by hand, so it is also the only place the count is not bounded by what somebody
+ * clicked. The measured worst case in a real vault is 27 placements, so this leaves ample headroom
+ * while keeping both the walk and the persisted expansion set finite. Silent, like the depth cap.
+ */
+const MAX_EXPANDABLE_PROPERTY_PLACEMENTS = 1000;
+
+/**
+ * Placement keys that expand all should turn on for one hierarchical key: every placement the
+ * flattener would emit that has children to reveal. Leaf placements are left out, matching what the
+ * flat property loop has always done with childless value nodes.
+ *
+ * Enumerated through the flattener's own two limits rather than raw `childIds`, so every key returned
+ * names a row that will actually render: the depth cap stops the walk where the flattener stops
+ * recursing, and a child already in the chain is dropped because a cycle edge is never descended into.
+ * Ancestors come out before descendants, and a placement is only emitted when its parent chain was,
+ * so the set is always self-consistent - the flattener needs every prefix expanded to reach a row.
+ */
+export function collectExpandablePropertyPlacementKeys({
+    keyNodeId,
+    index,
+    maxDepth
+}: {
+    keyNodeId: string;
+    index: PropertyHierarchyIndex;
+    maxDepth: number;
+}): string[] {
+    const placementKeys: string[] = [];
+
+    const visit = (chain: readonly string[]): void => {
+        if (placementKeys.length >= MAX_EXPANDABLE_PROPERTY_PLACEMENTS || isPropertyPlacementAtDepthCap(chain, maxDepth)) {
+            return;
+        }
+
+        const childIds = resolveRenderablePropertyChildIds(chain, index);
+        if (childIds.length === 0) {
+            return;
+        }
+
+        placementKeys.push(buildPropertyPlacementKey(chain));
+        childIds.forEach(childId => visit([...chain, childId]));
+    };
+
+    (index.rootIds.get(keyNodeId) ?? []).forEach(rootId => visit([rootId]));
+
+    return placementKeys;
+}
+
 interface FlattenPropertyHierarchyParams {
     keyNode: PropertyTreeNode;
     index: PropertyHierarchyIndex;

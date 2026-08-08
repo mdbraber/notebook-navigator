@@ -20,11 +20,79 @@ import { describe, expect, it } from 'vitest';
 import { TFolder } from 'obsidian';
 import {
     buildCollapsedExpansionState,
+    buildSelectedPropertyParentKeys,
     collectExpandableFolderPaths,
+    collectExpandablePropertyExpansionKeys,
     getCollapseBehaviorScope,
-    hasCollapsibleFolderExpansion
+    hasCollapsibleFolderExpansion,
+    type PropertyHierarchySnapshot
 } from '../../src/hooks/useNavigationActions';
 import { PROPERTIES_ROOT_VIRTUAL_FOLDER_ID, SHORTCUTS_VIRTUAL_FOLDER_ID, TAGS_ROOT_VIRTUAL_FOLDER_ID } from '../../src/types';
+import type { PropertyTreeNode } from '../../src/types/storage';
+import { buildPropertyHierarchyIndex } from '../../src/utils/propertyHierarchy';
+import { buildPropertyKeyNodeId, buildPropertyValueNodeId } from '../../src/utils/propertyTree';
+import { buildPropertyPlacementKey } from '../../src/utils/treeFlattener';
+
+const PROJECTS_KEY_NODE_ID = buildPropertyKeyNodeId('projects');
+const valueNodeId = (value: string) => buildPropertyValueNodeId('projects', value.toLowerCase());
+
+/**
+ * A three level chain of the shape the author's vault produces: Building software.md carries
+ * projects: [[Fiddle]], so Building software nests under Fiddle, and Bulwark.md carries
+ * projects: [[Building software]], so Bulwark nests one level deeper again.
+ */
+function createProjectsTree(): Map<string, PropertyTreeNode> {
+    const keyNode: PropertyTreeNode = {
+        id: PROJECTS_KEY_NODE_ID,
+        kind: 'key',
+        key: 'projects',
+        valuePath: null,
+        name: 'projects',
+        displayPath: 'projects',
+        children: new Map(),
+        notesWithValue: new Set()
+    };
+
+    const values: { value: string; notes: string[] }[] = [
+        { value: 'Fiddle', notes: ['Building software.md'] },
+        { value: 'Building software', notes: ['Bulwark.md'] },
+        { value: 'Bulwark', notes: ['Bulwark note.md'] }
+    ];
+
+    values.forEach(entry => {
+        keyNode.children.set(valueNodeId(entry.value), {
+            id: valueNodeId(entry.value),
+            kind: 'value',
+            key: 'projects',
+            valuePath: entry.value.toLowerCase(),
+            name: entry.value,
+            displayPath: entry.value,
+            assignmentValue: `[[${entry.value}]]`,
+            children: new Map(),
+            notesWithValue: new Set(entry.notes)
+        });
+        entry.notes.forEach(note => keyNode.notesWithValue.add(note));
+    });
+
+    return new Map([['projects', keyNode]]);
+}
+
+function createProjectsHierarchy(params: { hierarchical: boolean; maxDepth: number }): {
+    tree: Map<string, PropertyTreeNode>;
+    hierarchy: PropertyHierarchySnapshot;
+} {
+    const tree = createProjectsTree();
+    const index = buildPropertyHierarchyIndex({
+        tree,
+        hierarchicalKeys: params.hierarchical ? new Set(['projects']) : new Set(),
+        resolveValueNotePath: node => {
+            const match = /^\[\[([^\]|]+)\]\]$/.exec(node.assignmentValue ?? '');
+            return match ? `${match[1]}.md` : null;
+        }
+    });
+
+    return { tree, hierarchy: { index, maxDepth: params.maxDepth } };
+}
 
 describe('useNavigationActions helpers', () => {
     function createFolder(path: string, children: TFolder[] = []): TFolder {
@@ -72,7 +140,7 @@ describe('useNavigationActions helpers', () => {
         const collapsedState = buildCollapsedExpansionState({
             behavior: 'properties-only',
             currentExpandedVirtualFolders: new Set([SHORTCUTS_VIRTUAL_FOLDER_ID, TAGS_ROOT_VIRTUAL_FOLDER_ID]),
-            selectedPropertyKeyNodeId: 'property:key:priority'
+            selectedPropertyParentKeys: ['property:key:priority']
         });
 
         expect(collapsedState.folders).toEqual(new Set());
@@ -87,7 +155,7 @@ describe('useNavigationActions helpers', () => {
             currentExpandedVirtualFolders: new Set([SHORTCUTS_VIRTUAL_FOLDER_ID]),
             selectedFolderParentPaths: ['/'],
             selectedTagParentPaths: ['work'],
-            selectedPropertyKeyNodeId: 'property:key:status',
+            selectedPropertyParentKeys: ['property:key:status'],
             revealTagsRoot: true,
             revealPropertiesRoot: true
         });
@@ -122,5 +190,62 @@ describe('useNavigationActions helpers', () => {
         });
 
         expect(collapsedState.folders).toEqual(new Set(['Projects']));
+    });
+
+    it('expands every nested placement of a hierarchical key', () => {
+        const { tree, hierarchy } = createProjectsHierarchy({ hierarchical: true, maxDepth: 10 });
+
+        // The key, the root value's placement, and the placement one level down. Expanding the key
+        // alone shows the root values flat, which is what the same command used to do here while it
+        // expanded a whole tag tree.
+        expect(collectExpandablePropertyExpansionKeys(tree, hierarchy)).toEqual(
+            new Set([
+                PROJECTS_KEY_NODE_ID,
+                valueNodeId('Fiddle'),
+                buildPropertyPlacementKey([valueNodeId('Fiddle'), valueNodeId('Building software')])
+            ])
+        );
+    });
+
+    it('stops expanding placements at the hierarchy depth cap', () => {
+        const { tree, hierarchy } = createProjectsHierarchy({ hierarchical: true, maxDepth: 1 });
+
+        // The flattener never recurses past the cap, so the deeper placement key would name a row
+        // that renders nowhere and would sit in the persisted expansion set forever.
+        expect(collectExpandablePropertyExpansionKeys(tree, hierarchy)).toEqual(new Set([PROJECTS_KEY_NODE_ID, valueNodeId('Fiddle')]));
+    });
+
+    it('expands a key that is not hierarchical exactly as before', () => {
+        const { tree, hierarchy } = createProjectsHierarchy({ hierarchical: false, maxDepth: 10 });
+
+        expect(collectExpandablePropertyExpansionKeys(tree, hierarchy)).toEqual(new Set([PROJECTS_KEY_NODE_ID]));
+        expect(collectExpandablePropertyExpansionKeys(tree, null)).toEqual(new Set([PROJECTS_KEY_NODE_ID]));
+    });
+
+    it('keeps a selected nested property value visible through smart collapse', () => {
+        const { hierarchy } = createProjectsHierarchy({ hierarchical: true, maxDepth: 10 });
+        const fiddlePlacement = valueNodeId('Fiddle');
+        const buildingSoftwarePlacement = buildPropertyPlacementKey([fiddlePlacement, valueNodeId('Building software')]);
+
+        const parentKeys = buildSelectedPropertyParentKeys(valueNodeId('Bulwark'), hierarchy);
+        expect(parentKeys).toEqual([PROJECTS_KEY_NODE_ID, fiddlePlacement, buildingSoftwarePlacement]);
+
+        const collapsedState = buildCollapsedExpansionState({
+            behavior: 'properties-only',
+            currentExpandedVirtualFolders: new Set([PROPERTIES_ROOT_VIRTUAL_FOLDER_ID]),
+            selectedPropertyParentKeys: parentKeys,
+            revealPropertiesRoot: true
+        });
+
+        expect(collapsedState.properties).toEqual(new Set([PROJECTS_KEY_NODE_ID, fiddlePlacement, buildingSoftwarePlacement]));
+    });
+
+    it('keeps preserving the key alone for a value with no hierarchy', () => {
+        const { hierarchy } = createProjectsHierarchy({ hierarchical: false, maxDepth: 10 });
+
+        expect(buildSelectedPropertyParentKeys(valueNodeId('Bulwark'), hierarchy)).toEqual([PROJECTS_KEY_NODE_ID]);
+        expect(buildSelectedPropertyParentKeys(valueNodeId('Bulwark'), null)).toEqual([PROJECTS_KEY_NODE_ID]);
+        expect(buildSelectedPropertyParentKeys(PROJECTS_KEY_NODE_ID, hierarchy)).toEqual([]);
+        expect(buildSelectedPropertyParentKeys(null, hierarchy)).toEqual([]);
     });
 });

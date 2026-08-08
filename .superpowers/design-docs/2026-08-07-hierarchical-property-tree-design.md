@@ -59,7 +59,7 @@ Three facts from that data shape the design:
 | Counts and selection contents | Reuse the existing descendant-notes toggle, mirroring tags. |
 | Self-referencing values | Self-edge dropped, value becomes a root, no marker. |
 | Values unreachable from a root | Emitted as roots, so nothing disappears. |
-| Auto-reveal | Targets the first placement. |
+| Auto-reveal | Resolves a rooted chain by walking `parentIds`, then expands every prefix. |
 | List pane grouping | Unchanged. Stays flat. |
 | Scope | One feature, not staged. |
 
@@ -79,7 +79,7 @@ Reparenting breaks them silently:
   stop resolving for every nested value.
 - `src/utils/propertyNoteLookup.ts:121` iterates `keyNode.children.values()`, so the file-to-value
   reverse lookup would miss nested values.
-- `src/utils/propertyTree.ts:112` and `:128` (`getTotalPropertyNoteCount`,
+- `src/utils/propertyTree.ts:112` and `:128` (`getTotalPropertyNoteCount`, since deleted,
   `collectPropertyValueFilePaths`), `:608`.
 - `src/hooks/useListPaneTitle.ts:446`, `src/modals/PropertyNodeSuggestModal.ts:47`,
   `src/utils/propertyMenuActions.ts:128` would each see only roots.
@@ -168,8 +168,8 @@ exports `comparePropertyOrderWithFallback`, so properties are not new to it. It 
 `flattenTagTree` in exactly two ways: children come from `index.childIds` rather than `node.children`,
 and the emitted key is an accumulated chain rather than `node.path`.
 
-It returns the flattened items plus `firstPlacementByNodeId: Map<string, string>`, recording the first
-chain key each node id was emitted under.
+It returns the flattened items only. **Amended:** the planned `firstPlacementByNodeId` map was removed
+once auto-reveal stopped depending on it; see Auto-reveal.
 
 The emitter at `useNavigationPaneTreeSections.ts:889` branches: hierarchical keys delegate to the new
 flattener, non-hierarchical keys keep today's flat loop unchanged. The new path is opt-in per key.
@@ -208,14 +208,20 @@ so the badge plumbing exists and only its `descendants` term stops being zero.
 Selecting a parent value lists its subtree's notes when the toggle is on, and its own notes when off,
 which is how folders and tags already behave.
 
-**One correction this forces.** The level comparator's frequency function currently calls
+**One correction this forces.** The level comparator's frequency function called
 `getTotalPropertyNoteCount`, which returns own count. For a hierarchical key with descendant notes on it
 must use `subtreeCount`, or frequency sort will contradict the badge next to it.
 
 ### Auto-reveal
 
-Reveal resolves a node id to `firstPlacementByNodeId`, then expands that chain's ancestors. This is the
-first-occurrence rule already used by `buildFilePathToIndexMap`.
+**Amended after implementation.** Reveal walks `index.parentIds` upward from the target, breadth first,
+until it reaches a node in `rootIds` for the key, and expands every prefix of the chain it found
+(`resolvePropertyRevealChain`). The original design read the target's placement out of
+`firstPlacementByNodeId`, which cannot work: the flattener only records a placement it emitted, and it
+only recurses into placements that are already expanded, so a node appears in that map exactly when no
+expansion is needed. `firstPlacementByNodeId` was therefore removed. The chain need not be the
+flattener's first placement, because selection and highlighting are keyed by node id regardless of which
+placement the row is rendered under.
 
 ## Settings
 
@@ -237,9 +243,14 @@ a display cap never changes a count.
 
 Both need new i18n strings in all 21 locales.
 
-The **placement cap** stays internal and is deliberately not exposed: unlike depth, it has no meaning a
-user could reason about, and the measured fan-out is 1.1x. It exists only so a pathological DAG cannot
-hang the pane, and it logs when it truncates.
+The **placement cap** was **dropped, not built**. A rendering cap turned out to be unreachable: the
+flattener only descends into a placement the user has expanded, and expansion is keyed per placement, so
+producing exponentially many placements would take exponentially many hand expansions.
+
+One bulk path does enumerate placements without a user clicking each one: expand all, added later so that
+"Expand all" nests a hierarchical key the way it nests a tag tree. That enumeration therefore carries the
+cap itself, as `MAX_EXPANDABLE_PROPERTY_PLACEMENTS` in `treeFlattener.ts`, which keeps both the walk and
+the persisted expansion set finite. It truncates silently, for the same reason the depth cap does.
 
 ## Error handling and edge cases
 
@@ -252,8 +263,8 @@ hang the pane, and it logs when it truncates.
 | Value with two parents | Two placements, independent expansion, one shared icon and colour. |
 | Note carries both a parent and a child value | Counted once in the parent's subtree count, because the count unions path sets. |
 | Property key not marked hierarchical | Empty index, existing flat loop, behaviour identical to today. |
-| Deeper than `propertyHierarchyMaxDepth` | Levels beyond the cap are not emitted, and the truncation is logged. Never silent. |
-| Placement cap exceeded | Truncate and log. Internal cap, no setting. |
+| Deeper than `propertyHierarchyMaxDepth` | Levels beyond the cap are not emitted, silently. Amended: the flattener runs during render, so logging every pass would spam the console for as long as the data stays deep. |
+| Placement cap exceeded | Dropped as unreachable during rendering; see Settings. Expand all bounds its own placement enumeration, silently. |
 | Scoped navigation | Same index built over the scoped tree, so behaviour matches unscoped. |
 
 ## Testing
@@ -268,11 +279,11 @@ shapes:
 - `Tools`, resolving to no note, becomes a root
 - a note carrying both `Fiddle` and `Building software` is counted once in `Fiddle`'s subtree count
 - `subtreeCount` for `Fiddle` is 16 while its own count is 5
-- `firstPlacementByNodeId` is stable across rebuilds
+- a reveal chain resolves to a rooted chain, and to null when none exists within the depth cap
 - flag off yields an index whose maps are all empty
-- a chain deeper than `propertyHierarchyMaxDepth` stops at the cap and logs, and lowering the setting
-  re-emits a shallower tree rather than leaving a stale one
-- the internal placement cap truncates and logs
+- a chain deeper than `propertyHierarchyMaxDepth` stops at the cap, and lowering the setting re-emits a
+  shallower tree rather than leaving a stale one
+- expand all enumerates every nested placement of a hierarchical key and stops at the depth cap
 
 ## Out of scope
 
