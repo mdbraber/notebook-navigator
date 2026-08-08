@@ -531,9 +531,13 @@ export function propertyPlacementHasChildren(
  * exponentially many simple paths, and this is the only path that walks them all without a user
  * expanding each row by hand, so it is also the only place the count is not bounded by what somebody
  * clicked. The measured worst case in a real vault is 27 placements, so this leaves ample headroom
- * while keeping both the walk and the persisted expansion set finite. Silent, like the depth cap.
+ * while keeping both the walk and the persisted expansion set finite.
+ *
+ * Unlike the depth cap, which is hit during render, this bound is only ever reached from expand all, a
+ * command handler that runs once per click, so logging when it truncates costs nothing. Exported so the
+ * test fixture can assert against the real bound instead of a copy of the number.
  */
-const MAX_EXPANDABLE_PROPERTY_PLACEMENTS = 1000;
+export const MAX_EXPANDABLE_PROPERTY_PLACEMENTS = 1000;
 
 /**
  * Placement keys that expand all should turn on for one hierarchical key: every placement the
@@ -545,6 +549,8 @@ const MAX_EXPANDABLE_PROPERTY_PLACEMENTS = 1000;
  * recursing, and a child already in the chain is dropped because a cycle edge is never descended into.
  * Ancestors come out before descendants, and a placement is only emitted when its parent chain was,
  * so the set is always self-consistent - the flattener needs every prefix expanded to reach a row.
+ *
+ * Logs once, with console.debug, if MAX_EXPANDABLE_PROPERTY_PLACEMENTS cuts the walk short for this key.
  */
 export function collectExpandablePropertyPlacementKeys({
     keyNodeId,
@@ -556,9 +562,14 @@ export function collectExpandablePropertyPlacementKeys({
     maxDepth: number;
 }): string[] {
     const placementKeys: string[] = [];
+    let truncatedByPlacementLimit = false;
 
     const visit = (chain: readonly string[]): void => {
-        if (placementKeys.length >= MAX_EXPANDABLE_PROPERTY_PLACEMENTS || isPropertyPlacementAtDepthCap(chain, maxDepth)) {
+        if (placementKeys.length >= MAX_EXPANDABLE_PROPERTY_PLACEMENTS) {
+            truncatedByPlacementLimit = true;
+            return;
+        }
+        if (isPropertyPlacementAtDepthCap(chain, maxDepth)) {
             return;
         }
 
@@ -572,6 +583,13 @@ export function collectExpandablePropertyPlacementKeys({
     };
 
     (index.rootIds.get(keyNodeId) ?? []).forEach(rootId => visit([rootId]));
+
+    if (truncatedByPlacementLimit) {
+        console.debug('[Notebook Navigator] expand all truncated hierarchical property placements', {
+            keyNodeId,
+            limit: MAX_EXPANDABLE_PROPERTY_PLACEMENTS
+        });
+    }
 
     return placementKeys;
 }

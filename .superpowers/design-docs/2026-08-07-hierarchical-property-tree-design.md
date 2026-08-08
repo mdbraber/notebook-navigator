@@ -96,6 +96,8 @@ export interface PropertyHierarchyIndex {
     rootIds: ReadonlyMap<string, readonly string[]>;
     /** Value node id -> child value node ids. */
     childIds: ReadonlyMap<string, readonly string[]>;
+    /** Value node id -> its parent value node ids. Empty for a root. */
+    parentIds: ReadonlyMap<string, readonly string[]>;
     /** Value node id -> deduped note count for the node and its whole subtree. */
     subtreeCount: ReadonlyMap<string, number>;
 }
@@ -250,7 +252,9 @@ producing exponentially many placements would take exponentially many hand expan
 One bulk path does enumerate placements without a user clicking each one: expand all, added later so that
 "Expand all" nests a hierarchical key the way it nests a tag tree. That enumeration therefore carries the
 cap itself, as `MAX_EXPANDABLE_PROPERTY_PLACEMENTS` in `treeFlattener.ts`, which keeps both the walk and
-the persisted expansion set finite. It truncates silently, for the same reason the depth cap does.
+the persisted expansion set finite. The depth cap truncates silently because it is hit during render,
+where logging every pass would spam. This cap does not share that reason: it is only ever reached from
+expand all, a command handler that runs once per click, so it logs a console.debug when it truncates.
 
 ## Error handling and edge cases
 

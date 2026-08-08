@@ -386,7 +386,14 @@ export function useNavigationActions({ propertyHierarchyIndexRef }: UseNavigatio
     const fileSystemOps = useFileSystemOps();
     const { fileData } = useFileCache();
 
-    // Read when a handler runs, not when this hook renders, so the index cannot be one render behind.
+    // Read from the ref rather than a value prop, because this is read during render, not only when a
+    // handler runs: shouldCollapseItems() calls this and is itself invoked in the render bodies of
+    // NavigationPaneHeader and NavigationToolbar, to pick the expand/collapse icon and its aria-label.
+    // NavigationPaneContent writes propertyHierarchyIndexRef.current at the top of its own render, before
+    // its children render, so a child reading the ref during the same render pass always sees the current
+    // index. The one residual: if a React.memo boundary between the write and a reader skips a render on
+    // an index-only change, that reader's icon and aria-label are computed from the previous index for
+    // one cycle, until something else invalidates the memo.
     const readPropertyHierarchy = useCallback(
         (): PropertyHierarchySnapshot => ({
             index: propertyHierarchyIndexRef.current,

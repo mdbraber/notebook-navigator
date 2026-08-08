@@ -23,7 +23,10 @@ import {
     flattenFolderTree,
     buildPropertyPlacementKey,
     flattenPropertyHierarchy,
-    getPropertyPlacementAncestorKeys
+    getPropertyPlacementAncestorKeys,
+    collectExpandablePropertyPlacementKeys,
+    MAX_EXPANDABLE_PROPERTY_PLACEMENTS,
+    PROPERTY_PLACEMENT_SEPARATOR
 } from '../../src/utils/treeFlattener';
 import { buildPropertyHierarchyIndex } from '../../src/utils/propertyHierarchy';
 import type { PropertyTreeNode } from '../../src/types/storage';
@@ -346,5 +349,109 @@ describe('getPropertyPlacementAncestorKeys', () => {
     it('returns no ancestors for a single-element chain, which is a root placement or a flat value', () => {
         expect(getPropertyPlacementAncestorKeys([id('projects', 'fiddle')])).toEqual([]);
         expect(getPropertyPlacementAncestorKeys([id('status', 'open')])).toEqual([]);
+    });
+});
+
+describe('collectExpandablePropertyPlacementKeys', () => {
+    // Five layers of six values each, every node in a layer parented by all six nodes of the layer
+    // above. A DAG permits exponentially many simple paths, and the flattener enumerates every one it
+    // could descend into, so the candidate count before any cap is 6 + 6^2 + 6^3 + 6^4 = 1554: one
+    // placement per non-leaf chain, layers 1 through 4. Layer 5 is childless, so its chains are never
+    // pushed. That comfortably clears MAX_EXPANDABLE_PROPERTY_PLACEMENTS (1000), which is the point.
+    const LAYER_COUNT = 5;
+    const BRANCH_FACTOR = 6;
+    const KEY = 'topics';
+
+    function layerNodeName(layer: number, index: number): string {
+        return `L${layer}-${index}`;
+    }
+
+    function nodeId(name: string): string {
+        return `key:${KEY}=${name.toLowerCase()}`;
+    }
+
+    function resolveByName(node: PropertyTreeNode): string | null {
+        const match = /^\[\[([^\]|]+)\]\]$/.exec(node.assignmentValue ?? '');
+        return match ? `${match[1]}.md` : null;
+    }
+
+    function buildLayeredFixture(): { index: ReturnType<typeof buildPropertyHierarchyIndex>; keyNodeId: string } {
+        const keyNodeId = `key:${KEY}`;
+        const keyNode: PropertyTreeNode = {
+            id: keyNodeId,
+            kind: 'key',
+            key: KEY,
+            valuePath: null,
+            name: KEY,
+            displayPath: KEY,
+            children: new Map(),
+            notesWithValue: new Set()
+        };
+
+        for (let layer = 1; layer <= LAYER_COUNT; layer++) {
+            for (let index = 0; index < BRANCH_FACTOR; index++) {
+                const name = layerNodeName(layer, index);
+                // A value's parents are the values carried by the note it points at, so making every
+                // layer-(L+1) node a child of every layer-L node just means each layer-L node's note
+                // lists all six layer-(L+1) names as notes carrying that value.
+                const notesWithValue = new Set<string>();
+                if (layer < LAYER_COUNT) {
+                    for (let childIndex = 0; childIndex < BRANCH_FACTOR; childIndex++) {
+                        notesWithValue.add(`${layerNodeName(layer + 1, childIndex)}.md`);
+                    }
+                }
+                keyNode.children.set(nodeId(name), {
+                    id: nodeId(name),
+                    kind: 'value',
+                    key: KEY,
+                    valuePath: name.toLowerCase(),
+                    name,
+                    displayPath: name,
+                    assignmentValue: `[[${name}]]`,
+                    children: new Map(),
+                    notesWithValue
+                });
+            }
+        }
+
+        const tree = new Map([[KEY, keyNode]]);
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set([KEY]),
+            resolveValueNotePath: resolveByName
+        });
+
+        return { index, keyNodeId };
+    }
+
+    it('truncates a large hierarchical key to exactly MAX_EXPANDABLE_PROPERTY_PLACEMENTS', () => {
+        const { index, keyNodeId } = buildLayeredFixture();
+
+        const placementKeys = collectExpandablePropertyPlacementKeys({ keyNodeId, index, maxDepth: 10 });
+
+        expect(placementKeys.length).toBe(MAX_EXPANDABLE_PROPERTY_PLACEMENTS);
+    });
+
+    it('produces the same truncated set on repeated calls, so expand all cannot flicker between clicks', () => {
+        const { index, keyNodeId } = buildLayeredFixture();
+
+        const first = collectExpandablePropertyPlacementKeys({ keyNodeId, index, maxDepth: 10 });
+        const second = collectExpandablePropertyPlacementKeys({ keyNodeId, index, maxDepth: 10 });
+
+        expect(second).toEqual(first);
+    });
+
+    it('keeps every emitted placement prefix-closed, so no child key outlives the parent it needs to render', () => {
+        const { index, keyNodeId } = buildLayeredFixture();
+
+        const placementKeys = collectExpandablePropertyPlacementKeys({ keyNodeId, index, maxDepth: 10 });
+        const emitted = new Set(placementKeys);
+
+        for (const placementKey of placementKeys) {
+            const chain = placementKey.split(PROPERTY_PLACEMENT_SEPARATOR);
+            for (const ancestorKey of getPropertyPlacementAncestorKeys(chain)) {
+                expect(emitted.has(ancestorKey)).toBe(true);
+            }
+        }
     });
 });
