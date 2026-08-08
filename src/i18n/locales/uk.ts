@@ -387,7 +387,7 @@ export const STRINGS_UK = {
             renameKey: 'Перейменувати властивість',
             deleteKey: 'Видалити властивість',
             createPropertyNote: 'Створити нотатку властивості',
-            hierarchical: 'Ієрархічний'
+            showHierarchy: 'Показати ієрархію'
         },
         navigation: {
             addSeparator: 'Додати роздільник',

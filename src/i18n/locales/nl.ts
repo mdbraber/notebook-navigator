@@ -388,7 +388,7 @@ export const STRINGS_NL = {
             renameKey: 'Eigenschap hernoemen',
             deleteKey: 'Eigenschap verwijderen',
             createPropertyNote: 'Eigenschapsnotitie maken',
-            hierarchical: 'Hiërarchisch'
+            showHierarchy: 'Hiërarchie tonen'
         },
         navigation: {
             addSeparator: 'Scheidingslijn toevoegen',

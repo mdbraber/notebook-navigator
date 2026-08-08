@@ -386,7 +386,7 @@ export const STRINGS_DE = {
             renameKey: 'Eigenschaft umbenennen',
             deleteKey: 'Eigenschaft löschen',
             createPropertyNote: 'Eigenschaftsnotiz erstellen',
-            hierarchical: 'Hierarchisch'
+            showHierarchy: 'Hierarchie anzeigen'
         },
         navigation: {
             addSeparator: 'Trennlinie hinzufügen',

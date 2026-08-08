@@ -222,6 +222,24 @@ export function buildPropertyMenu(params: PropertyMenuBuilderParams): void {
 
     menu.addSeparator();
 
+    // Sits in its own section directly below the creation actions, because it changes how the whole
+    // key renders rather than acting on the row that was right-clicked.
+    if (propertyKey !== null) {
+        const isHierarchical = metadataService.getPropertyHierarchicalKey(propertyKey);
+        menu.addItem((item: MenuItem) => {
+            item.setTitle(strings.contextMenu.property.showHierarchy).setIcon('lucide-list-tree').setChecked(isHierarchical);
+            setAsyncOnClick(item, async () => {
+                if (isHierarchical) {
+                    await metadataService.removePropertyHierarchicalKey(propertyKey);
+                    return;
+                }
+                await metadataService.setPropertyHierarchicalKey(propertyKey);
+            });
+        });
+
+        menu.addSeparator();
+    }
+
     const openAppearanceModal = async (initialTab: 'icon' | 'color' | 'background'): Promise<void> => {
         const { AppearanceModal } = await import('../../modals/AppearanceModal');
         const modal = new AppearanceModal(app, {
@@ -423,20 +441,6 @@ export function buildPropertyMenu(params: PropertyMenuBuilderParams): void {
                     return;
                 }
                 await metadataService.addNavigationSeparator(propertySeparatorTarget);
-            });
-        });
-    }
-
-    if (propertyKey !== null) {
-        const isHierarchical = metadataService.getPropertyHierarchicalKey(propertyKey);
-        menu.addItem((item: MenuItem) => {
-            item.setTitle(strings.contextMenu.property.hierarchical).setIcon('lucide-list-tree').setChecked(isHierarchical);
-            setAsyncOnClick(item, async () => {
-                if (isHierarchical) {
-                    await metadataService.removePropertyHierarchicalKey(propertyKey);
-                    return;
-                }
-                await metadataService.setPropertyHierarchicalKey(propertyKey);
             });
         });
     }

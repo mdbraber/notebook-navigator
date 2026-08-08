@@ -385,7 +385,7 @@ export const STRINGS_AR = {
             renameKey: 'إعادة تسمية الخاصية',
             deleteKey: 'حذف الخاصية',
             createPropertyNote: 'إنشاء ملاحظة خاصية',
-            hierarchical: 'هرمي'
+            showHierarchy: 'إظهار التسلسل الهرمي'
         },
         navigation: {
             addSeparator: 'إضافة فاصل',

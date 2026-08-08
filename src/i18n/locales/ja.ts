@@ -385,7 +385,7 @@ export const STRINGS_JA = {
             renameKey: 'プロパティの名前を変更',
             deleteKey: 'プロパティを削除',
             createPropertyNote: 'プロパティノートを作成',
-            hierarchical: '階層化'
+            showHierarchy: '階層を表示'
         },
         navigation: {
             addSeparator: '区切り線を追加',

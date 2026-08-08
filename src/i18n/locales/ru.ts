@@ -386,7 +386,7 @@ export const STRINGS_RU = {
             renameKey: 'Переименовать свойство',
             deleteKey: 'Удалить свойство',
             createPropertyNote: 'Создать заметку свойства',
-            hierarchical: 'Иерархический'
+            showHierarchy: 'Показать иерархию'
         },
         navigation: {
             addSeparator: 'Добавить разделитель',

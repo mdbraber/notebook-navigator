@@ -386,7 +386,7 @@ export const STRINGS_PL = {
             renameKey: 'Zmień nazwę atrybutu',
             deleteKey: 'Usuń atrybut',
             createPropertyNote: 'Utwórz notatkę atrybutu',
-            hierarchical: 'Hierarchiczny'
+            showHierarchy: 'Pokaż hierarchię'
         },
         navigation: {
             addSeparator: 'Dodaj separator',

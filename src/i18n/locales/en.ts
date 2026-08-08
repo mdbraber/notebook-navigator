@@ -385,7 +385,7 @@ export const STRINGS_EN = {
             renameKey: 'Rename property',
             deleteKey: 'Delete property',
             createPropertyNote: 'Create property note',
-            hierarchical: 'Hierarchical'
+            showHierarchy: 'Show hierarchy'
         },
         navigation: {
             addSeparator: 'Add separator',

@@ -386,7 +386,7 @@ export const STRINGS_ID = {
             renameKey: 'Ubah nama properti',
             deleteKey: 'Hapus properti',
             createPropertyNote: 'Buat catatan properti',
-            hierarchical: 'Hierarkis'
+            showHierarchy: 'Tampilkan hierarki'
         },
         navigation: {
             addSeparator: 'Tambah pemisah',

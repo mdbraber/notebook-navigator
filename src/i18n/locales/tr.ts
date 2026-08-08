@@ -386,7 +386,7 @@ export const STRINGS_TR = {
             renameKey: 'Özelliği yeniden adlandır',
             deleteKey: 'Özelliği sil',
             createPropertyNote: 'Özellik notu oluştur',
-            hierarchical: 'Hiyerarşik'
+            showHierarchy: 'Hiyerarşiyi göster'
         },
         navigation: {
             addSeparator: 'Ayırıcı ekle',

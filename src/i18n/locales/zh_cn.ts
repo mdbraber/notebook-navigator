@@ -384,7 +384,7 @@ export const STRINGS_ZH_CN = {
             renameKey: '重命名属性',
             deleteKey: '删除属性',
             createPropertyNote: '创建属性笔记',
-            hierarchical: '层级显示'
+            showHierarchy: '显示层级'
         },
         navigation: {
             addSeparator: '添加分隔符',

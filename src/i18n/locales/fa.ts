@@ -385,7 +385,7 @@ export const STRINGS_FA = {
             renameKey: 'تغییر نام ویژگی',
             deleteKey: 'حذف ویژگی',
             createPropertyNote: 'ایجاد یادداشت ویژگی',
-            hierarchical: 'سلسله‌مراتبی'
+            showHierarchy: 'نمایش سلسله‌مراتب'
         },
         navigation: {
             addSeparator: 'افزودن جداکننده',

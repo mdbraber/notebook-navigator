@@ -385,7 +385,7 @@ export const STRINGS_VI = {
             renameKey: 'Đổi tên thuộc tính',
             deleteKey: 'Xóa thuộc tính',
             createPropertyNote: 'Tạo ghi chú thuộc tính',
-            hierarchical: 'Phân cấp'
+            showHierarchy: 'Hiện phân cấp'
         },
         navigation: {
             addSeparator: 'Thêm dấu phân cách',

@@ -385,7 +385,7 @@ export const STRINGS_TH = {
             renameKey: 'เปลี่ยนชื่อคุณสมบัติ',
             deleteKey: 'ลบคุณสมบัติ',
             createPropertyNote: 'สร้างโน้ตคุณสมบัติ',
-            hierarchical: 'แบบลำดับชั้น'
+            showHierarchy: 'แสดงลำดับชั้น'
         },
         navigation: {
             addSeparator: 'เพิ่มตัวคั่น',

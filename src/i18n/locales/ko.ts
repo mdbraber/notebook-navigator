@@ -384,7 +384,7 @@ export const STRINGS_KO = {
             renameKey: '속성 이름 변경',
             deleteKey: '속성 삭제',
             createPropertyNote: '속성 노트 만들기',
-            hierarchical: '계층형'
+            showHierarchy: '계층 표시'
         },
         navigation: {
             addSeparator: '구분선 추가',

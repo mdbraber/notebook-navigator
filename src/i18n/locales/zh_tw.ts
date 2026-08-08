@@ -385,7 +385,7 @@ export const STRINGS_ZH_TW = {
             renameKey: '重新命名屬性',
             deleteKey: '刪除屬性',
             createPropertyNote: '建立屬性筆記',
-            hierarchical: '階層顯示'
+            showHierarchy: '顯示階層'
         },
         navigation: {
             addSeparator: '新增分隔線',
