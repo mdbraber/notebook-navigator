@@ -404,5 +404,5 @@ Markdown count re-checked after the restore: 163, matching the count taken befor
 
 ## Commit
 
-Work commit: recorded in the ledger and in the follow-up commit that adds this line, since a commit
-cannot contain its own SHA. Parent: `1e6c1f83`.
+Work commit: `f8935062`, parent `1e6c1f83`. Recorded here by the follow-up commit that adds this line,
+since a commit cannot contain its own SHA.
