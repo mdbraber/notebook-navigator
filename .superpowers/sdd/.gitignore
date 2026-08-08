@@ -2,4 +2,7 @@
 # history. Everything else in a plan workspace is tracked: the ledger records every
 # review finding, ruling and deferred item, and the briefs and reports record why each
 # commit looks the way it does.
+#
+# NOTE: the superpowers review-package script rewrites this file to a bare "*" each time
+# it runs, which would silently untrack everything here. Restore this content if that happens.
 review-*.diff
