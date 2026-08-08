@@ -917,18 +917,24 @@ describe('handlePropertyToggle placement keys', () => {
 });
 
 describe('handlePropertyToggleAllSiblings placement keys', () => {
-    it('toggles the clicked placement, not the bare node id, while keeping descendants in node ids', () => {
-        // Alt+click on the "Work > Clients" chevron. Before this fix the self-toggle carried
-        // clientsNode.id, so the persisted set gained a bare node id that renders nowhere and the
-        // clicked row never opened. Only the descendant payload stays in node ids, because
-        // TOGGLE_DESCENDANT_PROPERTIES walks node.children, which a hierarchical value never has.
+    it('toggles a non-hierarchical value by its own id, walking its legacy child value in node ids', () => {
+        // Alt+click on "Clients" under a key that is NOT marked Hierarchical. A pairing of a compound
+        // placement key with EMPTY_PROPERTY_HIERARCHY_INDEX is not a state the app can produce: a
+        // compound placement key only exists for a value under a hierarchical key, and a hierarchical
+        // value's own children map is always empty by design (see treeFlattener.ts), so it can never
+        // carry a real child value the way clientsNode does here. This fixture keeps both sides
+        // consistent instead: the key is genuinely flat, so item.key equals the node's own id exactly as
+        // NavigationPaneTreeRow passes it, and "clients/acme" is the legacy multi-segment valuePath
+        // nesting that predates the hierarchy feature, still walked through node.children.
+        // TOGGLE_DESCENDANT_PROPERTIES only sees placement keys once propertyHierarchyIndex marks the
+        // key's root, which EMPTY_PROPERTY_HIERARCHY_INDEX never does.
         const grandchildNode = createPropertyValueNode('projects', 'clients/acme', 'Acme', ['notes/c.md']);
         const clientsNode = createPropertyValueNode('projects', 'clients', 'Clients', ['notes/a.md']);
         clientsNode.children.set(grandchildNode.id, grandchildNode);
         const workNode = createPropertyValueNode('projects', 'work', 'Work', [], undefined);
         const keyNode = createPropertyKeyNode('projects', 'Projects', [], [workNode, clientsNode]);
         const propertyTree = new Map<string, PropertyTreeNode>([[keyNode.key, keyNode]]);
-        const placementKey = buildPropertyPlacementKey([workNode.id, clientsNode.id]);
+        const placementKey = clientsNode.id;
         const expansionDispatch = vi.fn();
 
         let captured: NavigationPaneTreeInteractionsResult | null = null;
@@ -974,7 +980,6 @@ describe('handlePropertyToggleAllSiblings placement keys', () => {
         result.handlePropertyToggleAllSiblings(clientsNode, placementKey);
 
         expect(expansionDispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: placementKey });
-        expect(expansionDispatch).not.toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: clientsNode.id });
         expect(expansionDispatch).toHaveBeenCalledWith({
             type: 'TOGGLE_DESCENDANT_PROPERTIES',
             descendantNodeIds: [grandchildNode.id],

@@ -253,7 +253,8 @@ export const Platform = {
     isMobile: false,
     isTablet: false,
     isPhone: false,
-    isIosApp: false
+    isIosApp: false,
+    isMacOS: false
 };
 
 export const normalizePath = (value: string) => value;

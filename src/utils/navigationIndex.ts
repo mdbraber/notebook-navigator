@@ -78,10 +78,11 @@ function setNavigationIndex(indexMap: Map<NavigationIndexKey, number>, itemType:
  * A node id that names no row of its own - a value that only ever renders nested - still gets a
  * fallback entry, because selection is stored as a node id and has no placement to offer: without one,
  * scrolling to the selected property and the collapse-selected-item command would resolve to nothing.
- * Fallbacks are applied after every row is in the map, and never overwrite an entry, so a real
- * placement key always wins and the topmost placement is the one a node id resolves to. That last part
- * matters for a cycle member promoted to a root, which is both somebody's child and a root in its own
- * right.
+ * Fallbacks are applied after every row is in the map, and never overwrite an entry, so a row that owns
+ * the node id as its own key always wins over a fallback; only when no row owns it does a node id
+ * resolve to the topmost row that does not own the key outright. That first part matters for a cycle
+ * member promoted to a root: its own root row owns the node id outright and wins even though that row
+ * can render below the nested row whose fallback it pre-empts.
  */
 export function buildNavigationPathIndexMap(items: readonly CombinedNavigationItem[]): Map<NavigationIndexKey, number> {
     const indexMap = new Map<NavigationIndexKey, number>();
