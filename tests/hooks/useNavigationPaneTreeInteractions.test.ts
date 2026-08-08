@@ -853,6 +853,9 @@ describe('handlePropertyToggle placement keys', () => {
             type: 'SET_EXPANDED_PROPERTIES',
             properties: new Set([keyNode.id, workNode.id, placementKey])
         });
+        // Guards against a double dispatch: the branch-replace call must be the only one, not an
+        // addition on top of a plain TOGGLE_PROPERTY_EXPANDED.
+        expect(expansionDispatch).toHaveBeenCalledTimes(1);
     });
 
     it('still takes the collapse-others branch for a key node', () => {
@@ -867,6 +870,9 @@ describe('handlePropertyToggle placement keys', () => {
         result.handlePropertyToggle(keyNode.id, keyNode.id);
 
         expect(expansionDispatch).toHaveBeenCalledWith({ type: 'SET_EXPANDED_PROPERTIES', properties: new Set([keyNode.id]) });
+        // Guards against a double dispatch: the branch-replace call must be the only one, not an
+        // addition on top of a plain TOGGLE_PROPERTY_EXPANDED.
+        expect(expansionDispatch).toHaveBeenCalledTimes(1);
     });
 
     it('expands a root hierarchical value through the collapse-others branch, where its own children map is empty', () => {
@@ -900,6 +906,9 @@ describe('handlePropertyToggle placement keys', () => {
             type: 'SET_EXPANDED_PROPERTIES',
             properties: new Set([keyNode.id, workNode.id])
         });
+        // Guards against a double dispatch: the branch-replace call must be the only one, not an
+        // addition on top of a plain TOGGLE_PROPERTY_EXPANDED.
+        expect(expansionDispatch).toHaveBeenCalledTimes(1);
     });
 });
 

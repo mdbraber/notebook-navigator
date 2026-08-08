@@ -462,6 +462,15 @@ export function buildPropertyPlacementKey(chain: readonly string[]): string {
 }
 
 /**
+ * Splits a placement key back into the chain of value node ids that built it, the reverse of
+ * buildPropertyPlacementKey. A key with no separator, meaning a root placement, a key node, or any
+ * non-hierarchical value, returns a single-element chain containing the key itself.
+ */
+export function parsePropertyPlacementKey(placementKey: string): string[] {
+    return placementKey.split(PROPERTY_PLACEMENT_SEPARATOR);
+}
+
+/**
  * Placement keys of every ancestor of a chain, in root-to-parent order, excluding the chain's own
  * target. Auto-reveal expands these so every level between the key and the target actually renders:
  * without them the flattener never recurses far enough to emit the target's own row. A single-element
@@ -604,7 +613,6 @@ interface FlattenPropertyHierarchyParams {
     /** Levels of nesting below the roots. A backstop against pathological data, not a style choice. */
     maxDepth: number;
     comparator: PropertyNodeComparator;
-    getChildComparator?: (parentNodeId: string) => PropertyNodeComparator | undefined;
 }
 
 /**
@@ -618,8 +626,7 @@ export function flattenPropertyHierarchy({
     expandedPlacements,
     level,
     maxDepth,
-    comparator,
-    getChildComparator
+    comparator
 }: FlattenPropertyHierarchyParams): PropertyValueTreeItem[] {
     const items: PropertyValueTreeItem[] = [];
 
@@ -658,8 +665,7 @@ export function flattenPropertyHierarchy({
             return;
         }
 
-        const childComparator = getChildComparator?.(node.id) ?? comparator;
-        children.sort(childComparator).forEach(child => addNode(child, currentLevel + 1, nextChain));
+        children.sort(comparator).forEach(child => addNode(child, currentLevel + 1, nextChain));
     };
 
     const roots = resolveNodes(index.rootIds.get(keyNode.id) ?? []);

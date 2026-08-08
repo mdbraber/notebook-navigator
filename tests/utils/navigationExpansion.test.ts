@@ -216,6 +216,9 @@ describe('navigationExpansion keyboard expansion of property placements', () => 
             type: 'SET_EXPANDED_PROPERTIES',
             properties: new Set([KEY_ID, WORK_ID, CLIENTS_UNDER_WORK])
         });
+        // Guards against a double dispatch: the branch-replace call must be the only one, not an
+        // addition on top of a plain TOGGLE_PROPERTY_EXPANDED.
+        expect(dispatch).toHaveBeenCalledTimes(1);
     });
 
     it('keeps a three deep placement rendering by naming every intermediate placement key', () => {

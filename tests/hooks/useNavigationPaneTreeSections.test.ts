@@ -596,6 +596,100 @@ describe('useNavigationPaneTreeSections', () => {
         expect(result.propertyHierarchyIndex.subtreeCount.get(fiddleId)).toBe(2);
     });
 
+    it("sorts hierarchical root values by frequency using each value's subtree count, not its own count", () => {
+        dbFileDataByPath.clear();
+
+        // Fiddle's own count is 1 (Building software.md), but Building software nests under Fiddle and
+        // carries three more notes of its own, so Fiddle's subtree count is 4. Solo has no children, so
+        // its own count and subtree count are both 2. Ascending order by own count is Fiddle(1), Solo(2);
+        // ascending order by subtree count is Solo(2), Fiddle(4). The two orders disagree, which is what
+        // lets this test catch a comparator that reads a node's own count instead of the badge's count.
+        const buildingSoftwareFile = createTestTFile('notes/project/Building software.md');
+        const childFile1 = createTestTFile('notes/project/child-1.md');
+        const childFile2 = createTestTFile('notes/project/child-2.md');
+        const childFile3 = createTestTFile('notes/project/child-3.md');
+        const soloFile1 = createTestTFile('notes/project/solo-1.md');
+        const soloFile2 = createTestTFile('notes/project/solo-2.md');
+
+        dbFileDataByPath.set(buildingSoftwareFile.path, {
+            tags: null,
+            properties: [{ fieldKey: 'Projects', value: '[[Fiddle]]', valueKind: 'string' }]
+        });
+        [childFile1, childFile2, childFile3].forEach(file => {
+            dbFileDataByPath.set(file.path, {
+                tags: null,
+                properties: [{ fieldKey: 'Projects', value: '[[Building software]]', valueKind: 'string' }]
+            });
+        });
+        [soloFile1, soloFile2].forEach(file => {
+            dbFileDataByPath.set(file.path, {
+                tags: null,
+                properties: [{ fieldKey: 'Projects', value: '[[Solo]]', valueKind: 'string' }]
+            });
+        });
+
+        const folderFiles = [buildingSoftwareFile, childFile1, childFile2, childFile3, soloFile1, soloFile2];
+        const folder = createFolder('notes/project', folderFiles);
+        folderFiles.forEach(file => Reflect.set(file, 'parent', folder));
+
+        const app = new App();
+        app.metadataCache.getFirstLinkpathDest = (linkpath: string) => (linkpath === 'Building software' ? buildingSoftwareFile : null);
+
+        const fiddleId = buildPropertyValueNodeId('projects', 'fiddle');
+        const soloId = buildPropertyValueNodeId('projects', 'solo');
+
+        let captured: NavigationPaneTreeSectionsResult | null = null;
+
+        function Harness() {
+            captured = useNavigationPaneTreeSections({
+                app,
+                settings: createSettings({
+                    showTags: false,
+                    showProperties: true,
+                    showAllPropertiesFolder: false,
+                    scopeTagsToCurrentContext: false,
+                    scopePropertiesToCurrentContext: true,
+                    propertyHierarchicalKeys: { projects: true },
+                    propertySortOrder: 'frequency-asc'
+                }),
+                expansionState: {
+                    expandedFolders: new Set(),
+                    expandedTags: new Set(),
+                    expandedProperties: new Set([buildPropertyKeyNodeId('projects')]),
+                    expandedVirtualFolders: new Set()
+                },
+                showHiddenItems: false,
+                includeDescendantNotes: true,
+                sourceState: createSourceState({
+                    propertyTree: new Map(),
+                    visiblePropertyNavigationKeySet: new Set(['projects'])
+                }),
+                selectionScope: {
+                    selectionType: ItemType.FOLDER,
+                    selectedFolder: folder
+                },
+                tagTreeService: null,
+                propertyTreeService: null
+            });
+            return null;
+        }
+
+        renderToStaticMarkup(React.createElement(Harness));
+
+        expect(captured).not.toBeNull();
+        if (!captured) {
+            throw new Error('Expected hook result');
+        }
+        const result = captured as NavigationPaneTreeSectionsResult;
+
+        expect(result.propertyHierarchyIndex.subtreeCount.get(fiddleId)).toBe(4);
+        expect(result.propertyHierarchyIndex.subtreeCount.get(soloId)).toBe(2);
+
+        // Ascending frequency puts Solo (subtree 2) before Fiddle (subtree 4). A comparator reading each
+        // node's own count instead would order Fiddle (own 1) before Solo (own 2).
+        expect(result.propertyItems.map(item => item.key)).toEqual([buildPropertyKeyNodeId('projects'), soloId, fiddleId]);
+    });
+
     it('expanding a level-2 placement emits its level-3 children', () => {
         dbFileDataByPath.clear();
 

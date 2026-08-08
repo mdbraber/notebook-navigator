@@ -20,7 +20,7 @@ import React, { createContext, useContext, useReducer, useEffect, ReactNode } fr
 import { PROPERTIES_ROOT_VIRTUAL_FOLDER_ID, STORAGE_KEYS, TAGS_ROOT_VIRTUAL_FOLDER_ID } from '../types';
 import { localStorage } from '../utils/localStorage';
 import { normalizeStoredCollapsedListGroupKeys } from '../utils/listGroupCollapse';
-import { PROPERTY_PLACEMENT_SEPARATOR } from '../utils/treeFlattener';
+import { parsePropertyPlacementKey } from '../utils/treeFlattener';
 
 // State interface
 export interface ExpansionState {
@@ -97,11 +97,7 @@ function filterExpandedSet(currentValues: Set<string>, isValid: (value: string) 
  * property value, reduces to the plain membership test this always did.
  */
 function isExpandedPropertyEntryValid(entry: string, existingPropertyNodeIds: Set<string>): boolean {
-    if (!entry.includes(PROPERTY_PLACEMENT_SEPARATOR)) {
-        return existingPropertyNodeIds.has(entry);
-    }
-
-    return entry.split(PROPERTY_PLACEMENT_SEPARATOR).every(segment => existingPropertyNodeIds.has(segment));
+    return parsePropertyPlacementKey(entry).every(segment => existingPropertyNodeIds.has(segment));
 }
 
 // Reducer

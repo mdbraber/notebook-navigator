@@ -16,8 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, expect, it } from 'vitest';
-import { TFolder } from 'obsidian';
+import React from 'react';
+import { App, TFolder } from 'obsidian';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
 import {
     buildCollapsedExpansionState,
     buildSelectedPropertyParentKeys,
@@ -25,13 +27,76 @@ import {
     collectExpandablePropertyExpansionKeys,
     getCollapseBehaviorScope,
     hasCollapsibleFolderExpansion,
+    useNavigationActions,
     type PropertyHierarchySnapshot
 } from '../../src/hooks/useNavigationActions';
+import type { ExpansionAction } from '../../src/context/ExpansionContext';
+import { DEFAULT_SETTINGS } from '../../src/settings/defaultSettings';
 import { PROPERTIES_ROOT_VIRTUAL_FOLDER_ID, SHORTCUTS_VIRTUAL_FOLDER_ID, TAGS_ROOT_VIRTUAL_FOLDER_ID } from '../../src/types';
 import type { PropertyTreeNode } from '../../src/types/storage';
-import { buildPropertyHierarchyIndex } from '../../src/utils/propertyHierarchy';
+import {
+    buildPropertyHierarchyIndex,
+    EMPTY_PROPERTY_HIERARCHY_INDEX,
+    type PropertyHierarchyIndex
+} from '../../src/utils/propertyHierarchy';
 import { buildPropertyKeyNodeId, buildPropertyValueNodeId } from '../../src/utils/propertyTree';
 import { buildPropertyPlacementKey } from '../../src/utils/treeFlattener';
+
+/**
+ * useNavigationActions reads app, settings and expansion/selection state through context hooks rather
+ * than as plain parameters, unlike useNavigationPaneTreeInteractions. Mocking those context modules is
+ * what lets the hook itself be rendered directly below, so a future caller that stops forwarding
+ * propertyHierarchyIndexRef.current to the property-expansion helpers can be caught here rather than
+ * only by tsc.
+ */
+const actionMocks = vi.hoisted(() => ({
+    expansionDispatch: vi.fn<(action: ExpansionAction) => void>(),
+    fileData: {
+        propertyTree: new Map<string, PropertyTreeNode>(),
+        tagTree: new Map<string, unknown>()
+    }
+}));
+
+vi.mock('../../src/context/ExpansionContext', () => ({
+    useExpansionState: () => ({
+        expandedFolders: new Set<string>(),
+        expandedTags: new Set<string>(),
+        expandedProperties: new Set<string>(),
+        expandedVirtualFolders: new Set<string>()
+    }),
+    useExpansionDispatch: () => actionMocks.expansionDispatch
+}));
+
+vi.mock('../../src/context/SelectionContext', () => ({
+    useSelectionState: () => ({
+        selectionType: 'folder',
+        selectedFolder: null,
+        selectedTag: null,
+        selectedProperty: null
+    })
+}));
+
+vi.mock('../../src/context/ServicesContext', () => ({
+    useServices: () => ({ app: new App() }),
+    useFileSystemOps: () => null
+}));
+
+vi.mock('../../src/context/SettingsContext', () => ({
+    useSettingsState: () => ({
+        ...DEFAULT_SETTINGS,
+        collapseBehavior: 'properties-only',
+        propertyHierarchyMaxDepth: 10
+    })
+}));
+
+vi.mock('../../src/context/UXPreferencesContext', () => ({
+    useUXPreferences: () => ({ showHiddenItems: false, includeDescendantNotes: true }),
+    useUXPreferenceActions: () => ({ setShowHiddenItems: vi.fn() })
+}));
+
+vi.mock('../../src/context/StorageContext', () => ({
+    useFileCache: () => ({ fileData: actionMocks.fileData })
+}));
 
 const PROJECTS_KEY_NODE_ID = buildPropertyKeyNodeId('projects');
 const valueNodeId = (value: string) => buildPropertyValueNodeId('projects', value.toLowerCase());
@@ -247,5 +312,58 @@ describe('useNavigationActions helpers', () => {
         expect(buildSelectedPropertyParentKeys(valueNodeId('Bulwark'), null)).toEqual([PROJECTS_KEY_NODE_ID]);
         expect(buildSelectedPropertyParentKeys(PROJECTS_KEY_NODE_ID, hierarchy)).toEqual([]);
         expect(buildSelectedPropertyParentKeys(null, hierarchy)).toEqual([]);
+    });
+});
+
+describe('useNavigationActions hook', () => {
+    /**
+     * Renders the real hook with the given hierarchy ref and returns the properties it dispatched for
+     * "expand all", the only observable trace of what propertyHierarchyIndexRef.current actually was.
+     */
+    function collectExpandAllProperties(propertyHierarchyIndexRef: { current: PropertyHierarchyIndex }): Set<string> {
+        actionMocks.expansionDispatch.mockClear();
+
+        function Harness() {
+            const { handleExpandCollapseAll } = useNavigationActions({ propertyHierarchyIndexRef });
+            handleExpandCollapseAll();
+            return null;
+        }
+        renderToStaticMarkup(React.createElement(Harness));
+
+        const dispatchedAction = actionMocks.expansionDispatch.mock.calls
+            .map(([action]) => action)
+            .find(
+                (action): action is Extract<ExpansionAction, { type: 'SET_EXPANDED_PROPERTIES' }> =>
+                    action.type === 'SET_EXPANDED_PROPERTIES'
+            );
+        if (!dispatchedAction) {
+            throw new Error('Expected a SET_EXPANDED_PROPERTIES dispatch');
+        }
+        return dispatchedAction.properties;
+    }
+
+    it('consults the property hierarchy index it is given, rather than a fixed empty one', () => {
+        // Same fixture as "expands every nested placement of a hierarchical key" above, but driven
+        // through the hook itself: a future useNavigationActions that stopped forwarding
+        // propertyHierarchyIndexRef.current to the property-expansion helpers, for example by reading
+        // EMPTY_PROPERTY_HIERARCHY_INDEX directly, would keep every other test in this file green
+        // because they all call the helpers with a hand-built PropertyHierarchySnapshot and never touch
+        // the ref. Only rendering the hook and inspecting what it actually dispatched can catch that.
+        actionMocks.fileData = { propertyTree: createProjectsTree(), tagTree: new Map() };
+        const { hierarchy } = createProjectsHierarchy({ hierarchical: true, maxDepth: 10 });
+
+        const withRealIndex = collectExpandAllProperties({ current: hierarchy.index });
+        const withEmptyIndex = collectExpandAllProperties({ current: EMPTY_PROPERTY_HIERARCHY_INDEX });
+
+        expect(withRealIndex).toEqual(
+            new Set([
+                PROJECTS_KEY_NODE_ID,
+                valueNodeId('Fiddle'),
+                buildPropertyPlacementKey([valueNodeId('Fiddle'), valueNodeId('Building software')])
+            ])
+        );
+        // An index the hook never consulted would fall back to the flat walk, which stops at the key:
+        // every value node's own children map is always empty, since nesting lives only in the index.
+        expect(withEmptyIndex).toEqual(new Set([PROJECTS_KEY_NODE_ID]));
     });
 });

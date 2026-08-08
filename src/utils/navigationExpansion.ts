@@ -22,7 +22,7 @@ import { NavigationPaneItemType } from '../types';
 import type { CombinedNavigationItem } from '../types/virtualization';
 import { hasSubfolders } from './fileFilters';
 import { getPropertyKeyNodeIdFromNodeId } from './propertyTree';
-import { getPropertyPlacementAncestorKeys, PROPERTY_PLACEMENT_SEPARATOR } from './treeFlattener';
+import { getPropertyPlacementAncestorKeys, parsePropertyPlacementKey } from './treeFlattener';
 
 export interface NavigationExpansionSets {
     expandedFolders: ReadonlySet<string>;
@@ -229,7 +229,7 @@ export function getPropertyAncestorNodeIds(propertyNodeId: string): string[] {
  * keeps flat keys behaving exactly as they do today.
  */
 export function getPropertyPlacementAncestorIds(placementKey: string): string[] {
-    const chain = placementKey.split(PROPERTY_PLACEMENT_SEPARATOR);
+    const chain = parsePropertyPlacementKey(placementKey);
     const targetNodeId = chain[chain.length - 1];
     return [...getPropertyAncestorNodeIds(targetNodeId), ...getPropertyPlacementAncestorKeys(chain)];
 }

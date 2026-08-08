@@ -127,7 +127,7 @@ inspection of the sites I happened to remember.
 ### Every construction site of `NavigationExpansionTarget`
 
 A target only reaches `toggleNavigationExpansionTarget`, so I enumerated its nine call sites
-(`grep -rn "toggleNavigationExpansionTarget("`) and traced what each passes. That gives seven construction
+(`grep -rn "toggleNavigationExpansionTarget("`) and traced what each passes. That gives eight construction
 sites in total:
 
 | Site | Type | Changed? |
