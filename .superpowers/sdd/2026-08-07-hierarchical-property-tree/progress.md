@@ -1,0 +1,108 @@
+# SDD ledger — plan: .superpowers/design-docs/2026-08-07-hierarchical-property-tree.md
+
+Branch: property-notes (main checkout, no worktree: tasks 4-5 deploy to ~/2027 from this tree)
+BASE at start: a1d0b43f9dcd6a7163637b69c6bfed3c19b96089
+Pre-flight scan: clean, no plan conflicts.
+
+Task 1: complete (commits a1d0b43..3ca9ae8, review clean)
+Task 1: minor (deferred): collect() comment claims it matches getTotalNoteCount's mechanism, but it dedups per DFS path not per call, so a diamond recomputes once per incoming path. Correctness unaffected.
+Task 1: minor (deferred): avoidable `as PropertyTreeNodeId` cast at propertyHierarchy.ts:138, fixable by typing nodesById as Map<string, PropertyTreeNode>.
+Task 1: minor (deferred): no test asserts the flag-off path returns EMPTY_PROPERTY_HIERARCHY_INDEX by reference, only that its maps are empty.
+
+Task 2: implemented (commits 3ca9ae8..7cbddc5), review: Spec OK, quality Approved, 1 Important.
+Task 2: Important finding: inlined comparator type instead of importing canonical PropertyNodeComparator.
+Task 2: plan-conflict escalated to user. Plan text said import it from navigationComparators.ts, but src/utils imports from src/hooks zero times, so that would invert layering. User ruling: move PropertyNodeComparator to src/types/storage.ts, re-export from navigationComparators.ts, import in treeFlattener from ../types/storage.
+Task 2: fix round 1/5 dispatched (resumed original implementer aa8101cd49a6697f4), awaiting result.
+Task 2: minor (deferred): doc comment says it "differs only in" two ways from flattenTagTree, but it also takes a params object and returns an object; both mandated by the brief.
+Task 2: minor (deferred): no test exercises the getChildComparator override path; inherited from the brief's test list.
+Task 2: fix round 1/5 (1 addressed, 0 open; commits 7cbddc5..dd6b68d)
+Task 2: complete (commits 3ca9ae8..dd6b68d, review clean)
+Task 2: minor (deferred): treeFlattener.ts:22 mixes value and inline type imports in one specifier list; pre-existing style in that file.
+
+Task 3: implemented (commits dd6b68d..43be81d), review: Spec OK, quality NOT approved, 2 Important.
+Task 3: Important 1: propertyHierarchicalKeys not pruned in cleanupWithValidators, though existingPropertyKeys at PropertyMetadataService.ts:342 is already the right key format and prunes vaultProfiles[].propertyKeys at :356. Consequence: a deleted or renamed property keeps its flag, and key reuse silently inherits hierarchical status.
+Task 3: Important 2: no tests for setPropertyHierarchicalKey/removePropertyHierarchicalKey/getPropertyHierarchicalKey, though tests/services/PropertyMetadataService.test.ts:287 has an analogous block for sort overrides. The delete-vs-false invariant is untested.
+Task 3: minor (deferred): src/i18n/locales/fa.ts:2327 leaves "Vault" in Latin script while that file uses خزانه elsewhere.
+Task 3: fix round 1/5 dispatched (resumed implementer a75059e4ed8b7ed2d).
+Task 3: fix round 1/5 (2 addressed, 0 open; commits 43be81d..802d011d)
+Task 3: complete (commits dd6b68d..802d011d, review clean). Suite now 2154.
+Task 3: NOT a defect: propertyHierarchicalKeys absent from SYNC_MODE_SETTING_IDS is intentional and was an explicit constraint. Re-reviewer raised it as an observation only.
+
+Task 4: implemented (commits 802d011..9eea190), review: Spec OK, quality Approved, 2 Important.
+Task 4: Important 1: index memo deps [app, hierarchicalPropertyKeys, renderPropertyTree] cannot see link-resolution changes, though resolveValueNotePath calls getFirstLinkpathDest. Precedent PropertyTreeItem.tsx:129-133 carries vaultChangeVersion for exactly this. Fix: add sourceState.fileChangeVersion. NOTE: this dep list was prescribed by my brief AND resolutions, so it is a plan defect. It also deviates from the spec sentence "memoise on tree identity and the hierarchical key set alone"; I judged the spec's intent (stay out of the settings-save memo) preserved, and the cost is ~24 cheap lookups per file change, so I did not escalate.
+Task 4: Important 2: no test pins the hierarchical emitter branch. tests/hooks/useNavigationPaneTreeSections.test.ts:324-329 already renders this hook and asserts propertyItems keys; a hierarchical case is ~30 lines there.
+Task 4: minor (deferred): hierarchicalPropertyKeys uses Object.keys, but the service reader requires === true and sanitizeRecord preserves false, so a hand-edited {"projects": false} renders hierarchical with the checkmark off. One-word fix to filter on === true.
+Task 4: minor (deferred, CARRY TO TASK 5): hasChildren is raw childIds.length > 0, ignoring the flattener's depth cap and cycle filter, so a placement at the cap or whose only child is its own ancestor gets a chevron that expands to nothing. Masked by the Task 5 expansion gap; becomes visible when Task 5 lands.
+Task 4: minor (deferred): useNavigationPaneShortcutDisplay.ts:230 and fileItemPillDecoration.ts:105 still call getTotalPropertyNoteCount, so a hierarchical value's shortcut row and list pill disagree with its tree badge.
+Task 4: minor (deferred): index memo is not gated on section visibility, so it rebuilds while the properties section is collapsed.
+Task 4: report wording defect: claimed the vault tree "Matched exactly" while its own concerns note the depth-3 row is absent. Reviewer confirmed the absence is exactly the deferred Task 5 gap, not a wrong expansion set.
+Task 4: fix round 1/5 dispatched (resumed implementer a4e61a670f9891f47).
+Task 5 SCOPE DECISION (user): make collapseOtherBranchesOnExpand work per placement, deriving ancestors from placement chain prefixes rather than node ids. Chosen over skipping it for hierarchical keys. This reworks toggleNavigationExpansionTarget's contract, which folders and tags also use, so it gets its own task and review gate.
+Task 5 research findings (7 touch points, my plan named 2):
+  - NavigationPaneContent.tsx:1096 isExpanded uses item.data.id, must use item.key for PROPERTY_VALUE
+  - NavigationPaneTreeRow.tsx:259 onToggle passes propertyNode.id, must pass item.key
+  - useNavigationPaneKeyboard.ts:233 children.size > 0, always false for hierarchical values
+  - useNavigationPaneTreeInteractions.ts:344, :640, :722 same children.size problem
+  - handlePropertyToggle:331-360 collapseOtherBranchesOnExpand resolves a node from the id and passes getPropertyAncestorNodeIds
+Task 4: fix round 1/5 (2 addressed, 0 open; commits 9eea190..cec8d18)
+Task 4: complete (commits 802d011..cec8d18, review clean). Suite now 2156.
+Task 4: minor (deferred): the frequency-comparator branch cannot be exercised by any current fixture. DEFAULT_SETTINGS.propertySortOrder is alpha-asc, so createFrequencyComparator returns undefined without calling getFrequency; and both sibling lists in the new test have 1 item, so Array.sort never invokes a comparator. Needs a frequency order plus 2+ siblings.
+PLAN AMENDMENT: Task 5 split into two tasks so the collapse-others rework gets its own review gate, per the user's scope decision and the Task 4 reviewer's advice.
+  Task 5 = expansion identity by placement (isExpanded, onToggle, the 4 children.size sites) + auto-reveal to first placement. For hierarchical keys the collapseOtherBranchesOnExpand path falls back to the plain dispatch, temporarily.
+  Task 6 = collapseOtherBranchesOnExpand per placement, deriving ancestors from chain prefixes.
+
+Task 5: implemented OUTSIDE the SDD loop (uncommitted working tree, no report, no implementer agent to resume). Reviewed as-is at 2166 passing / tsc clean / prettier clean.
+Task 5: review verdict Spec FAILED, quality NOT approved. 3 Critical, 2 Important, 3 Minor.
+Task 5: CRITICAL 1: nested placement keys are purged by CLEANUP_DELETED_PROPERTIES. NavigationPaneContent.tsx:513-520 whitelists key+value node ids; filterExpandedSet (ExpansionContext.tsx:64-84) is a whitelist, and every nested key contains a NUL. Effect deps include expandedProperties.size, so expanding a level-2 row purges itself on the next render. Persisted nested keys are purged at startup. MY RESOLUTIONS reasoned about root-placement persistence and missed non-root.
+Task 5: CRITICAL 2: reveal can only expand ancestors that are already expanded. firstPlacementByNodeId is populated only for placements the flattener emitted (treeFlattener.ts:544) and it recurses only into expanded placements (:548), so a node id is in the map exactly when no expansion is needed. MY RESOLUTIONS prescribed this approach; the prescription is wrong. Needs a parent walk over the index, independent of expansion state.
+Task 5: CRITICAL 3: navigateToProperty (propertyNavigation.ts:170-171) dropped the needs-expansion guard the tag precedent has (tagNavigation.ts:115-124). (a) with collapseOtherBranchesOnExpand on, revealing a nested value collapses its key, because SET_EXPANDED_PROPERTIES replaces the whole set and keyNodeId is omitted when the key is already expanded. (b) unconditional dispatch feeds a re-render loop with a localStorage write per iteration.
+Task 5: Important 1: the keyboard children-presence fix changes behaviour in zero cases, because navigationExpansion.ts:244 returns hasChildren from item.data.children.size, always false for value nodes. Its comment claims otherwise and is wrong.
+Task 5: Important 2: click paths half-migrated. :656 still reads isExpanded by node id and :681/:749 toggle by node id, so a nested click writes a bare node id into the persisted set and, for a promoted cycle root, toggles a different row than the one clicked.
+Task 5: minor: 2 eslint errors are real TS2339 (item.level absent on RootSpacerItem). tsconfig.json includes only src/**, so npx tsc never sees test files, and the brief's eslint command did not cover tests/. The brief's verification steps could not have caught it.
+Task 5: minor: useTagNavigation.ts:94-118 calls navigateToProperty without firstPlacementByNodeId (the property-pill reveal path).
+Task 5: fix round 1/5: no original implementer exists to resume, so dispatching a fresh implementer per the skill's fallback.
+Task 5: fix round 1/5 (6 addressed: 3 Critical, 2 Important, 1 Minor; commits cec8d18..a72647c8). Suite 2181.
+Task 5: NEW CRITICAL from re-review: with collapseOtherBranchesOnExpand on, a root hierarchical value cannot be expanded by mouse at all. useNavigationPaneTreeInteractions.ts:370 builds the target with hasChildren: targetNode.children.size > 0, always false for value nodes, so canExpand is false and nothing dispatches. Reviewer verified by execution: zero dispatches. Fix: use propertyNodeHasChildren(targetNode, propertyHierarchyIndex). Also: the round's own test at tests/hooks/useNavigationPaneTreeInteractions.test.ts:833 claims to cover this but passes a KEY node, which does have children, so it proves nothing.
+Task 5: NEW IMPORTANT from re-review: handlePropertyToggleAllSiblings (:833-844) still toggles by node id, so Alt+click on a nested placement toggles a different row and writes a bare node id into the persisted set. Verified by execution.
+Task 5: minor (deferred): resolvePropertyRevealChain can return a chain whose head is not a root when a cycle member is reachable from a real root, so reveal expands a placement that renders nowhere. Silent no-op. Reviewer reproduced it. Also a chain longer than propertyHierarchyMaxDepth expands prefixes the flattener never recurses into.
+Task 5: minor (deferred): useNavigationPaneKeyboard.ts:241-243 is uncovered; the required test reproduces the call sequence rather than driving the hook, so reverting the placement-key line breaks nothing.
+Task 5: minor (deferred): left-arrow on a nested placement jumps to the key row rather than the parent placement (useNavigationPaneKeyboard.ts:541-548).
+Task 5: minor (deferred, CARRY TO TASK 6): firstPlacementByNodeId is now dead. Reviewer notes property rows are indexed for scroll by node id (navigationIndex.ts:79-81), so its retained justification does not hold. Delete in Task 6.
+Task 5: NOTE FOR TASK 6: the reviewer identified a narrower alternative to supportsBranchCollapse, deriving ancestors locally as [keyNodeId, ...getPropertyPlacementAncestorKeys(item.key.split(SEP))]. That is per-placement collapse-others, i.e. Task 6's job. Task 6 should also collapse the duplicated guard (supportsBranchCollapse vs placementKey === nodeId) into one helper; the two have already diverged, which is what produced the new Critical.
+Task 5: fix round 2/5 dispatched.
+Task 5: fix round 2/5: fixed the new Critical (propertyNodeHasChildren at :370) and the new Important (Alt+click placement key), commits a72647c8..bbb27a8a. Suite 2183. Implementer verified both new tests fail against a72647c8 and are the only two failures there.
+Task 5: NOTE FOR TASK 6 (from the implementer): the Critical was a second instance of round 1's Important root cause, a children.size check on a node whose children map is empty by design. Two such sites were caught by review rather than by construction. Worth removing the need for callers of toggleNavigationExpansionTarget to supply children presence at all, since each caller must remember to ask the index.
+Task 5: fix round 2/5 (2 addressed, 0 open; commits a72647c8..bbb27a8a). Re-reviewer independently reproduced the pre-fix failure state and confirmed exactly 2 failures.
+Task 5: complete (commits cec8d18..bbb27a8a, review clean). Suite 2183.
+
+PLAN NOTE: Task 6 agent was killed mid-task by a weekly API limit. Controller finished requirement 3's deletion and mechanical test fixes inline (UNREVIEWED controller work: removed 2 orphaned firstPlacementByNodeId refs, removed 2 tests asserting on it, adapted 6 flattener tests to the new array return shape). Agent then resumed after the limit reset and completed the rest.
+Task 6: implemented (commits bbb27a8a..9a7e1950), 2186 passing, DONE_WITH_CONCERNS.
+Task 6: vault note count went 157 -> 158. Investigated: Clippings/Why Is Everyone In Tech So Sad.md is a genuine Obsidian Web Clipper capture (27KB of article text, Noema source URL, iframe, author wikilink), created 05:42:46 during the agent window but not by it. Agent correctly did not delete it.
+CORRECTION to an earlier claim: that new clipping carries tags: ["clippings"] even though the vault's Templates/Capture/Clipping Template.md had its tags key removed. So Web Clipper templates live in the browser extension, not the vault, and editing the vault template does not affect future clips. My earlier statement that removing it there stops new clippings getting tags was wrong.
+Task 6: review Spec OK, quality Approved, 0 Critical, 0 Important, 4 Minor. Reviewer independently re-verified the 9 call sites / 8 construction sites of toggleNavigationExpansionTarget and confirmed only the 2 property sites changed, and that supportsBranchCollapse's !== false test was a tautology for every other type. Controller work verified complete and correct.
+Task 6: CORRECTION to my own record: I described deleting "two tests"; it was one test (records the first placement of each node id) plus one assertion. The surrounding test kept its meaning.
+Task 6: minor (deferred): task-6-report.md:131 says seven construction sites; the table below it correctly lists eight.
+Task 6: minor (deferred): placement-key format knowledge now spans treeFlattener.ts (build/ancestors) and navigationExpansion.ts:232 (the split), and propertyNavigation.ts:172 independently composes the same set for reveal. Three expressions of "what must be expanded for a placement to render". No drift today.
+Task 6: minor (deferred): the two rewritten tests dropped their negative assertions; a toHaveBeenCalledTimes(1) would guard against a future double dispatch.
+Task 6: minor (deferred): the virtual-folder branch early return is pinned by inspection only, not a unit test.
+Task 6: complete (commits bbb27a8a..9a7e1950, review clean). Suite 2186.
+ALL SIX TASKS COMPLETE. Proceeding to the final whole-branch review.
+
+FINAL WHOLE-BRANCH REVIEW: NOT merge-ready. 0 Critical, 4 Important, 4 Minor. Two Importants confirmed by the reviewer through execution.
+FINAL: fix before merge (3): (1) hasChildren raw childIds.length ignores the flattener depth cap and cycle filter, so a chevron expands to nothing and with collapse-others on it trades away open branches; fix with a placement-aware helper. (2) resolvePropertyRevealChain can return a head that is not a root, so reveal can HIDE its target by branch-replacing away the branch it was visible in; walk up to a node in rootIds and stop at maxDepth. (3) hierarchicalPropertyKeys should filter === true, one word.
+FINAL: USER DECISION on Important 1 (badge 16 vs list 5 for Fiddle): implement subtree selection, honouring the brainstorming choice. The user's vault has includeDescendantNotes: true AND projects hierarchical, so the incoherence is visible today, not hidden by defaults. Also bring the shortcut row and file pill onto the same count so all four surfaces agree.
+FINAL: Important 4 (follow-up): useNavigationActions.ts:426-435 expand-all stops at a hierarchical key, and :241-248 smart collapse loses a selected nested value. Not in the ledger before; the branch made a previously complete assumption incomplete.
+FINAL: rulings to record: the spec's internal placement cap was never built and is judged unreachable, so drop it; depth-cap truncation is silent because the flattener runs during render, so amend the spec rather than log; auto-reveal is a parent walk rather than "first placement", forced by Task 5 Critical 2.
+FINAL: process note: tsconfig.json covers only src/**, so tsc never type-checks tests. npm run lint does cover tests/** via tsconfig.eslint.json; use that as the gate.
+FINAL: fix wave dispatched (one dispatch, complete findings list).
+FINAL: fix wave complete (commit 9a7e1950..b8ba443e). Suite 2196 (was 2186). All 4 items fixed including the user-decided subtree selection. Vault verified: Fiddle badge 5*11=16 and list 16; Building software 5/5; descendants-off 5/5. Each of 7 new tests verified to fail against the specific pre-fix code it covers.
+FINAL: reveal chain signature chosen: resolvePropertyRevealChain({ index, keyNodeId, nodeId, maxDepth }), both new fields required because the two defects were exactly "did not know the roots" and "did not know the cap". Env field became one optional propertyHierarchy: { index, maxDepth } so an index cannot be supplied without the cap.
+FINAL: concern: getTotalPropertyNoteCount now has no src/ callers, only tests/propertyTreeBuilder.test.ts. Left in place.
+FINAL: concern: pill rainbow COLOURS still derive from a flat row list, so a nested value's pill colour can differ from its tree row. Counts agree. Out of scope.
+FINAL: vault note count is now 159, up from 158, from a second genuine Web Clipper capture born 05:49:31 before this session's first command. Nothing created or deleted by any agent.
+FINAL: scoped re-review of the fix wave: all 4 ADDRESSED. Reviewer verified each new test by reverting the production code four separate ways. Confirmed no tree mutation, no quadratic behaviour, and zero added cost for users who never enable the feature.
+FINAL: one new Important from the re-review: baseFiles memo in useListPaneData.ts did not depend on propertyHierarchicalKeys, so toggling Hierarchical updated the badge while the list stayed stale. The transition case of the exact disagreement fix 4 removed.
+FINAL: ADJUDICATION: the skill allows no second fix wave, so this would normally surface at the merge decision. The user said go and the fix is one dep-array entry, so I applied it as a CONTROLLER FIX (commit e7d9f387), unreviewed by an independent gate. tsc clean, eslint clean on the file, 2196 passing. The reviewer's suggested accompanying test (toggle the flag, assert badge and list agree) was NOT added; that seam remains uncovered.
+FINAL: residual minors parked with rulings: getTotalPropertyNoteCount now has zero src/ callers and should be deleted or renamed (reviewer prefers deletion; its misnaming already caused the frequency-sort defect). Latent divergence between the chevron counting child ids and the flattener resolving nodes, unreachable while both derive from one render pass. The spec's internal placement cap was never built; ruled unreachable and dropped. Depth-cap truncation is silent; spec to be amended rather than logged. Auto-reveal is a parent walk, not "first placement"; spec amended in effect.
+FINAL: reviewer struck one earlier ledger concern as unreachable: the scoped-index mismatch cannot occur for a property selection, since isScopedPropertyContextActive is false unless the selection is a folder or tag.
+FINAL: 12 commits on the plan. Suite 2143 -> 2196. Proceeding to finishing-a-development-branch.

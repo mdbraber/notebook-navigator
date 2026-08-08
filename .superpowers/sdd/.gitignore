@@ -1,0 +1,5 @@
+# Review packages are regenerated from git on demand and duplicate content already in
+# history. Everything else in a plan workspace is tracked: the ledger records every
+# review finding, ruling and deferred item, and the briefs and reports record why each
+# commit looks the way it does.
+review-*.diff

@@ -1,0 +1,5 @@
+# Review packages are regenerated from git on demand and duplicate content that is
+# already in history, so they stay out. Everything else here is tracked on purpose:
+# the design docs, the implementation plans, the SDD ledger, and the per-task briefs
+# and reports carry the reasoning behind these commits, which the diffs do not.
+review-*.diff

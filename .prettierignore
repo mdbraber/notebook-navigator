@@ -10,7 +10,7 @@ main.js
 # Documentation
 docs/
 
-# Gitignored planning/scratch docs (superpowers skill workspace)
+# Tracked planning docs, excluded from formatting (superpowers skill workspace)
 .superpowers/
 
 # Obsidian
