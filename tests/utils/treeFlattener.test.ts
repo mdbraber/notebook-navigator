@@ -24,6 +24,7 @@ import {
     buildPropertyPlacementKey,
     flattenPropertyHierarchy,
     getPropertyPlacementAncestorKeys,
+    getPropertyPlacementParentKey,
     collectExpandablePropertyPlacementKeys,
     MAX_EXPANDABLE_PROPERTY_PLACEMENTS,
     PROPERTY_PLACEMENT_SEPARATOR
@@ -349,6 +350,29 @@ describe('getPropertyPlacementAncestorKeys', () => {
     it('returns no ancestors for a single-element chain, which is a root placement or a flat value', () => {
         expect(getPropertyPlacementAncestorKeys([id('projects', 'fiddle')])).toEqual([]);
         expect(getPropertyPlacementAncestorKeys([id('status', 'open')])).toEqual([]);
+    });
+});
+
+describe('getPropertyPlacementParentKey', () => {
+    const id = (key: string, value: string) => `key:${key}=${value.toLowerCase()}`;
+
+    it('drops the last segment of a nested chain, which is the placement the row renders under', () => {
+        const workId = id('projects', 'work');
+        const clientsId = id('projects', 'clients');
+        const acmeId = id('projects', 'acme');
+
+        // Collapsing left from Work > Clients > Acme lands on Work > Clients, not on Work and not on
+        // the key row, which is what makes the walk up the tree mirror the walk down it.
+        expect(getPropertyPlacementParentKey(buildPropertyPlacementKey([workId, clientsId, acmeId]))).toBe(
+            buildPropertyPlacementKey([workId, clientsId])
+        );
+        expect(getPropertyPlacementParentKey(buildPropertyPlacementKey([workId, clientsId]))).toBe(workId);
+    });
+
+    it('reports no parent placement for a root placement or a flat value', () => {
+        // Both cases have a one-element chain, so the caller falls back to the key row.
+        expect(getPropertyPlacementParentKey(id('projects', 'fiddle'))).toBeNull();
+        expect(getPropertyPlacementParentKey(id('status', 'open'))).toBeNull();
     });
 });
 

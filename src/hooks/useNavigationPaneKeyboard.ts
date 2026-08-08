@@ -55,7 +55,7 @@ import {
     toggleNavigationExpansionTarget
 } from '../utils/navigationExpansion';
 import type { PropertyHierarchyIndex } from '../utils/propertyHierarchy';
-import { propertyPlacementHasChildren } from '../utils/treeFlattener';
+import { getPropertyPlacementParentKey, propertyPlacementHasChildren } from '../utils/treeFlattener';
 
 type VirtualTagCollectionItem = VirtualFolderItem & { tagCollectionId: string };
 type VirtualPropertyCollectionItem = VirtualFolderItem & { propertyCollectionId: string };
@@ -545,8 +545,13 @@ export function useNavigationPaneKeyboard({
 
                         if (!collapseItem()) {
                             if (propertyNode.kind === 'value') {
-                                const parentNodeId = buildPropertyKeyNodeId(propertyNode.key);
-                                const parentIndex = resolveIndex(parentNodeId, ItemType.PROPERTY);
+                                // The row above this one in the tree, which for a nested placement is the
+                                // placement it renders under and not the value's key row. Derived from the
+                                // row's own placement key because a value in the hierarchy DAG can have
+                                // several parents; a root placement has a one-element chain and so falls
+                                // back to the key row, as does every value of a non-hierarchical key.
+                                const parentKey = getPropertyPlacementParentKey(item.key) ?? buildPropertyKeyNodeId(propertyNode.key);
+                                const parentIndex = resolveIndex(parentKey, ItemType.PROPERTY);
                                 if (parentIndex >= 0) {
                                     const parentItem = helpers.getItemAt(parentIndex);
                                     if (parentItem) {

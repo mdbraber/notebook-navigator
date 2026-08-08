@@ -482,6 +482,23 @@ export function getPropertyPlacementAncestorKeys(chain: readonly string[]): stri
 }
 
 /**
+ * Placement key of the row one level up from a placement, or null when there is no such row because the
+ * placement renders at the key's own root. Collapsing left from a nested row has to land on the
+ * placement it renders under, not on the value's key: a value node in a DAG has no single parent, so the
+ * answer only exists in the chain the row was emitted with. Null is the caller's cue to fall back to the
+ * key row, which is what a root placement and every value of a non-hierarchical key resolve to, exactly
+ * as they always have.
+ */
+export function getPropertyPlacementParentKey(placementKey: string): string | null {
+    const chain = parsePropertyPlacementKey(placementKey);
+    if (chain.length < 2) {
+        return null;
+    }
+
+    return buildPropertyPlacementKey(chain.slice(0, -1));
+}
+
+/**
  * Whether a placement sits at the depth cap. `chain.length - 1` is the placement's depth, counted in
  * edges from the key's root exactly as the flattener counts levels. Shared with the flattener so the
  * cap has one expression: a chevron computed from a different one expands to nothing.

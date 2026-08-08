@@ -19,9 +19,11 @@
 import { useCallback } from 'react';
 import { useExpansionDispatch, useExpansionState } from '../context/ExpansionContext';
 import { useSelectionDispatch } from '../context/SelectionContext';
+import { useServices } from '../context/ServicesContext';
 import { useSettingsState } from '../context/SettingsContext';
 import { useUIDispatch, type ContentPane } from '../context/UIStateContext';
 import { useFileCache } from '../context/StorageContext';
+import { EMPTY_PROPERTY_HIERARCHY_INDEX } from '../utils/propertyHierarchy';
 import { navigateToTag as navigateToTagInternal, type NavigateToTagOptions } from '../utils/tagNavigation';
 import { navigateToProperty as navigateToPropertyInternal, type NavigateToPropertyOptions } from '../utils/propertyNavigation';
 
@@ -38,6 +40,7 @@ export function useTagNavigation() {
     const selectionDispatch = useSelectionDispatch();
     const expansionDispatch = useExpansionDispatch();
     const uiDispatch = useUIDispatch();
+    const { propertyTreeService } = useServices();
     const { findTagInTree, getPropertyTree } = useFileCache();
     const activatePane = useCallback(
         (target: ContentPane) => {
@@ -103,7 +106,15 @@ export function useTagNavigation() {
                     collapseOtherBranchesOnExpand: settings.collapseOtherBranchesOnExpand,
                     expansionDispatch,
                     selectionDispatch,
-                    activatePane
+                    activatePane,
+                    // Same nesting data the navigator's own reveal path passes, read from the service
+                    // because this hook runs in the list pane and has no navigation render to take it
+                    // from. Without it a pill reveal expands the value's key and stops, so a nested
+                    // value's row never renders and the reveal lands on nothing.
+                    propertyHierarchy: {
+                        index: propertyTreeService?.getHierarchyIndex() ?? EMPTY_PROPERTY_HIERARCHY_INDEX,
+                        maxDepth: settings.propertyHierarchyMaxDepth
+                    }
                 },
                 propertyNodeId,
                 {
@@ -118,9 +129,11 @@ export function useTagNavigation() {
             expansionState.expandedProperties,
             expansionState.expandedVirtualFolders,
             getPropertyTree,
+            propertyTreeService,
             selectionDispatch,
             settings.showAllPropertiesFolder,
             settings.collapseOtherBranchesOnExpand,
+            settings.propertyHierarchyMaxDepth,
             settings.showProperties,
             activatePane
         ]

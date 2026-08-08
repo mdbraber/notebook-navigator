@@ -79,6 +79,16 @@ export class PropertyTreeService implements IPropertyTreeProvider {
     }
 
     /**
+     * Latest hierarchy index the navigation pane published, for callers outside that render that still
+     * need to know how a hierarchical value nests - revealing one from a list pane pill has to expand
+     * every ancestor placement, not just the key. Returns the empty index until a render has stored one,
+     * which leaves such a reveal expanding the key alone, exactly as it did before the index existed.
+     */
+    getHierarchyIndex(): PropertyHierarchyIndex {
+        return this.hierarchyIndex;
+    }
+
+    /**
      * Returns whether the property tree has any indexed nodes.
      */
     hasNodes(): boolean {

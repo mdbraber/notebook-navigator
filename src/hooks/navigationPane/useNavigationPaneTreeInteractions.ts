@@ -42,7 +42,12 @@ import { getFolderNote, openFolderNoteFile, type FolderNoteOpenContext } from '.
 import { resolvePropertyNote } from '../../utils/propertyNoteLookup';
 import { openPropertyNoteFile } from '../../utils/propertyNotes';
 import type { PropertyHierarchyIndex } from '../../utils/propertyHierarchy';
-import { propertyPlacementHasChildren } from '../../utils/treeFlattener';
+import {
+    collectExpandablePropertyPlacementKeys,
+    propertyPlacementHasChildren,
+    PROPERTY_PLACEMENT_SEPARATOR
+} from '../../utils/treeFlattener';
+import { buildPropertyKeyNodeId } from '../../utils/propertyTree';
 import { runAsyncAction } from '../../utils/async';
 import { resolveFolderNoteClickOpenContext, resolveFolderNoteDefaultOpenContext } from '../../utils/keyboardOpenContext';
 import { findTagNode } from '../../utils/tagTree';
@@ -872,19 +877,58 @@ export function useNavigationPaneTreeInteractions({
         [expansionDispatch, expansionState.expandedTags, getAllDescendantTags, handleTagToggle]
     );
 
+    /**
+     * Expansion keys everything below one property row needs so a recursive toggle reaches the whole
+     * subtree, in the same units the row's own toggle uses.
+     *
+     * A key that is not marked Hierarchical keeps walking `node.children`, which is what its rows are
+     * nested by. A hierarchical key cannot: the property tree is never reparented, so a value node's
+     * `children` map is always empty and that walk returns nothing, which is why a recursive toggle on a
+     * hierarchical value was only ever a plain toggle. Its placements come from the flattener's own
+     * enumeration instead, so every key returned names a row that will actually render - within the depth
+     * cap, never a cycle edge - rather than a placement the flattener would refuse to emit and the
+     * expansion set would then carry forever.
+     *
+     * A value row takes the placements strictly below its own, found by chain prefix, because the row is
+     * one placement of the value and not the value itself. A key row takes all of them, which is also the
+     * set the enumeration returns.
+     */
+    const collectPropertySubtreeExpansionKeys = useCallback(
+        (propertyNode: PropertyTreeNode, placementKey: string): string[] => {
+            const keyNodeId = propertyNode.kind === 'key' ? propertyNode.id : buildPropertyKeyNodeId(propertyNode.key);
+            if (!propertyHierarchyIndex.rootIds.has(keyNodeId)) {
+                return getAllDescendantPropertyNodeIds(propertyNode);
+            }
+
+            const placementKeys = collectExpandablePropertyPlacementKeys({
+                keyNodeId,
+                index: propertyHierarchyIndex,
+                maxDepth: settings.propertyHierarchyMaxDepth
+            });
+
+            if (propertyNode.kind === 'key') {
+                return placementKeys;
+            }
+
+            const descendantPrefix = `${placementKey}${PROPERTY_PLACEMENT_SEPARATOR}`;
+            return placementKeys.filter(candidate => candidate.startsWith(descendantPrefix));
+        },
+        [getAllDescendantPropertyNodeIds, propertyHierarchyIndex, settings.propertyHierarchyMaxDepth]
+    );
+
     const handlePropertyToggleAllSiblings = useCallback(
         (propertyNode: PropertyTreeNode, placementKey: string) => {
             // The row's own toggle is per placement, exactly like the plain toggle and the two click
-            // handlers. Only the descendant payload below stays in node ids, because
-            // TOGGLE_DESCENDANT_PROPERTIES walks node.children, which a hierarchical value never has.
+            // handlers. The descendant payload is in the same units: TOGGLE_DESCENDANT_PROPERTIES only
+            // adds to or removes from expandedProperties, which is keyed by placement.
             const isCurrentlyExpanded = expansionState.expandedProperties.has(placementKey);
             handlePropertyToggle(placementKey, propertyNode.id);
-            const descendantNodeIds = getAllDescendantPropertyNodeIds(propertyNode);
+            const descendantNodeIds = collectPropertySubtreeExpansionKeys(propertyNode, placementKey);
             if (descendantNodeIds.length > 0) {
                 expansionDispatch({ type: 'TOGGLE_DESCENDANT_PROPERTIES', descendantNodeIds, expand: !isCurrentlyExpanded });
             }
         },
-        [expansionDispatch, expansionState.expandedProperties, getAllDescendantPropertyNodeIds, handlePropertyToggle]
+        [collectPropertySubtreeExpansionKeys, expansionDispatch, expansionState.expandedProperties, handlePropertyToggle]
     );
 
     const handleVirtualFolderToggleAllSiblings = useCallback(

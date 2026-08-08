@@ -31,7 +31,11 @@ import {
 } from '../../src/hooks/navigationPane/useNavigationPaneTreeInteractions';
 import { buildPropertyKeyNodeId, buildPropertyValueNodeId } from '../../src/utils/propertyTree';
 import { buildPropertyPlacementKey } from '../../src/utils/treeFlattener';
-import { EMPTY_PROPERTY_HIERARCHY_INDEX, type PropertyHierarchyIndex } from '../../src/utils/propertyHierarchy';
+import {
+    buildPropertyHierarchyIndex,
+    EMPTY_PROPERTY_HIERARCHY_INDEX,
+    type PropertyHierarchyIndex
+} from '../../src/utils/propertyHierarchy';
 import { createTestTFile } from '../utils/createTestTFile';
 
 function createPropertyValueNode(
@@ -974,6 +978,152 @@ describe('handlePropertyToggleAllSiblings placement keys', () => {
         expect(expansionDispatch).toHaveBeenCalledWith({
             type: 'TOGGLE_DESCENDANT_PROPERTIES',
             descendantNodeIds: [grandchildNode.id],
+            expand: true
+        });
+    });
+});
+
+describe('handlePropertyToggleAllSiblings hierarchical subtrees', () => {
+    /**
+     * A three level chain under a key marked Hierarchical: Clients.md carries projects: [[Work]], so
+     * Clients nests under Work, and Acme.md carries projects: [[Clients]], so Acme nests one deeper.
+     */
+    function createHierarchicalProjects() {
+        const workNode = createPropertyValueNode('projects', 'work', 'Work', ['Clients.md'], '[[Work]]');
+        const clientsNode = createPropertyValueNode('projects', 'clients', 'Clients', ['Acme.md'], '[[Clients]]');
+        const acmeNode = createPropertyValueNode('projects', 'acme', 'Acme', ['notes/a.md'], '[[Acme]]');
+        const keyNode = createPropertyKeyNode('projects', 'Projects', [], [workNode, clientsNode, acmeNode]);
+        const propertyTree = new Map<string, PropertyTreeNode>([[keyNode.key, keyNode]]);
+        const propertyHierarchyIndex = buildPropertyHierarchyIndex({
+            tree: propertyTree,
+            hierarchicalKeys: new Set(['projects']),
+            resolveValueNotePath: node => {
+                const match = /^\[\[([^\]|]+)\]\]$/.exec(node.assignmentValue ?? '');
+                return match ? `${match[1]}.md` : null;
+            }
+        });
+
+        return { acmeNode, clientsNode, keyNode, propertyHierarchyIndex, propertyTree, workNode };
+    }
+
+    function renderInteractions(params: {
+        propertyTree: Map<string, PropertyTreeNode>;
+        propertyHierarchyIndex: PropertyHierarchyIndex;
+        propertyHierarchyMaxDepth?: number;
+        expansionDispatch: ReturnType<typeof vi.fn>;
+    }) {
+        let captured: NavigationPaneTreeInteractionsResult | null = null;
+
+        function Harness() {
+            captured = useNavigationPaneTreeInteractions({
+                app: new App(),
+                commandQueue: null,
+                settings: {
+                    ...DEFAULT_SETTINGS,
+                    propertyHierarchyMaxDepth: params.propertyHierarchyMaxDepth ?? 10
+                },
+                uiState: { singlePane: false },
+                expansionState: {
+                    expandedFolders: new Set(),
+                    expandedTags: new Set(),
+                    expandedProperties: new Set(),
+                    expandedVirtualFolders: new Set()
+                },
+                expansionDispatch: params.expansionDispatch,
+                selectionState: createSelectionState(),
+                selectionDispatch: vi.fn(),
+                uiDispatch: vi.fn(),
+                propertyTreeService: null,
+                tagTree: new Map(),
+                propertyTree: params.propertyTree,
+                propertyHierarchyIndex: params.propertyHierarchyIndex,
+                tagsVirtualFolderHasChildren: false,
+                setShortcutsExpanded: vi.fn(),
+                setRecentNotesExpanded: vi.fn(),
+                clearActiveShortcut: vi.fn(),
+                openFolderNoteInRightSidebar: vi.fn(),
+                openPropertyNoteInRightSidebar: vi.fn(),
+                onModifySearchWithTag: vi.fn(),
+                onModifySearchWithProperty: vi.fn()
+            });
+            return null;
+        }
+
+        renderToStaticMarkup(React.createElement(Harness));
+        if (!captured) {
+            throw new Error('Expected hook result');
+        }
+        return captured as NavigationPaneTreeInteractionsResult;
+    }
+
+    it('expands the placements below a hierarchical value, where its own children map is empty', () => {
+        // Alt+click on the "Work" root placement. The descendant walk read node.children, which a value
+        // node never has because the property tree is not reparented, so this was only ever a plain
+        // toggle while the same gesture opened a whole tag subtree.
+        const { clientsNode, propertyHierarchyIndex, propertyTree, workNode } = createHierarchicalProjects();
+        const expansionDispatch = vi.fn();
+
+        const result = renderInteractions({ propertyTree, propertyHierarchyIndex, expansionDispatch });
+
+        result.handlePropertyToggleAllSiblings(workNode, workNode.id);
+
+        expect(expansionDispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: workNode.id });
+        // Work > Clients is the only placement below Work with children of its own; Acme is a leaf, and
+        // a leaf placement has never been added to the expansion set.
+        expect(expansionDispatch).toHaveBeenCalledWith({
+            type: 'TOGGLE_DESCENDANT_PROPERTIES',
+            descendantNodeIds: [buildPropertyPlacementKey([workNode.id, clientsNode.id])],
+            expand: true
+        });
+    });
+
+    it('stops at the hierarchy depth cap rather than expanding a row that cannot render', () => {
+        const { propertyHierarchyIndex, propertyTree, workNode } = createHierarchicalProjects();
+        const expansionDispatch = vi.fn();
+
+        const result = renderInteractions({
+            propertyTree,
+            propertyHierarchyIndex,
+            propertyHierarchyMaxDepth: 1,
+            expansionDispatch
+        });
+
+        result.handlePropertyToggleAllSiblings(workNode, workNode.id);
+
+        expect(expansionDispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: workNode.id });
+        // The flattener never recurses past the cap, so Work > Clients renders no children and its
+        // placement key must not enter the persisted expansion set.
+        expect(expansionDispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('takes only the placements below the clicked one, not the whole key', () => {
+        const { clientsNode, propertyHierarchyIndex, propertyTree, workNode } = createHierarchicalProjects();
+        const expansionDispatch = vi.fn();
+        const clientsPlacement = buildPropertyPlacementKey([workNode.id, clientsNode.id]);
+
+        const result = renderInteractions({ propertyTree, propertyHierarchyIndex, expansionDispatch });
+
+        result.handlePropertyToggleAllSiblings(clientsNode, clientsPlacement);
+
+        // Acme is a leaf, so nothing below this placement has children to reveal, and the single
+        // dispatch is the row's own toggle: Work above it is left exactly as the user had it.
+        expect(expansionDispatch).toHaveBeenCalledWith({ type: 'TOGGLE_PROPERTY_EXPANDED', propertyNodeId: clientsPlacement });
+        expect(expansionDispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('expands every placement of a hierarchical key from its key row', () => {
+        // The key row's descendants used to be the key's value node ids, which for a nested value names
+        // no row at all: a junk entry that sits in the persisted expansion set forever.
+        const { clientsNode, keyNode, propertyHierarchyIndex, propertyTree, workNode } = createHierarchicalProjects();
+        const expansionDispatch = vi.fn();
+
+        const result = renderInteractions({ propertyTree, propertyHierarchyIndex, expansionDispatch });
+
+        result.handlePropertyToggleAllSiblings(keyNode, keyNode.id);
+
+        expect(expansionDispatch).toHaveBeenCalledWith({
+            type: 'TOGGLE_DESCENDANT_PROPERTIES',
+            descendantNodeIds: [workNode.id, buildPropertyPlacementKey([workNode.id, clientsNode.id])],
             expand: true
         });
     });

@@ -65,8 +65,27 @@ function setNavigationIndex(indexMap: Map<NavigationIndexKey, number>, itemType:
     indexMap.set(createNavigationIndexKey(itemType, path), index);
 }
 
+/**
+ * Row index of every navigation item, keyed by type and path.
+ *
+ * Property rows are keyed by `item.key`, which for a value under a key marked Hierarchical is its
+ * placement key rather than its node id: one value node can render at several places in the DAG, so
+ * keying those rows by node id let the last placement overwrite every earlier one, and a lookup then
+ * resolved to a row the caller was not asking about. For a key row, a root placement, and every value
+ * of a non-hierarchical key, `item.key` already equals `item.data.id`, so those entries are byte for
+ * byte what they were.
+ *
+ * A node id that names no row of its own - a value that only ever renders nested - still gets a
+ * fallback entry, because selection is stored as a node id and has no placement to offer: without one,
+ * scrolling to the selected property and the collapse-selected-item command would resolve to nothing.
+ * Fallbacks are applied after every row is in the map, and never overwrite an entry, so a real
+ * placement key always wins and the topmost placement is the one a node id resolves to. That last part
+ * matters for a cycle member promoted to a root, which is both somebody's child and a root in its own
+ * right.
+ */
 export function buildNavigationPathIndexMap(items: readonly CombinedNavigationItem[]): Map<NavigationIndexKey, number> {
     const indexMap = new Map<NavigationIndexKey, number>();
+    const propertyNodeIdFallbacks: { nodeId: string; index: number }[] = [];
 
     items.forEach((item, index) => {
         if (item.type === NavigationPaneItemType.FOLDER) {
@@ -78,7 +97,17 @@ export function buildNavigationPathIndexMap(items: readonly CombinedNavigationIt
         } else if (item.type === NavigationPaneItemType.VIRTUAL_FOLDER && item.propertyCollectionId) {
             setNavigationIndex(indexMap, ItemType.PROPERTY, item.key, index);
         } else if (item.type === NavigationPaneItemType.PROPERTY_KEY || item.type === NavigationPaneItemType.PROPERTY_VALUE) {
-            setNavigationIndex(indexMap, ItemType.PROPERTY, item.data.id, index);
+            setNavigationIndex(indexMap, ItemType.PROPERTY, item.key, index);
+            if (item.key !== item.data.id) {
+                propertyNodeIdFallbacks.push({ nodeId: item.data.id, index });
+            }
+        }
+    });
+
+    propertyNodeIdFallbacks.forEach(({ nodeId, index }) => {
+        const fallbackKey = createNavigationIndexKey(ItemType.PROPERTY, nodeId);
+        if (!indexMap.has(fallbackKey)) {
+            indexMap.set(fallbackKey, index);
         }
     });
 
