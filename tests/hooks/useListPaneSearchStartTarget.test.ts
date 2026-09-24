@@ -22,14 +22,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-    uiDispatch: vi.fn(),
-    setSearchActive: vi.fn(),
     services: {
         app: null as App | null,
         isMobile: false,
         plugin: {
             setSearchProvider: vi.fn()
-        }
+        },
+        propertyTreeService: null
     }
 }));
 
@@ -59,7 +58,8 @@ vi.mock('../../src/context/SettingsContext', () => ({
     useSettingsState: () => ({
         paneTransitionDuration: 0,
         searchProvider: 'internal',
-        skipAutoScroll: false
+        skipAutoScroll: false,
+        propertyHierarchyMaxDepth: 10
     })
 }));
 
@@ -72,24 +72,35 @@ vi.mock('../../src/context/ShortcutsContext', () => ({
 }));
 
 vi.mock('../../src/context/UIStateContext', () => ({
-    useUIDispatch: () => mocks.uiDispatch
+    useUIDispatch: () => vi.fn()
 }));
 
 vi.mock('../../src/context/UXPreferencesContext', () => ({
-    useUXPreferences: () => ({ searchActive: false }),
-    useUXPreferenceActions: () => ({ setSearchActive: mocks.setSearchActive })
+    useUXPreferences: () => ({ searchActive: true }),
+    useUXPreferenceActions: () => ({ setSearchActive: vi.fn() })
 }));
 
 import { useListPaneSearch, type UseListPaneSearchResult } from '../../src/hooks/useListPaneSearch';
 
-describe('useListPaneSearch activation', () => {
+const FIDDLE_ID = 'key:projects=fiddle';
+const TEST_ID = 'key:projects=test';
+
+describe('useListPaneSearch shortcut execution', () => {
     beforeEach(() => {
-        mocks.uiDispatch.mockClear();
-        mocks.setSearchActive.mockClear();
         mocks.services.app = new App();
+        // Executing a shortcut waits for frames before it settles the selection; the node environment
+        // has no rendering loop, so one that runs the callback immediately stands in for it.
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+            callback(0);
+            return 0;
+        });
+        // The same run ends by looking for the list scroller to focus. Nothing in this environment can
+        // be one, so a stand-in class is enough for that check to answer no.
+        vi.stubGlobal('HTMLElement', class {});
     });
 
-    it('preserves pane activation when a navigation-side search modification does not focus search', () => {
+    it('reveals a saved search at the placement its start target recorded', async () => {
+        const onRevealProperty = vi.fn(() => true);
         let captured: UseListPaneSearchResult | null = null;
 
         function Harness() {
@@ -97,7 +108,7 @@ describe('useListPaneSearch activation', () => {
                 rootContainerRef: { current: null },
                 onNavigateToFolder: vi.fn(),
                 onRevealTag: vi.fn(),
-                onRevealProperty: vi.fn(() => true),
+                onRevealProperty,
                 ensureSelectionForCurrentFilterRef: { current: null }
             });
             return null;
@@ -105,15 +116,25 @@ describe('useListPaneSearch activation', () => {
 
         renderToStaticMarkup(React.createElement(Harness));
 
-        expect(captured).not.toBeNull();
-        if (!captured) {
+        const result = captured as UseListPaneSearchResult | null;
+        if (!result) {
             throw new Error('Expected hook result');
         }
-        const result = captured as UseListPaneSearchResult;
 
-        result.modifySearchWithTag('work', 'AND', { focusSearch: false });
+        await result.executeSearchShortcut({
+            searchShortcut: {
+                type: 'search',
+                name: 'Fiddle work',
+                query: '#work',
+                provider: 'internal',
+                startTarget: {
+                    type: 'property',
+                    nodeId: FIDDLE_ID,
+                    placementChain: [TEST_ID, FIDDLE_ID]
+                }
+            }
+        });
 
-        expect(mocks.setSearchActive).toHaveBeenCalledWith(true);
-        expect(mocks.uiDispatch).not.toHaveBeenCalled();
+        expect(onRevealProperty).toHaveBeenCalledWith(FIDDLE_ID, expect.objectContaining({ placementChain: [TEST_ID, FIDDLE_ID] }));
     });
 });

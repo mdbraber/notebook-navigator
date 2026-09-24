@@ -26,6 +26,7 @@ import {
     getPropertyPlacementAncestorKeys,
     getPropertyPlacementParentKey,
     collectExpandablePropertyPlacementKeys,
+    resolveRenderedPropertyPlacementChain,
     MAX_EXPANDABLE_PROPERTY_PLACEMENTS,
     PROPERTY_PLACEMENT_SEPARATOR
 } from '../../src/utils/treeFlattener';
@@ -477,5 +478,101 @@ describe('collectExpandablePropertyPlacementKeys', () => {
                 expect(emitted.has(ancestorKey)).toBe(true);
             }
         }
+    });
+});
+
+describe('resolveRenderedPropertyPlacementChain', () => {
+    // Fiddle is carried by a note filed under both Test and Other, which is the shape that gives one
+    // value node two placements. Which of the two a caller means cannot be read off the node id, so
+    // the only evidence available is which of them is currently on screen.
+    function createFiddleTree(): Map<string, PropertyTreeNode> {
+        const keyNode: PropertyTreeNode = {
+            id: 'key:projects',
+            kind: 'key',
+            key: 'projects',
+            valuePath: null,
+            name: 'Projects',
+            displayPath: 'Projects',
+            children: new Map(),
+            notesWithValue: new Set()
+        };
+
+        const addValue = (value: string, notes: string[]): void => {
+            const id = `key:projects=${value.toLowerCase()}`;
+            keyNode.children.set(id, {
+                id,
+                kind: 'value',
+                key: 'projects',
+                valuePath: value.toLowerCase(),
+                name: value,
+                displayPath: value,
+                assignmentValue: `[[${value}]]`,
+                children: new Map(),
+                notesWithValue: new Set(notes)
+            });
+        };
+
+        // Fiddle.md carries projects: [[Test]], [[Other]], so Fiddle nests under both.
+        addValue('Test', ['Fiddle.md']);
+        addValue('Other', ['Fiddle.md']);
+        addValue('Fiddle', []);
+
+        return new Map([['projects', keyNode]]);
+    }
+
+    const valueId = (value: string) => `key:projects=${value.toLowerCase()}`;
+
+    function resolveChain(tree: Map<string, PropertyTreeNode>, expanded: string[], nodeId = valueId('Fiddle')) {
+        const keyNode = tree.get('projects') as PropertyTreeNode;
+        const index = buildPropertyHierarchyIndex({
+            tree,
+            hierarchicalKeys: new Set(['projects']),
+            resolveValueNotePath: node => {
+                const match = /^\[\[([^\]|]+)\]\]$/.exec(node.assignmentValue ?? '');
+                return match ? `${match[1]}.md` : null;
+            }
+        });
+
+        return resolveRenderedPropertyPlacementChain({
+            keyNode,
+            nodeId,
+            index,
+            expandedPlacements: new Set(expanded),
+            maxDepth: 10
+        });
+    }
+
+    it('returns the chain of the only placement currently rendered', () => {
+        const tree = createFiddleTree();
+
+        const chain = resolveChain(tree, ['key:projects', valueId('Test')]);
+
+        expect(chain).toEqual([valueId('Test'), valueId('Fiddle')]);
+    });
+
+    it('returns null when the value renders under two expanded parents at once', () => {
+        const tree = createFiddleTree();
+
+        const chain = resolveChain(tree, ['key:projects', valueId('Test'), valueId('Other')]);
+
+        expect(chain).toBeNull();
+    });
+
+    it('returns null when no row for the value is rendered', () => {
+        const tree = createFiddleTree();
+
+        expect(resolveChain(tree, ['key:projects'])).toBeNull();
+    });
+
+    it('returns null when the key row itself is collapsed, because no value row renders then', () => {
+        const tree = createFiddleTree();
+
+        expect(resolveChain(tree, [valueId('Test')])).toBeNull();
+    });
+
+    it('returns a single element chain for a value rendered at the key root', () => {
+        const tree = createFiddleTree();
+
+        expect(resolveChain(tree, ['key:projects'], valueId('Test'))).toEqual([valueId('Test')]);
     });
 });

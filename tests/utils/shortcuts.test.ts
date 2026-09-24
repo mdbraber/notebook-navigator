@@ -67,6 +67,59 @@ describe('shortcuts', () => {
             });
         });
 
+        it('keeps and normalizes a property placement chain', () => {
+            expect(
+                normalizeShortcutStartTarget({
+                    type: ShortcutStartType.PROPERTY,
+                    nodeId: 'key:Projects=Fiddle',
+                    placementChain: ['key:Projects=Test', 'key:Projects=Fiddle']
+                })
+            ).toEqual({
+                type: ShortcutStartType.PROPERTY,
+                nodeId: 'key:projects=fiddle',
+                placementChain: ['key:projects=test', 'key:projects=fiddle']
+            });
+        });
+
+        it('drops a placement chain that does not end at the target node', () => {
+            expect(
+                normalizeShortcutStartTarget({
+                    type: ShortcutStartType.PROPERTY,
+                    nodeId: 'key:projects=fiddle',
+                    placementChain: ['key:projects=test', 'key:projects=other']
+                })
+            ).toEqual({
+                type: ShortcutStartType.PROPERTY,
+                nodeId: 'key:projects=fiddle'
+            });
+        });
+
+        it('drops a single element placement chain, which says nothing the node id does not', () => {
+            expect(
+                normalizeShortcutStartTarget({
+                    type: ShortcutStartType.PROPERTY,
+                    nodeId: 'key:projects=fiddle',
+                    placementChain: ['key:projects=fiddle']
+                })
+            ).toEqual({
+                type: ShortcutStartType.PROPERTY,
+                nodeId: 'key:projects=fiddle'
+            });
+        });
+
+        it('drops a placement chain holding an unparseable node id', () => {
+            expect(
+                normalizeShortcutStartTarget({
+                    type: ShortcutStartType.PROPERTY,
+                    nodeId: 'key:projects=fiddle',
+                    placementChain: ['not a node id', 'key:projects=fiddle']
+                })
+            ).toEqual({
+                type: ShortcutStartType.PROPERTY,
+                nodeId: 'key:projects=fiddle'
+            });
+        });
+
         it('keeps properties root virtual folder id', () => {
             expect(
                 normalizeShortcutStartTarget({
@@ -91,6 +144,26 @@ describe('shortcuts', () => {
             expect(getShortcutStartTargetFingerprint({ type: ShortcutStartType.TAG, tagPath: '#Work/Today' })).toBe('tag:work/today');
             expect(getShortcutStartTargetFingerprint({ type: ShortcutStartType.PROPERTY, nodeId: 'key:Status=In Progress' })).toBe(
                 'property:key:status=in progress'
+            );
+        });
+
+        it('separates two targets that differ only by placement chain', () => {
+            // SettingsContext compares shortcuts by this fingerprint, so re-saving a search under the
+            // other placement of the same value has to read as a change.
+            const underTest = getShortcutStartTargetFingerprint({
+                type: ShortcutStartType.PROPERTY,
+                nodeId: 'key:projects=fiddle',
+                placementChain: ['key:projects=test', 'key:projects=fiddle']
+            });
+            const underOther = getShortcutStartTargetFingerprint({
+                type: ShortcutStartType.PROPERTY,
+                nodeId: 'key:projects=fiddle',
+                placementChain: ['key:projects=other', 'key:projects=fiddle']
+            });
+
+            expect(underTest).not.toBe(underOther);
+            expect(underTest).not.toBe(
+                getShortcutStartTargetFingerprint({ type: ShortcutStartType.PROPERTY, nodeId: 'key:projects=fiddle' })
             );
         });
     });

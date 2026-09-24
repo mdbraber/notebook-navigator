@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { App } from 'obsidian';
+import { useExpansionState } from '../context/ExpansionContext';
 import { useSelectionState } from '../context/SelectionContext';
 import { useServices } from '../context/ServicesContext';
 import { useSettingsState } from '../context/SettingsContext';
@@ -34,6 +35,7 @@ import {
     isShortcutStartProperty,
     isShortcutStartTag,
     type SearchShortcut,
+    type ShortcutStartProperty,
     type ShortcutStartTarget
 } from '../types/shortcuts';
 import { EMPTY_SEARCH_NAV_FILTER_STATE, type SearchNavFilterState, type SearchProvider } from '../types/search';
@@ -49,10 +51,13 @@ import {
 import { showNotice } from '../utils/noticeUtils';
 import { supportsKeyboardInteractions } from '../utils/paneLayout';
 import { normalizeOptionalVaultFolderPath } from '../utils/pathUtils';
+import { EMPTY_PROPERTY_HIERARCHY_INDEX, type PropertyHierarchyIndex } from '../utils/propertyHierarchy';
 import { parsePropertyNodeId } from '../utils/propertyTree';
+import { resolveRenderedPropertyPlacementChain } from '../utils/treeFlattener';
 import { resolveFolderShortcutTarget } from '../utils/shortcutPathResolver';
 import { normalizeTagPath } from '../utils/tagUtils';
 import type { FilterSearchTokens } from '../utils/filterSearch';
+import type { PropertyTreeNode } from '../types/storage';
 import type { NavigateToFolderOptions, RevealPropertyOptions, RevealTagOptions } from './useNavigatorReveal';
 import type { EnsureSelectionOptions, EnsureSelectionResult } from './useListPaneSelectionCoordinator';
 
@@ -98,6 +103,9 @@ export interface UseListPaneSearchResult {
     executeSearchShortcut: (params: ExecuteSearchShortcutParams) => Promise<void>;
 }
 
+/** Stands in for the property tree before the service has one, so neither reader allocates per call. */
+const EMPTY_PROPERTY_TREE: ReadonlyMap<string, PropertyTreeNode> = new Map();
+
 function formatSearchShortcutFolderLabel(folderPath: string): string {
     if (folderPath === '/' || folderPath.startsWith('/')) {
         return folderPath;
@@ -122,7 +130,13 @@ function formatSearchShortcutTagLabel(tagPath: string): string {
     return `#${tagPath}`;
 }
 
-function formatSearchShortcutPropertyLabel(nodeId: string): string {
+/**
+ * Names a property node the way the list pane breadcrumb does: the key, then the value, both in the
+ * casing the vault wrote them in. The node id alone carries neither - it is casefolded, and a value id
+ * says nothing about which key it belongs to - so a label built from it reads as some unrelated value
+ * in lower case. Falls back to the id's own parts for a node the tree no longer holds.
+ */
+function formatSearchShortcutPropertyLabel(nodeId: string, propertyTree: ReadonlyMap<string, PropertyTreeNode>): string {
     if (nodeId === PROPERTIES_ROOT_VIRTUAL_FOLDER_ID) {
         return strings.navigationPane.properties;
     }
@@ -132,22 +146,75 @@ function formatSearchShortcutPropertyLabel(nodeId: string): string {
         return nodeId;
     }
 
-    if (parsed.valuePath) {
-        return parsed.valuePath;
+    const keyNode = propertyTree.get(parsed.key) ?? null;
+    const displayKey = keyNode?.name ?? parsed.key;
+    if (!parsed.valuePath) {
+        return displayKey;
     }
 
-    return parsed.key;
+    const valueNode = keyNode?.children.get(nodeId) ?? null;
+    return `${displayKey}/${valueNode?.displayPath ?? parsed.valuePath}`;
 }
 
-function formatSearchShortcutStartTargetPath(startTarget: ShortcutStartTarget): string {
+export function formatSearchShortcutStartTargetPath(
+    startTarget: ShortcutStartTarget,
+    propertyTree: ReadonlyMap<string, PropertyTreeNode>
+): string {
     switch (startTarget.type) {
         case ShortcutStartType.FOLDER:
             return formatSearchShortcutFolderLabel(startTarget.path);
         case ShortcutStartType.TAG:
             return formatSearchShortcutTagLabel(startTarget.tagPath);
         case ShortcutStartType.PROPERTY:
-            return formatSearchShortcutPropertyLabel(startTarget.nodeId);
+            return formatSearchShortcutPropertyLabel(startTarget.nodeId, propertyTree);
     }
+}
+
+/**
+ * Property start target for a node, carrying which of its placements the search should start in when
+ * that is not in doubt.
+ *
+ * A value of a key marked Hierarchical can render at several places at once, and neither selection nor
+ * the node id records which one the user is looking at, so the only evidence is the tree on screen: a
+ * chain is recorded exactly when one row for the value is currently rendered. With several open the
+ * target keeps just the node id, which leaves reveal picking a placement the way it always has.
+ */
+export function resolveSearchShortcutPropertyStartTarget({
+    nodeId,
+    propertyTree,
+    hierarchyIndex,
+    expandedProperties,
+    maxDepth
+}: {
+    nodeId: string;
+    propertyTree: ReadonlyMap<string, PropertyTreeNode>;
+    hierarchyIndex: PropertyHierarchyIndex;
+    expandedProperties: ReadonlySet<string>;
+    maxDepth: number;
+}): ShortcutStartProperty {
+    const startTarget: ShortcutStartProperty = { type: ShortcutStartType.PROPERTY, nodeId };
+
+    const parsed = parsePropertyNodeId(nodeId);
+    const keyNode = parsed?.valuePath ? (propertyTree.get(parsed.key) ?? null) : null;
+    if (!keyNode) {
+        return startTarget;
+    }
+
+    const placementChain = resolveRenderedPropertyPlacementChain({
+        keyNode,
+        nodeId,
+        index: hierarchyIndex,
+        expandedPlacements: expandedProperties,
+        maxDepth
+    });
+
+    // A root placement is where the reveal's own walk already lands, so recording one would only add a
+    // way for the stored chain and that walk to disagree after the vault changes.
+    if (!placementChain || placementChain.length < 2) {
+        return startTarget;
+    }
+
+    return { ...startTarget, placementChain };
 }
 
 export function resolveSearchShortcutStartFolderPath(app: App, startTarget: ShortcutStartTarget): string | null {
@@ -171,9 +238,10 @@ export function useListPaneSearch({
     onRevealProperty,
     ensureSelectionForCurrentFilterRef
 }: UseListPaneSearchParams): UseListPaneSearchResult {
-    const { app, plugin } = useServices();
+    const { app, plugin, propertyTreeService } = useServices();
     const settings = useSettingsState();
     const selectionState = useSelectionState();
+    const expansionState = useExpansionState();
     const shortcuts = useShortcuts();
     const uiDispatch = useUIDispatch();
     const uxPreferences = useUXPreferences();
@@ -273,7 +341,10 @@ export function useListPaneSearch({
         onSearchTokensChange(nextState);
     }, [onSearchTokensChange, searchQuery]);
 
-    const activeSearchShortcutStartTarget = useMemo<ShortcutStartTarget | undefined>(() => {
+    // Resolved when the save modal opens rather than on every render: the property tree and its
+    // hierarchy index are read from a service, which does not re-render this hook when it changes, and
+    // a start target is only ever wanted at the moment a shortcut is saved.
+    const resolveActiveSearchShortcutStartTarget = useCallback((): ShortcutStartTarget | undefined => {
         if (selectionState.selectionType === 'folder' && selectionState.selectedFolder) {
             return {
                 type: ShortcutStartType.FOLDER,
@@ -289,22 +360,25 @@ export function useListPaneSearch({
         }
 
         if (selectionState.selectionType === 'property' && selectionState.selectedProperty) {
-            return {
-                type: ShortcutStartType.PROPERTY,
-                nodeId: selectionState.selectedProperty
-            };
+            return resolveSearchShortcutPropertyStartTarget({
+                nodeId: selectionState.selectedProperty,
+                propertyTree: propertyTreeService?.getPropertyTree() ?? EMPTY_PROPERTY_TREE,
+                hierarchyIndex: propertyTreeService?.getHierarchyIndex() ?? EMPTY_PROPERTY_HIERARCHY_INDEX,
+                expandedProperties: expansionState.expandedProperties,
+                maxDepth: settings.propertyHierarchyMaxDepth
+            });
         }
 
         return undefined;
-    }, [selectionState.selectedFolder, selectionState.selectedProperty, selectionState.selectedTag, selectionState.selectionType]);
-
-    const activeSearchShortcutStartTargetLabel = useMemo(() => {
-        if (!activeSearchShortcutStartTarget) {
-            return null;
-        }
-
-        return strings.searchInput.shortcutStartIn.replace('{path}', formatSearchShortcutStartTargetPath(activeSearchShortcutStartTarget));
-    }, [activeSearchShortcutStartTarget]);
+    }, [
+        expansionState.expandedProperties,
+        propertyTreeService,
+        selectionState.selectedFolder,
+        selectionState.selectedProperty,
+        selectionState.selectedTag,
+        selectionState.selectionType,
+        settings.propertyHierarchyMaxDepth
+    ]);
 
     const activateSearch = useCallback(
         (target: 'search' | 'files' | null = 'search') => {
@@ -340,8 +414,13 @@ export function useListPaneSearch({
             return;
         }
 
-        const startTarget = activeSearchShortcutStartTarget;
-        const startTargetLabel = activeSearchShortcutStartTargetLabel;
+        const startTarget = resolveActiveSearchShortcutStartTarget();
+        const startTargetLabel = startTarget
+            ? strings.searchInput.shortcutStartIn.replace(
+                  '{path}',
+                  formatSearchShortcutStartTargetPath(startTarget, propertyTreeService?.getPropertyTree() ?? EMPTY_PROPERTY_TREE)
+              )
+            : null;
         let modal: InputModal | null = null;
 
         modal = new InputModal(
@@ -385,11 +464,11 @@ export function useListPaneSearch({
 
         modal.open();
     }, [
-        activeSearchShortcutStartTarget,
-        activeSearchShortcutStartTargetLabel,
         addSearchShortcut,
         app,
         isSavingSearchShortcut,
+        propertyTreeService,
+        resolveActiveSearchShortcutStartTarget,
         searchProvider,
         searchQuery
     ]);
@@ -544,7 +623,11 @@ export function useListPaneSearch({
                 } else if (isShortcutStartTag(startTarget)) {
                     onRevealTag(startTarget.tagPath, { source: 'shortcut', skipScroll: settings.skipAutoScroll });
                 } else if (isShortcutStartProperty(startTarget)) {
-                    onRevealProperty(startTarget.nodeId, { source: 'shortcut', skipScroll: settings.skipAutoScroll });
+                    onRevealProperty(startTarget.nodeId, {
+                        source: 'shortcut',
+                        skipScroll: settings.skipAutoScroll,
+                        placementChain: startTarget.placementChain
+                    });
                 }
             }
 

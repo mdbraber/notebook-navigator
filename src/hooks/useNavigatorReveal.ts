@@ -120,6 +120,9 @@ export interface RevealPropertyOptions {
     // pane's auto-selected first file cannot open afterward and replace it. See
     // NavigateToPropertyOptions.suppressAutoSelect.
     suppressAutoSelect?: boolean;
+    // Which placement of a hierarchical value to reveal, when the caller recorded one. See
+    // NavigateToPropertyOptions.placementChain.
+    placementChain?: readonly string[];
 }
 
 /**
@@ -476,7 +479,8 @@ export function useNavigatorReveal({
                     preserveNavigationFocus,
                     skipScroll: options?.skipScroll,
                     source: options?.source,
-                    suppressAutoSelect: options?.suppressAutoSelect
+                    suppressAutoSelect: options?.suppressAutoSelect,
+                    placementChain: options?.placementChain
                 }
             );
             if (!resolvedNodeId) {

@@ -104,6 +104,9 @@ const WORK_ID = buildPropertyValueNodeId('projects', 'work');
 const CLIENTS_ID = buildPropertyValueNodeId('projects', 'clients');
 const TARGET_ID = buildPropertyValueNodeId('projects', 'datawerkplaats mooi maasvallei');
 const FIDDLE_ID = buildPropertyValueNodeId('projects', 'fiddle');
+/** Two parents of the same Fiddle value, which is what gives one node id two rows. */
+const OTHER_ID = buildPropertyValueNodeId('projects', 'other');
+const TEST_ID = buildPropertyValueNodeId('projects', 'test');
 
 function createValueNode(key: string, valuePath: string, name: string): PropertyTreeNode {
     return {
@@ -306,6 +309,79 @@ describe('navigateToProperty - hierarchical ancestor expansion', () => {
             buildPropertyPlacementKey([rootNode.id, aNode.id])
         ]);
         expect(placements.some(item => item.data.id === aNode.id)).toBe(true);
+    });
+
+    it('expands the placement chain it is given instead of the one the parent walk finds', () => {
+        // Fiddle is filed under both Other and Test, so its node id names two rows. The walk visits
+        // parents in sorted order and stops at the first root, which is Other, so without a chain the
+        // Test branch is the one that never opens.
+        const keyNode = createKeyNode('projects', 'Projects');
+        const propertyTree = createTreeWithValues(keyNode, [
+            createValueNode('projects', 'other', 'Other'),
+            createValueNode('projects', 'test', 'Test'),
+            createValueNode('projects', 'fiddle', 'Fiddle')
+        ]);
+        const propertyHierarchyIndex = createHierarchyIndex(keyNode.id, {
+            [OTHER_ID]: [],
+            [TEST_ID]: [],
+            [FIDDLE_ID]: [OTHER_ID, TEST_ID]
+        });
+
+        const expansionDispatch = vi.fn();
+        const env = createEnv({ propertyTree, expansionDispatch, propertyHierarchy: createHierarchyEnvironment(propertyHierarchyIndex) });
+
+        navigateToProperty(env, FIDDLE_ID, { placementChain: [TEST_ID, FIDDLE_ID] });
+
+        expect(expansionDispatch).toHaveBeenCalledWith({
+            type: 'EXPAND_PROPERTIES',
+            propertyNodeIds: [keyNode.id, buildPropertyPlacementKey([TEST_ID])]
+        });
+    });
+
+    it('scrolls to the row of the placement it expanded, not to whichever row owns the node id', () => {
+        const keyNode = createKeyNode('projects', 'Projects');
+        const propertyTree = createTreeWithValues(keyNode, [
+            createValueNode('projects', 'other', 'Other'),
+            createValueNode('projects', 'test', 'Test'),
+            createValueNode('projects', 'fiddle', 'Fiddle')
+        ]);
+        const propertyHierarchyIndex = createHierarchyIndex(keyNode.id, {
+            [OTHER_ID]: [],
+            [TEST_ID]: [],
+            [FIDDLE_ID]: [OTHER_ID, TEST_ID]
+        });
+
+        const requestScroll = vi.fn();
+        const env = createEnv({ propertyTree, requestScroll, propertyHierarchy: createHierarchyEnvironment(propertyHierarchyIndex) });
+
+        navigateToProperty(env, FIDDLE_ID, { placementChain: [TEST_ID, FIDDLE_ID] });
+
+        expect(requestScroll).toHaveBeenCalledWith(buildPropertyPlacementKey([TEST_ID, FIDDLE_ID]), expect.anything());
+    });
+
+    it('falls back to the parent walk when the stored chain no longer exists in the index', () => {
+        // The chain is derived from the target note's own frontmatter, so editing that note can leave a
+        // saved shortcut naming an edge that is gone. Reveal then behaves exactly as it did before the
+        // chain was stored rather than expanding a placement that renders nowhere.
+        const keyNode = createKeyNode('projects', 'Projects');
+        const propertyTree = createTreeWithValues(keyNode, [
+            createValueNode('projects', 'other', 'Other'),
+            createValueNode('projects', 'fiddle', 'Fiddle')
+        ]);
+        const propertyHierarchyIndex = createHierarchyIndex(keyNode.id, {
+            [OTHER_ID]: [],
+            [FIDDLE_ID]: [OTHER_ID]
+        });
+
+        const expansionDispatch = vi.fn();
+        const env = createEnv({ propertyTree, expansionDispatch, propertyHierarchy: createHierarchyEnvironment(propertyHierarchyIndex) });
+
+        navigateToProperty(env, FIDDLE_ID, { placementChain: [TEST_ID, FIDDLE_ID] });
+
+        expect(expansionDispatch).toHaveBeenCalledWith({
+            type: 'EXPAND_PROPERTIES',
+            propertyNodeIds: [keyNode.id, buildPropertyPlacementKey([OTHER_ID])]
+        });
     });
 
     it('does not dispatch when every id to expand is already expanded', () => {

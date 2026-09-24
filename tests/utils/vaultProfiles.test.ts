@@ -45,7 +45,7 @@ import {
     updateHiddenFolderExactMatches
 } from '../../src/utils/vaultProfiles';
 import { normalizeTagPathValue } from '../../src/utils/tagPrefixMatcher';
-import { ShortcutStartType, ShortcutType, isSearchShortcut, type ShortcutEntry } from '../../src/types/shortcuts';
+import { ShortcutStartType, ShortcutType, isSearchShortcut, isShortcutStartProperty, type ShortcutEntry } from '../../src/types/shortcuts';
 
 function createSettings(): NotebookNavigatorSettings {
     return JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) as NotebookNavigatorSettings;
@@ -856,5 +856,37 @@ describe('cloneShortcuts', () => {
         expect(clonedShortcut).not.toBe(originalShortcut);
         expect(clonedShortcut.startTarget).toEqual(originalShortcut.startTarget);
         expect(clonedShortcut.startTarget).not.toBe(originalShortcut.startTarget);
+    });
+
+    it('clones the placement chain array rather than sharing it', () => {
+        const source: ShortcutEntry[] = [
+            {
+                type: ShortcutType.SEARCH,
+                name: 'Fiddle work',
+                query: '#work',
+                provider: 'internal',
+                startTarget: {
+                    type: ShortcutStartType.PROPERTY,
+                    nodeId: 'key:projects=fiddle',
+                    placementChain: ['key:projects=test', 'key:projects=fiddle']
+                }
+            }
+        ];
+
+        const cloned = cloneShortcuts(source);
+        const clonedShortcut = cloned[0];
+        if (!isSearchShortcut(clonedShortcut)) {
+            throw new Error('Expected a search shortcut in test setup.');
+        }
+
+        const clonedStartTarget = clonedShortcut.startTarget;
+        if (!clonedStartTarget || !isShortcutStartProperty(clonedStartTarget)) {
+            throw new Error('Expected a property start target in test setup.');
+        }
+
+        expect(clonedStartTarget.placementChain).toEqual(['key:projects=test', 'key:projects=fiddle']);
+        expect(clonedStartTarget.placementChain).not.toBe(
+            (source[0] as { startTarget: { placementChain: string[] } }).startTarget.placementChain
+        );
     });
 });

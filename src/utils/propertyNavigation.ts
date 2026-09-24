@@ -28,7 +28,7 @@ import {
 } from './propertyTree';
 import type { PropertyTreeNode } from '../types/storage';
 import { expandNavigationTreeItems } from './navigationExpansion';
-import { getPropertyPlacementAncestorKeys } from './treeFlattener';
+import { buildPropertyPlacementKey, getPropertyPlacementAncestorKeys, isPropertyPlacementChainRenderable } from './treeFlattener';
 import { resolvePropertyRevealChain, type PropertyHierarchyIndex } from './propertyHierarchy';
 
 type Dispatch<T> = (action: T) => void;
@@ -49,6 +49,14 @@ export interface NavigateToPropertyOptions {
      * auto-selected first file opens in a post-render effect and replaces that note.
      */
     suppressAutoSelect?: boolean;
+    /**
+     * Which placement of a hierarchical value to reveal, as the chain of value node ids from a
+     * rendered root down to the target. A value can render at several places in the DAG and the node
+     * id names all of them, so a caller that knows which one it means - a saved search that recorded
+     * where it was created - passes it here. Ignored when it no longer names a renderable placement,
+     * which leaves the parent walk in charge exactly as it is for every caller that has none.
+     */
+    placementChain?: readonly string[];
 }
 
 export interface PropertyNavigationEnvironment {
@@ -74,7 +82,12 @@ export interface PropertyNavigationEnvironment {
      * collapseOtherBranchesOnExpand on it replaces the whole expanded set.
      */
     propertyHierarchy?: { index: PropertyHierarchyIndex; maxDepth: number };
-    requestScroll?: (nodeId: PropertySelectionNodeId, options: { align: 'auto'; itemType: typeof ItemType.PROPERTY }) => void;
+    /**
+     * Takes a navigation row key, not a node id: the two differ for a nested placement, whose row is
+     * keyed by its chain. Scrolling by node id there resolves to whichever row the index kept as the
+     * fallback for it, which need not be the row this reveal expanded.
+     */
+    requestScroll?: (rowKey: string, options: { align: 'auto'; itemType: typeof ItemType.PROPERTY }) => void;
 }
 
 function resolveTargetNodeId(
@@ -100,6 +113,36 @@ function resolveTargetNodeId(
     }
 
     return resolvedNodeId;
+}
+
+/**
+ * The caller's requested placement chain when it still names a renderable row for this target, or null
+ * to let the parent walk decide. Both checks matter: the chain comes from settings written in an
+ * earlier session, so it can name edges the frontmatter no longer has, and it is stored against a node
+ * id that selection may have re-resolved since.
+ */
+function resolveRequestedPlacementChain({
+    placementChain,
+    index,
+    keyNodeId,
+    nodeId,
+    maxDepth
+}: {
+    placementChain: readonly string[] | undefined;
+    index: PropertyHierarchyIndex;
+    keyNodeId: string;
+    nodeId: PropertySelectionNodeId;
+    maxDepth: number;
+}): string[] | null {
+    if (!placementChain || placementChain.length === 0 || placementChain[placementChain.length - 1] !== nodeId) {
+        return null;
+    }
+
+    if (!isPropertyPlacementChainRenderable({ chain: placementChain, keyNodeId, index, maxDepth })) {
+        return null;
+    }
+
+    return [...placementChain];
 }
 
 function selectPropertyAndFocus(
@@ -163,12 +206,19 @@ export function navigateToProperty(
     // for those exactly.
     const revealChain =
         env.propertyHierarchy && keyNodeId && resolvedNodeId !== PROPERTIES_ROOT_VIRTUAL_FOLDER_ID
-            ? resolvePropertyRevealChain({
+            ? (resolveRequestedPlacementChain({
+                  placementChain: options?.placementChain,
                   index: env.propertyHierarchy.index,
                   keyNodeId,
                   nodeId: resolvedNodeId,
                   maxDepth: env.propertyHierarchy.maxDepth
-              })
+              }) ??
+              resolvePropertyRevealChain({
+                  index: env.propertyHierarchy.index,
+                  keyNodeId,
+                  nodeId: resolvedNodeId,
+                  maxDepth: env.propertyHierarchy.maxDepth
+              }))
             : null;
     const ancestorPlacementKeys = revealChain ? getPropertyPlacementAncestorKeys(revealChain) : [];
 
@@ -193,7 +243,10 @@ export function navigateToProperty(
 
     const shouldSkipScroll = Boolean(options?.skipScroll);
     if (!shouldSkipScroll && env.requestScroll) {
-        env.requestScroll(resolvedNodeId, { align: 'auto', itemType: ItemType.PROPERTY });
+        // The row just expanded for, which for a nested placement is keyed by its chain rather than by
+        // the node id. Falls back to the node id for every row whose key already is one.
+        const scrollRowKey = revealChain ? buildPropertyPlacementKey(revealChain) : resolvedNodeId;
+        env.requestScroll(scrollRowKey, { align: 'auto', itemType: ItemType.PROPERTY });
     }
 
     return resolvedNodeId;

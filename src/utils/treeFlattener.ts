@@ -553,6 +553,45 @@ export function propertyPlacementHasChildren(
 }
 
 /**
+ * Whether a chain of value node ids still names a placement the flattener would emit, given the
+ * current index. Every link is checked because a stored chain outlives the frontmatter it was derived
+ * from: the note a value points at can be re-filed, which removes an edge and leaves the chain naming
+ * a row that renders nowhere. Expanding such a chain is not a harmless no-op - with
+ * collapseOtherBranchesOnExpand on it replaces the expanded set, trading the user's open branches for
+ * no new rows.
+ *
+ * The rules are the flattener's own: the head must be a row the key renders at its root, each step
+ * must be a real parent edge, a node may not repeat because a cycle edge is never descended into, and
+ * the chain must fit under the depth cap, whose deepest renderable placement is `maxDepth` edges from
+ * the root.
+ */
+export function isPropertyPlacementChainRenderable({
+    chain,
+    keyNodeId,
+    index,
+    maxDepth
+}: {
+    chain: readonly string[];
+    keyNodeId: string;
+    index: PropertyHierarchyIndex;
+    maxDepth: number;
+}): boolean {
+    if (chain.length === 0 || chain.length - 1 > maxDepth) {
+        return false;
+    }
+
+    if (new Set(chain).size !== chain.length) {
+        return false;
+    }
+
+    if (!(index.rootIds.get(keyNodeId) ?? []).includes(chain[0])) {
+        return false;
+    }
+
+    return chain.every((nodeId, position) => position === 0 || (index.parentIds.get(nodeId) ?? []).includes(chain[position - 1]));
+}
+
+/**
  * Ceiling on how many placement keys one hierarchical key contributes to expand all. A DAG permits
  * exponentially many simple paths, and this is the only path that walks them all without a user
  * expanding each row by hand, so it is also the only place the count is not bounded by what somebody
@@ -689,4 +728,54 @@ export function flattenPropertyHierarchy({
     roots.sort(comparator).forEach(root => addNode(root, level, []));
 
     return items;
+}
+
+interface ResolveRenderedPropertyPlacementChainParams {
+    keyNode: PropertyTreeNode;
+    /** Value node id whose placement is wanted. */
+    nodeId: string;
+    index: PropertyHierarchyIndex;
+    /** Placement keys, plus the key node id, exactly as expansion state holds them. */
+    expandedPlacements: ReadonlySet<string>;
+    maxDepth: number;
+}
+
+/**
+ * Chain of the one placement of a value node that is currently on screen, or null when none or
+ * several are. A value in a DAG has no single path, so saving "start where I am" has nothing to read
+ * off the node id; what the user can see is the only evidence of which placement they mean, and it is
+ * unambiguous exactly when one of them renders.
+ *
+ * Rendered means what the navigation pane renders, so this asks the flattener rather than walking the
+ * index itself: the depth cap, the cycle guard, and the expansion gate then have one expression, and a
+ * chain returned here always names a row that exists. The comparator only orders siblings, which
+ * cannot change which placements are emitted, so a fixed one is passed instead of the pane's.
+ */
+export function resolveRenderedPropertyPlacementChain({
+    keyNode,
+    nodeId,
+    index,
+    expandedPlacements,
+    maxDepth
+}: ResolveRenderedPropertyPlacementChainParams): string[] | null {
+    // The pane emits value rows only for an expanded key, so a collapsed key renders no placement at
+    // all - not even a root one, which would otherwise look rendered to the walk below.
+    if (!expandedPlacements.has(keyNode.id)) {
+        return null;
+    }
+
+    const placements = flattenPropertyHierarchy({
+        keyNode,
+        index,
+        expandedPlacements,
+        level: 0,
+        maxDepth,
+        comparator: () => 0
+    }).filter(item => item.data.id === nodeId);
+
+    if (placements.length !== 1) {
+        return null;
+    }
+
+    return parsePropertyPlacementKey(placements[0].key);
 }

@@ -86,6 +86,14 @@ export interface ShortcutStartTag {
 export interface ShortcutStartProperty {
     type: typeof ShortcutStartType.PROPERTY;
     nodeId: string;
+    /**
+     * Value node ids from a rendered root down to `nodeId`, naming which placement of the value the
+     * search should start in. A value of a key marked Hierarchical can render at several places in
+     * the DAG, and the node id names all of them at once, so without this the reveal lands on
+     * whichever placement its parent walk finds first. Absent whenever the placement was ambiguous
+     * when the shortcut was saved, which leaves that walk in charge exactly as before.
+     */
+    placementChain?: string[];
 }
 
 export type ShortcutStartTarget = ShortcutStartFolder | ShortcutStartTag | ShortcutStartProperty;
@@ -148,6 +156,7 @@ interface ShortcutStartRecord {
     path?: unknown;
     tagPath?: unknown;
     nodeId?: unknown;
+    placementChain?: unknown;
 }
 
 function isShortcutStartRecord(value: unknown): value is ShortcutStartRecord {
@@ -164,6 +173,36 @@ export function isShortcutStartTag(target: unknown): target is ShortcutStartTag 
 
 export function isShortcutStartProperty(target: unknown): target is ShortcutStartProperty {
     return isShortcutStartRecord(target) && target.type === ShortcutStartType.PROPERTY && typeof target.nodeId === 'string';
+}
+
+/**
+ * Normalized placement chain for a property start target, or undefined when the stored value cannot
+ * name a placement of `normalizedNodeId`.
+ *
+ * A chain is dropped rather than repaired: it comes from disk, and a chain that no longer ends at its
+ * own target names some other row. A single-element chain is dropped too, because a value rendered at
+ * its key's root is already where the parent walk puts it, so storing one would only add a way for the
+ * two to disagree later.
+ */
+function normalizeShortcutStartPlacementChain(placementChain: unknown, normalizedNodeId: string): string[] | undefined {
+    if (!Array.isArray(placementChain) || placementChain.length < 2) {
+        return undefined;
+    }
+
+    const normalizedChain: string[] = [];
+    for (const entry of placementChain) {
+        const normalizedEntry = typeof entry === 'string' ? normalizePropertyNodeId(entry) : null;
+        if (!normalizedEntry) {
+            return undefined;
+        }
+        normalizedChain.push(normalizedEntry);
+    }
+
+    if (normalizedChain[normalizedChain.length - 1] !== normalizedNodeId) {
+        return undefined;
+    }
+
+    return normalizedChain;
 }
 
 export function normalizePropertyShortcutNodeId(nodeId: unknown): string | null {
@@ -214,9 +253,12 @@ export function normalizeShortcutStartTarget(startTarget: unknown): ShortcutStar
         return undefined;
     }
 
+    const normalizedChain = normalizeShortcutStartPlacementChain(startTarget.placementChain, normalizedNodeId);
+
     return {
         type: ShortcutStartType.PROPERTY,
-        nodeId: normalizedNodeId
+        nodeId: normalizedNodeId,
+        ...(normalizedChain ? { placementChain: normalizedChain } : {})
     };
 }
 
@@ -234,7 +276,10 @@ export function getShortcutStartTargetFingerprint(startTarget: unknown): string 
         return `${ShortcutStartType.TAG}:${normalized.tagPath}`;
     }
 
-    return `${ShortcutStartType.PROPERTY}:${normalized.nodeId}`;
+    // The chain is part of the identity: the same value under a different parent is a different row to
+    // start in, and SettingsContext decides whether a shortcut changed by comparing these strings.
+    const placementSuffix = normalized.placementChain ? `@${normalized.placementChain.join('>')}` : '';
+    return `${ShortcutStartType.PROPERTY}:${normalized.nodeId}${placementSuffix}`;
 }
 
 /**

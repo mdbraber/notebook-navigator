@@ -26,7 +26,7 @@ import {
     type VaultProfile,
     type VaultProfilePropertyKey
 } from '../settings/types';
-import { isSearchShortcut, type ShortcutEntry } from '../types/shortcuts';
+import { isSearchShortcut, isShortcutStartProperty, type ShortcutEntry } from '../types/shortcuts';
 import { getLanguageCode, strings } from '../i18n';
 import { LANGUAGE_METADATA } from '../i18n/localeMetadata';
 import { normalizeCalendarCustomRootFolder } from './calendarCustomNotePatterns';
@@ -589,9 +589,13 @@ export const cloneShortcuts = (shortcuts: ShortcutEntry[] | undefined): Shortcut
             return { ...shortcut };
         }
 
+        const startTarget = shortcut.startTarget;
         return {
             ...shortcut,
-            startTarget: { ...shortcut.startTarget }
+            startTarget:
+                isShortcutStartProperty(startTarget) && startTarget.placementChain
+                    ? { ...startTarget, placementChain: [...startTarget.placementChain] }
+                    : { ...startTarget }
         };
     });
 };
