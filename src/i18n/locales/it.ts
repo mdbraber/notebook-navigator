@@ -21,6 +21,11 @@
  * Organized by feature/component for easy maintenance
  */
 export const STRINGS_IT = {
+    language: {
+        downloading: 'Download delle lingue…',
+        continueInEnglish: 'Continua in inglese',
+        downloadFailed: 'Download delle lingue non riuscito. Notebook Navigator usa l’inglese.'
+    },
     // Common UI elements
     common: {
         cancel: 'Annulla', // Button text for canceling dialogs and operations (English: Cancel)
@@ -34,7 +39,7 @@ export const STRINGS_IT = {
         lightMode: 'Modalità chiara', // Label for light theme mode (English: Light mode)
         darkMode: 'Modalità scura', // Label for dark theme mode (English: Dark mode)
         noSelection: 'Nessuna selezione', // Placeholder text when no folder or tag is selected (English: No selection)
-        untagged: 'Senza tag', // Label for notes without any tags (English: Untagged)
+        untagged: 'Senza etichette', // Label for notes without any tags (English: Untagged)
         featureImageAlt: 'Immagine in evidenza', // Alt text for thumbnail/preview images (English: Feature image)
         unknownError: 'Errore sconosciuto', // Generic fallback when an error has no message (English: Unknown error)
         clipboardWriteError: 'Impossibile scrivere negli appunti',
@@ -46,7 +51,7 @@ export const STRINGS_IT = {
 
     // List pane
     listPane: {
-        emptyStateNoSelection: 'Seleziona una cartella o un tag per visualizzare le note', // Message shown when no folder or tag is selected (English: Select a folder or tag to view notes)
+        emptyStateNoSelection: "Seleziona una cartella o un'etichetta per visualizzare le note", // Message shown when no folder or tag is selected (English: Select a folder or tag to view notes)
         emptyStateNoNotes: 'Nessuna nota', // Message shown when a folder/tag has no notes (English: No notes)
         pinnedSection: 'Fissate', // Header for the pinned notes section at the top of file list (English: Pinned)
         notesSection: 'Note', // Header shown between pinned and regular items when showing documents only (English: Notes)
@@ -65,8 +70,8 @@ export const STRINGS_IT = {
 
     // Tag list
     tagList: {
-        untaggedLabel: 'Senza tag', // Label for the special item showing notes without tags (English: Untagged)
-        tags: 'Tag' // Label for the tags virtual folder (English: Tags)
+        untaggedLabel: 'Senza etichette', // Label for the special item showing notes without tags (English: Untagged)
+        tags: 'Etichette' // Label for the tags virtual folder (English: Tags)
     },
 
     // Navigation pane
@@ -74,6 +79,9 @@ export const STRINGS_IT = {
         shortcutsHeader: 'Scorciatoie', // Header label for shortcuts section in navigation pane (English: Shortcuts)
         recentFilesHeader: 'File recenti', // Header label for recent files section in navigation pane (English: Recent files)
         properties: 'Proprietà',
+        folders: 'Cartelle',
+        tags: 'Etichette',
+        calendar: 'Calendario',
         reorderRootFoldersTitle: 'Riordina navigazione',
         reorderRootFoldersHint: 'Usa frecce o trascina per riordinare',
         vaultRootLabel: 'Vault',
@@ -83,6 +91,7 @@ export const STRINGS_IT = {
         pinShortcutsAndRecentFiles: 'Fissa scorciatoie e file recenti',
         unpinShortcuts: 'Rimuovi fissatura scorciatoie',
         unpinShortcutsAndRecentFiles: 'Rimuovi fissatura scorciatoie e file recenti',
+        resizePinnedShortcuts: 'Ridimensiona le scorciatoie fissate',
         profileMenuAria: 'Cambia profilo vault'
     },
 
@@ -108,15 +117,24 @@ export const STRINGS_IT = {
     },
 
     dailyNotes: {
-        templateReadFailed: 'Impossibile leggere il modello della nota giornaliera.',
         createFailed: 'Impossibile creare la nota giornaliera.'
+    },
+
+    templates: {
+        invalidTokens: 'Il modello "{name}" contiene token non validi: {tokens}',
+        invalidFileNameTokens: 'Il formato del nome file di "{name}" contiene token non validi: {tokens}',
+        readFailed: 'Impossibile leggere il modello "{name}". La nota è stata creata senza di esso.',
+        folderNotSet: 'Imposta la cartella dei modelli in Operazioni sui file e modelli > Modelli prima di creare note da modello.',
+        templateNotFound: 'Il modello "{name}" non è stato trovato.',
+        folderNotFound: 'La cartella "{name}" non è stata trovata.',
+        templaterMissing: 'Il plugin Templater non è installato. Cambia il motore dei modelli in Operazioni sui file e modelli > Modelli.'
     },
 
     shortcuts: {
         folderExists: 'Cartella già presente nelle scorciatoie',
         noteExists: 'Nota già presente nelle scorciatoie',
-        tagExists: 'Tag già presente nelle scorciatoie',
-        propertyExists: 'Proprietà già presente nei preferiti',
+        tagExists: 'Etichetta già presente nelle scorciatoie',
+        propertyExists: 'Proprietà già presente nelle scorciatoie',
         invalidProperty: 'Scorciatoia proprietà non valida',
         searchExists: 'Scorciatoia di ricerca già esistente',
         emptySearchQuery: 'Inserisci una query di ricerca prima di salvare',
@@ -151,20 +169,22 @@ export const STRINGS_IT = {
         removeSortProperty: 'Rimuovi proprietà di ordinamento',
         descendants: 'discendenti',
         subfolders: 'sottocartelle',
-        subtags: 'sotto-tag',
+        subtags: 'sottoetichette',
         childValues: 'valori figli',
         applySortAndGroupToDescendants: (target: string) => `Applica ordinamento e raggruppamento a ${target}`,
         applyAppearanceToDescendants: (target: string) => `Applica aspetto a ${target}`,
+        resetAppearanceInDescendants: (target: string) => `Reimposta aspetto in ${target}`,
         showFolders: 'Mostra navigazione', // Tooltip for button to show the navigation pane (English: Show navigation)
         reorderRootFolders: 'Riordina navigazione',
         finishRootFolderReorder: 'Fatto',
-        showExcludedItems: 'Mostra cartelle, tag e note nascosti', // Tooltip for button to show hidden items (English: Show hidden items)
-        hideExcludedItems: 'Nascondi cartelle, tag e note nascosti', // Tooltip for button to hide hidden items (English: Hide hidden items)
+        showExcludedItems: 'Mostra cartelle, etichette e note nascoste', // Tooltip for button to show hidden items (English: Show hidden items)
+        hideExcludedItems: 'Nascondi cartelle, etichette e note nascoste', // Tooltip for button to hide hidden items (English: Hide hidden items)
         showDualPane: 'Mostra doppio pannello', // Tooltip for button to show dual-pane layout (English: Show dual panes)
         showSinglePane: 'Mostra pannello singolo', // Tooltip for button to show single-pane layout (English: Show single pane)
         dualPaneAutoFallbackNotice:
             'I pannelli doppi non sono disponibili quando la barra laterale è troppo stretta. Per modificarlo, imposta "Quando la barra laterale è troppo stretta" su "Non fare nulla" in Impostazioni > Aspetto e comportamento.',
         changeAppearance: 'Cambia aspetto', // Tooltip for button to change folder appearance settings (English: Change appearance)
+        changeAppearanceCustomized: 'Cambia aspetto, personalizzato',
         showNotesFromSubfolders: 'Mostra note da sottocartelle',
         showFilesFromSubfolders: 'Mostra file da sottocartelle',
         showNotesFromDescendants: 'Mostra note da discendenti',
@@ -187,13 +207,13 @@ export const STRINGS_IT = {
         searchHelp: 'Sintassi di ricerca',
         searchHelpTitle: 'Sintassi di ricerca',
         searchHelpModal: {
-            intro: "La ricerca con filtro trova le note per nomi visualizzati, alias, proprietà, tag, date e filtri, combinati in una query (es. `meeting .status=active #work @thisweek`). Fai clic sull'icona a stella per salvare una ricerca come scorciatoia.",
+            intro: "La ricerca con filtro trova le note per nomi visualizzati, alias, proprietà, etichette, date e filtri, combinati in una query (es. `meeting .status=active #work @thisweek`). Fai clic sull'icona a stella per salvare una ricerca come scorciatoia.",
             introInstallOmnisearch: 'La ricerca full-text nel contenuto delle note richiede il plugin Omnisearch.',
             introSwitching: "Passa tra ricerca con filtro e Omnisearch usando i tasti freccia su/giù o cliccando sull'icona di ricerca.",
             activeFilterSearch: 'La ricerca con filtro è attiva.',
             activeOmnisearch: 'Omnisearch è attivo.',
             omnisearchIntro:
-                "Omnisearch esegue una ricerca full-text nel contenuto delle note dell'intero vault. Notebook Navigator mostra le corrispondenze che appartengono alla cartella, al tag o alla selezione corrente.",
+                "Omnisearch esegue una ricerca full-text nel contenuto delle note dell'intero vault. Notebook Navigator mostra le corrispondenze che appartengono alla cartella, all'etichetta o alla selezione corrente.",
             sections: {
                 fileNames: {
                     title: 'Nomi file e alias',
@@ -201,22 +221,22 @@ export const STRINGS_IT = {
                         '`word` Trova note con "word" nel nome visualizzato o in un alias.',
                         '`word1 word2` Ogni parola deve corrispondere al nome visualizzato o a uno degli alias.',
                         '`-word` Escludi note con "word" nel nome visualizzato o in un alias.',
-                        '`"text"` Trova il testo letteralmente; un termine che inizia con virgolette doppie non viene mai interpretato come tag, proprietà, data o filtro (ad esempio: `".F"`).',
+                        '`"text"` Trova il testo letteralmente; un termine che inizia con virgolette doppie non viene mai interpretato come etichetta, proprietà, data o filtro (ad esempio: `".F"`).',
                         '`-"text"` Escludi note con il testo letterale nel nome visualizzato o in un alias.'
                     ]
                 },
                 tags: {
-                    title: 'Tag',
+                    title: 'Etichette',
                     items: [
-                        '`#tag` Includi note con tag (trova anche tag nidificati come `#tag/subtag`).',
-                        '`#` Includi solo note con tag.',
-                        '`-#tag` Escludi note con tag.',
-                        '`-#` Includi solo note senza tag.',
-                        '`#tag1 #tag2` Trova entrambi i tag (AND implicito).',
-                        '`#tag1 AND #tag2` Trova entrambi i tag (AND esplicito).',
-                        '`#tag1 OR #tag2` Trova uno dei tag.',
+                        "`#tag` Includi note con l'etichetta (trova anche etichette nidificate come `#tag/subtag`).",
+                        '`#` Includi solo note con etichette.',
+                        "`-#tag` Escludi note con l'etichetta.",
+                        '`-#` Includi solo note senza etichette.',
+                        '`#tag1 #tag2` Trova entrambe le etichette (AND implicito).',
+                        '`#tag1 AND #tag2` Trova entrambe le etichette (AND esplicito).',
+                        '`#tag1 OR #tag2` Trova una delle etichette.',
                         '`#a OR #b AND #c` AND ha priorità maggiore: trova `#a`, o entrambi `#b` e `#c`.',
-                        'Cmd/Ctrl+Clic su un tag per aggiungere con AND. Cmd/Ctrl+Shift+Clic per aggiungere con OR.'
+                        "Cmd/Ctrl+Clic su un'etichetta per aggiungere con AND. Cmd/Ctrl+Shift+Clic per aggiungere con OR."
                     ]
                 },
                 properties: {
@@ -243,14 +263,14 @@ export const STRINGS_IT = {
                         '`-folder:/archive` Escludi note solo in `archive` (non sottocartelle).',
                         '`ext:md` Includi note con estensione `md` (`ext:.md` è anche supportato).',
                         '`-ext:pdf` Escludi note con estensione `pdf`.',
-                        'Combina con tag, nomi e date (ad esempio: `folder:/work/meetings ext:md @thisweek`).'
+                        'Combina con etichette, nomi e date (ad esempio: `folder:/work/meetings ext:md @thisweek`).'
                     ]
                 },
                 connectors: {
                     title: 'Comportamento AND/OR',
                     items: [
-                        '`AND` e `OR` sono operatori solo nelle query composte esclusivamente da tag e proprietà.',
-                        'Le query esclusive di tag e proprietà contengono solo filtri di tag e proprietà: `#tag`, `-#tag`, `#`, `-#`, `.key`, `-.key`, `.key=value`, `-.key=value`.',
+                        '`AND` e `OR` sono operatori solo nelle query composte esclusivamente da etichette e proprietà.',
+                        'Le query esclusive di etichette e proprietà contengono solo filtri di etichette e proprietà: `#tag`, `-#tag`, `#`, `-#`, `.key`, `-.key`, `.key=value`, `-.key=value`.',
                         'Se una query include nomi, date (`@...`), filtri attività (`has:task`), filtri cartella (`folder:...`) o filtri estensione (`ext:...`), `AND` e `OR` vengono cercati come parole.',
                         'Esempio di query con operatori: `#work OR .status=started`.',
                         'Esempio di query mista: `#work OR ext:md` (`OR` viene cercato nei nomi dei file).'
@@ -266,7 +286,7 @@ export const STRINGS_IT = {
                         '`@2026-02` o `@202602` Trova un mese solare.',
                         '`@2026-W05` o `@2026W05` Trova una settimana ISO.',
                         '`@2026-Q2` o `@2026Q2` Trova un trimestre solare.',
-                        '`@13/02/2026` Formati numerici con separatori (`@07022026` segue la tua locale in caso di ambiguità).',
+                        '`@13/02/2026` Formati numerici con separatori (`@07022026` segue le tue impostazioni locali in caso di ambiguità).',
                         '`@2026-02-01..2026-02-07` Trova un intervallo di giorni inclusivo (estremi aperti supportati).',
                         '`@c:...` o `@m:...` Indica data di creazione o modifica.',
                         '`-@...` Escludi una corrispondenza di data.'
@@ -314,7 +334,7 @@ export const STRINGS_IT = {
             openVersionHistory: 'Apri cronologia versioni',
             revealInFolder: 'Mostra nella cartella',
             revealInFinder: 'Mostra nel Finder',
-            showInExplorer: 'Mostra in esplora risorse',
+            showInExplorer: 'Mostra in Esplora file',
             openInDefaultApp: "Apri nell'app predefinita",
             renameNote: 'Rinomina nota',
             renameFile: 'Rinomina file',
@@ -338,10 +358,10 @@ export const STRINGS_IT = {
                 pasteStyle: 'Incolla stile intestazione',
                 remove: 'Rimuovi intestazione gruppo'
             },
-            addTag: 'Aggiungi tag',
+            addTag: 'Aggiungi etichetta',
             addPropertyKey: 'Imposta proprietà',
-            removeTag: 'Rimuovi tag',
-            removeAllTags: 'Rimuovi tutti i tag',
+            removeTag: 'Rimuovi etichetta',
+            removeAllTags: 'Rimuovi tutte le etichette',
             changeIcon: 'Cambia icona',
             changeColor: 'Cambia colore'
         },
@@ -350,13 +370,16 @@ export const STRINGS_IT = {
             newNoteFromTemplate: 'Nuova nota da modello',
             newFolder: 'Nuova cartella',
             newCanvas: 'Nuova canvas',
-            newBase: 'Nuovo base',
+            newBase: 'Nuova base',
             newDrawing: 'Nuovo disegno',
             newExcalidrawDrawing: 'Nuovo disegno Excalidraw',
             newTldrawDrawing: 'Nuovo disegno Tldraw',
             duplicateFolder: 'Duplica cartella',
             searchInFolder: 'Cerca nella cartella',
             createFolderNote: 'Crea nota cartella',
+            setFolderTemplate: 'Imposta modello cartella...',
+            changeFolderTemplate: 'Cambia modello cartella...',
+            removeFolderTemplate: 'Rimuovi modello cartella',
             detachFolderNote: 'Scollega nota cartella',
             deleteFolderNote: 'Elimina nota cartella',
             changeIcon: 'Cambia icona',
@@ -377,8 +400,8 @@ export const STRINGS_IT = {
             changeIcon: 'Cambia icona',
             changeColor: 'Cambia colore',
             changeBackground: 'Cambia sfondo',
-            showTag: 'Mostra tag',
-            hideTag: 'Nascondi tag'
+            showTag: 'Mostra etichetta',
+            hideTag: 'Nascondi etichetta'
         },
         property: {
             addKey: 'Configura chiavi proprietà',
@@ -422,11 +445,32 @@ export const STRINGS_IT = {
         compactPreset: 'Compatto',
         defaultSuffix: '(predefinito)',
         defaultLabel: 'Predefinito',
-        titleRows: 'Righe titolo',
-        previewRows: 'Righe anteprima',
+        titleRows: {
+            label: 'Righe titolo',
+            option: (rows: number) => `${rows} ${rows === 1 ? 'riga' : 'righe'} titolo`
+        },
+        previewRows: {
+            label: 'Righe anteprima',
+            none: 'Nessuno',
+            option: (rows: number) => `${rows} ${rows === 1 ? 'riga' : 'righe'} anteprima`
+        },
         groupBy: 'Raggruppa per',
-        titleRowOption: (rows: number) => `${rows} ${rows === 1 ? 'riga' : 'righe'} titolo`,
-        previewRowOption: (rows: number) => `${rows} ${rows === 1 ? 'riga' : 'righe'} anteprima`
+        tags: 'Etichette',
+        properties: 'Proprietà',
+        tasks: 'Attività',
+        date: 'Data',
+        parentFolder: 'Cartella superiore',
+        textCount: {
+            label: 'Conteggio testo',
+            options: {
+                none: 'Nessuno',
+                words: 'Parole',
+                characters: 'Caratteri',
+                both: 'Parole e caratteri'
+            }
+        },
+        resetAppearance: 'Reimposta aspetto',
+        openPluginSettings: 'Apri impostazioni del plugin…'
     },
 
     // Modal dialogs
@@ -435,6 +479,11 @@ export const STRINGS_IT = {
             applyButton: 'Applica',
             applySortAndGroupTitle: (target: string) => `Applicare ordinamento e raggruppamento a ${target}?`,
             applyAppearanceTitle: (target: string) => `Applicare aspetto a ${target}?`,
+            resetAppearanceTitle: (target: string) => `Reimpostare aspetto in ${target}?`,
+            applyAppearanceMessage: (count: number, replacedCount: number) =>
+                `L'aspetto cambierà per ${count} ${count === 1 ? 'elemento' : 'elementi'}. Aspetti personalizzati esistenti sostituiti: ${replacedCount}. Le preferenze di aspetto salvate vengono copiate una sola volta; ordinamento e raggruppamento restano invariati. Le modifiche future e i nuovi discendenti non sono collegati.`,
+            resetAppearanceMessage: (count: number) =>
+                `L'aspetto verrà reimpostato per ${count} ${count === 1 ? 'elemento' : 'elementi'}. Ordinamento e raggruppamento restano invariati. È una modifica una tantum; le modifiche future e i nuovi discendenti non sono collegati.`,
             affectedCountMessage: (count: number) => `Sostituzioni esistenti che cambieranno: ${count}.`
         },
         manualSortConfirm: {
@@ -461,7 +510,7 @@ export const STRINGS_IT = {
             wordCountTarget: 'Conteggio parole obiettivo',
             wordCountTargetPlaceholder: '10,000',
             wordCountTargetDescription:
-                'Quando questo campo è vuoto, l’obiettivo del gruppo usa la proprietà obiettivo impostata in Impostazioni > Note > Conteggio parole e caratteri. Sovrascrivila impostando un valore obiettivo per questo gruppo.',
+                "Quando questo campo è vuoto, l'obiettivo del gruppo usa la proprietà obiettivo impostata in Impostazioni > Visualizzazione file > Conteggio parole e caratteri. Sovrascrivila impostando un valore obiettivo per questo gruppo.",
             description: "Personalizza l'intestazione di gruppo per questa nota. Lascia il titolo vuoto per rimuovere l'intestazione."
         },
         mergeNotes: {
@@ -535,11 +584,12 @@ export const STRINGS_IT = {
                 'list-pinned': 'Note fissate',
                 'nav-folder-open': 'Cartella aperta',
                 'nav-folder-closed': 'Cartella chiusa',
-                'nav-tags': 'Tag',
-                'nav-tag': 'Tag',
+                'nav-tags': 'Etichette',
+                'nav-tag': 'Etichetta',
                 'nav-properties': 'Proprietà',
                 'nav-property': 'Proprietà',
                 'nav-property-value': 'Valore',
+                'file-unfinished-task': 'Attività',
                 'file-word-count': 'Conteggio parole',
                 'file-character-count': 'Conteggio caratteri'
             }
@@ -585,29 +635,30 @@ export const STRINGS_IT = {
             emptyState: 'Nessun profilo vault disponibile.'
         },
         tagOperation: {
-            renameTitle: 'Rinomina tag {tag}',
-            deleteTitle: 'Elimina tag {tag}',
-            newTagPrompt: 'Nuovo nome tag',
-            newTagPlaceholder: 'Inserisci nuovo nome tag',
-            renameWarning: 'Rinominando il tag {oldTag} verranno modificati {count} {files}.',
-            deleteWarning: 'Eliminando il tag {tag} verranno modificati {count} {files}.',
+            renameTitle: 'Rinomina etichetta {tag}',
+            deleteTitle: 'Elimina etichetta {tag}',
+            newTagPrompt: 'Nuovo nome etichetta',
+            newTagPlaceholder: 'Inserisci nuovo nome etichetta',
+            renameWarning: "Rinominando l'etichetta {oldTag} verranno modificati {count} {files}.",
+            deleteWarning: "Eliminando l'etichetta {tag} verranno modificati {count} {files}.",
             modificationWarning: 'Questo aggiornerà le date di modifica dei file.',
             affectedFiles: 'File interessati:',
             andMore: '...e altri {count}',
-            confirmRename: 'Rinomina tag',
-            renameUnchanged: '{tag} invariato',
+            confirmRename: 'Rinomina etichetta',
+            renameUnchanged: '{tag} invariata',
             renameNoChanges: '{oldTag} → {newTag} ({countLabel})',
             renameBatchNotFinalized: 'Rinominati {renamed}/{total}. Non aggiornati: {notUpdated}. Metadati e scorciatoie non aggiornati.',
-            invalidTagName: 'Inserisci un nome tag valido.',
-            descendantRenameError: 'Impossibile spostare un tag in sé stesso o in un discendente.',
-            confirmDelete: 'Elimina tag',
+            invalidTagName: 'Inserisci un nome etichetta valido.',
+            descendantRenameError: "Impossibile spostare un'etichetta in sé stessa o in un discendente.",
+            confirmDelete: 'Elimina etichetta',
             deleteBatchNotFinalized: 'Rimossi da {removed}/{total}. Non aggiornati: {notUpdated}. Metadati e scorciatoie non aggiornati.',
             checkConsoleForDetails: 'Controlla la console per i dettagli.',
             file: 'file',
             files: 'file',
             inlineParsingWarning: {
-                title: 'Compatibilità dei tag inline',
-                message: '{tag} contiene caratteri che Obsidian non può analizzare nei tag inline. I tag Frontmatter non sono interessati.',
+                title: 'Compatibilità delle etichette inline',
+                message:
+                    '{tag} contiene caratteri che Obsidian non può analizzare nelle etichette inline. Le etichette nel frontmatter non sono interessate.',
                 confirm: 'Usa comunque'
             }
         },
@@ -655,9 +706,9 @@ export const STRINGS_IT = {
             moveFileConflictRenameOnly: '(solo rinomina)',
             moveFileConflictRename: 'Rinomina',
             moveFileConflictOverwrite: 'Sovrascrivi',
-            removeAllTagsTitle: 'Rimuovi tutti i tag',
-            removeAllTagsFromNote: 'Sei sicuro di voler rimuovere tutti i tag da questa nota?',
-            removeAllTagsFromNotes: 'Sei sicuro di voler rimuovere tutti i tag da {count} note?'
+            removeAllTagsTitle: 'Rimuovi tutte le etichette',
+            removeAllTagsFromNote: 'Sei sicuro di voler rimuovere tutte le etichette da questa nota?',
+            removeAllTagsFromNotes: 'Sei sicuro di voler rimuovere tutte le etichette da {count} note?'
         },
         folderNoteType: {
             title: 'Seleziona tipo nota cartella',
@@ -682,7 +733,28 @@ export const STRINGS_IT = {
                 dismiss: 'per chiudere'
             }
         },
-        calendarTemplate: {
+        templateCommand: {
+            titleAdd: 'Aggiungi comando',
+            titleEdit: 'Modifica comando',
+            name: 'Nome del comando',
+            namePlaceholder: 'Nuova nota riunione',
+            template: 'Modello',
+            templateDesc: 'Facoltativo. Senza modello si applica il modello cartella della cartella di destinazione, se impostato.',
+            templatePlaceholder: 'Modelli/Riunione.md',
+            fileNameFormat: 'Formato del nome file',
+            fileNameFormatDesc:
+                "I token come {{date:YYYYMMDD}} e {{prompt:Titolo}} vengono sostituiti all'esecuzione del comando. Ogni prompt chiede un valore e la stessa etichetta nel modello riceve lo stesso valore. {{number}} è uno in più del numero più alto usato dalle note nella cartella con lo stesso schema di nome, e {{number:00}} lo completa con zeri. Anche il modello può usare {{number}}, e {{title}} inserisce il nome file generato.",
+            fileNameFormatPlaceholder: '{{date:YYYYMMDD}} {{prompt:Titolo}}',
+            location: 'Posizione',
+            folder: 'Cartella',
+            folderPlaceholder: 'Riunioni',
+            icon: 'Icona',
+            placement: 'Pulsante',
+            placementNone: 'Nessuno',
+            placementRibbon: 'Barra multifunzione',
+            placementTabBar: 'Barra delle schede'
+        },
+        templateFile: {
             placeholder: 'Cerca modelli...',
             instructions: {
                 navigate: 'per navigare',
@@ -700,16 +772,16 @@ export const STRINGS_IT = {
             }
         },
         tagSuggest: {
-            navigatePlaceholder: 'Vai al tag...',
-            addPlaceholder: 'Cerca tag da aggiungere...',
-            removePlaceholder: 'Seleziona tag da rimuovere...',
-            createNewTag: 'Crea nuovo tag: #{tag}',
+            navigatePlaceholder: "Vai all'etichetta...",
+            addPlaceholder: 'Cerca etichetta da aggiungere...',
+            removePlaceholder: 'Seleziona etichetta da rimuovere...',
+            createNewTag: 'Crea nuova etichetta: #{tag}',
             instructions: {
                 navigate: 'per navigare',
                 select: 'per selezionare',
                 dismiss: 'per chiudere',
-                add: 'per aggiungere tag',
-                remove: 'per rimuovere tag'
+                add: "per aggiungere l'etichetta",
+                remove: "per rimuovere l'etichetta"
             }
         },
         propertySuggest: {
@@ -724,7 +796,7 @@ export const STRINGS_IT = {
         propertyKeyVisibility: {
             title: 'Visibilità chiavi proprietà',
             description:
-                'Controlla dove vengono mostrati i valori delle proprietà. Le colonne corrispondono al pannello di navigazione, al pannello elenco e al menu contestuale del file. Usa la riga in basso per attivare/disattivare tutte le righe di una colonna.',
+                'Controlla dove vengono mostrati i valori delle proprietà. Le colonne corrispondono al pannello di navigazione, al pannello lista e al menu contestuale del file. Usa la riga in basso per attivare/disattivare tutte le righe di una colonna.',
             searchPlaceholder: 'Cerca chiavi proprietà...',
             propertyColumnLabel: 'Proprietà',
             showInNavigation: 'Mostra nella navigazione',
@@ -741,7 +813,7 @@ export const STRINGS_IT = {
             introText:
                 'Ciao e benvenuto in Notebook Navigator, un file browser e calendario migliore per Obsidian. Prima di iniziare, ti consiglio davvero di guardare almeno i primi tre capitoli del video qui sotto, Mastering Notebook Navigator. Ti spiegano come funzionano i due pannelli e ti aiutano a iniziare rapidamente.',
             continueText:
-                'Poi, se hai altri dieci minuti, continua con i capitoli sulla prima configurazione e sull’uso quotidiano. Troverai tutto ciò che ti serve per iniziare e potrai tornare in seguito per approfondire i dettagli. Troverai un link al video nella parte superiore delle impostazioni di Notebook Navigator.',
+                "Poi, se hai altri dieci minuti, continua con i capitoli sulla prima configurazione e sull'uso quotidiano. Troverai tutto ciò che ti serve per iniziare e potrai tornare in seguito per approfondire i dettagli. Troverai un link al video nella parte superiore delle impostazioni di Notebook Navigator.",
             thanksText: 'Buon divertimento con Notebook Navigator!',
             videoAlt: 'Padroneggiare Notebook Navigator 3',
             openVideoButton: 'Riproduci video',
@@ -762,13 +834,13 @@ export const STRINGS_IT = {
             mergeNotes: 'Impossibile unire le note: {error}',
             mergeNotesOpenOutput:
                 'La nota unita è stata creata come {name}, ma non è stato possibile aprirla: {error}. Le note di origine non sono state modificate.',
-            mergeNotesOpenSkipped: 'Un’altra richiesta di apertura file ha avuto la precedenza.',
+            mergeNotesOpenSkipped: "Un'altra richiesta di apertura file ha avuto la precedenza.",
             mergeNotesTrashSources: 'Nota unita creata. Impossibile spostare {count} note di origine nel cestino.',
             duplicateNote: 'Impossibile duplicare nota: {error}',
             duplicateFolder: 'Impossibile duplicare cartella: {error}',
             openVersionHistory: 'Impossibile aprire cronologia versioni: {error}',
             versionHistoryNotFound: 'Comando cronologia versioni non trovato. Assicurati che Obsidian Sync sia abilitato.',
-            revealInExplorer: 'Impossibile mostrare file in esplora risorse: {error}',
+            revealInExplorer: 'Impossibile mostrare il file in Esplora file: {error}',
             openInDefaultApp: "Impossibile aprire nell'app predefinita: {error}",
             openInDefaultAppNotAvailable: "Apertura nell'app predefinita non disponibile su questa piattaforma",
             folderNoteAlreadyExists: 'La nota cartella esiste già',
@@ -814,18 +886,18 @@ export const STRINGS_IT = {
             linkCopied: 'Link copiato negli appunti',
             footnoteLinkCopied: 'Link nota a piè di pagina copiato negli appunti',
             embedLinkCopied: 'Link di incorporamento copiato negli appunti',
-            tagAddedToNote: 'Tag aggiunto a 1 nota',
-            tagAddedToNotes: 'Tag aggiunto a {count} note',
-            tagRemovedFromNote: 'Tag rimosso da 1 nota',
-            tagRemovedFromNotes: 'Tag rimosso da {count} note',
-            tagsClearedFromNote: 'Rimossi tutti i tag da 1 nota',
-            tagsClearedFromNotes: 'Rimossi tutti i tag da {count} note',
-            noTagsToRemove: 'Nessun tag da rimuovere',
+            tagAddedToNote: 'Etichetta aggiunta a 1 nota',
+            tagAddedToNotes: 'Etichetta aggiunta a {count} note',
+            tagRemovedFromNote: 'Etichetta rimossa da 1 nota',
+            tagRemovedFromNotes: 'Etichetta rimossa da {count} note',
+            tagsClearedFromNote: 'Rimosse tutte le etichette da 1 nota',
+            tagsClearedFromNotes: 'Rimosse tutte le etichette da {count} note',
+            noTagsToRemove: 'Nessuna etichetta da rimuovere',
             noFilesSelected: 'Nessun file selezionato',
             mergeNotesRequireMultipleMarkdown: 'Seleziona almeno due note Markdown da unire',
-            tagOperationsNotAvailable: 'Operazioni tag non disponibili',
+            tagOperationsNotAvailable: 'Operazioni sulle etichette non disponibili',
             propertyOperationsNotAvailable: 'Operazioni sulle proprietà non disponibili',
-            tagsRequireMarkdown: 'I tag sono supportati solo nelle note Markdown',
+            tagsRequireMarkdown: 'Le etichette sono supportate solo nelle note Markdown',
             propertiesRequireMarkdown: 'Le proprietà sono supportate solo nelle note Markdown',
             propertySetOnNote: 'Proprietà aggiornata su 1 nota',
             propertySetOnNotes: 'Proprietà aggiornata su {count} note',
@@ -852,17 +924,17 @@ export const STRINGS_IT = {
             cannotMoveIntoSelf: 'Impossibile spostare una cartella in sé stessa o in una sottocartella.',
             itemAlreadyExists: 'Un elemento chiamato "{name}" esiste già in questa posizione.',
             failedToMove: 'Impossibile spostare: {error}',
-            failedToAddTag: 'Impossibile aggiungere tag "{tag}"',
-            failedToSetProperty: 'Aggiornamento proprietà non riuscito: {error}',
-            failedToClearTags: 'Impossibile rimuovere i tag',
+            failedToAddTag: 'Impossibile aggiungere l\'etichetta "{tag}"',
+            failedToSetProperty: 'Impossibile aggiornare la proprietà: {error}',
+            failedToClearTags: 'Impossibile rimuovere le etichette',
             failedToMoveFolder: 'Impossibile spostare cartella "{name}"',
             failedToImportFiles: 'Impossibile importare: {names}'
         },
         notifications: {
             filesAlreadyExist: '{count} file esistono già nella destinazione',
-            filesAlreadyHaveTag: '{count} file hanno già questo tag o uno più specifico',
+            filesAlreadyHaveTag: '{count} file hanno già questa etichetta o una più specifica',
             filesAlreadyHaveProperty: '{count} file hanno già questa proprietà',
-            noTagsToClear: 'Nessun tag da rimuovere',
+            noTagsToClear: 'Nessuna etichetta da rimuovere',
             fileImported: 'Importato 1 file',
             filesImported: 'Importati {count} file'
         }
@@ -899,7 +971,7 @@ export const STRINGS_IT = {
         selectVaultProfile3: 'Seleziona profilo vault 3', // Command palette: Activates the third vault profile without opening the modal (English: Select vault profile 3)
         deleteFile: 'Elimina file', // Command palette: Deletes the currently active file (English: Delete file)
         createNewNote: 'Crea nuova nota', // Command palette: Creates a new note in the currently selected folder (English: Create new note)
-        createNewNoteFromTemplate: 'Nuova nota da modello', // Command palette: Creates a new note from a template in the currently selected folder (English: Create new note from template)
+        createNewNoteFromTemplate: 'Crea nuova nota da modello', // Command palette: Creates a new note from a template in the currently selected folder (English: Create new note from template)
         moveFiles: 'Sposta file', // Command palette: Move selected files to another folder (English: Move files)
         mergeNotes: 'Unisci note', // Command palette: Creates one note from selected Markdown notes (English: Merge notes)
         selectNextFile: 'Seleziona file successivo', // Command palette: Selects the next file in the current view (English: Select next file)
@@ -911,24 +983,24 @@ export const STRINGS_IT = {
         detachFolderNote: 'Scollega nota cartella', // Command palette: Renames the active folder note to a new name (English: Detach folder note)
         pinAllFolderNotes: 'Fissa tutte le note cartella', // Command palette: Pins all folder notes to shortcuts (English: Pin all folder notes)
         navigateToFolder: 'Vai alla cartella', // Command palette: Navigate to a folder using fuzzy search (English: Navigate to folder)
-        navigateToTag: 'Vai al tag', // Command palette: Navigate to a tag using fuzzy search (English: Navigate to tag)
+        navigateToTag: "Vai all'etichetta", // Command palette: Navigate to a tag using fuzzy search (English: Navigate to tag)
         navigateToProperty: 'Vai alla proprietà', // Command palette: Navigate to a property key or value using fuzzy search (English: Navigate to property)
         addShortcut: 'Aggiungi alle scorciatoie', // Command palette: Adds or removes the current file, folder, tag, or property from shortcuts (English: Add to shortcuts)
         openShortcut: 'Apri scorciatoia {number}',
         toggleDescendants: 'Attiva/disattiva discendenti', // Command palette: Toggles showing notes from descendants (English: Toggle descendants)
-        toggleHidden: 'Attiva/disattiva cartelle, tag e note nascosti', // Command palette: Toggles showing hidden items (English: Toggle hidden items)
-        toggleTagSort: 'Attiva/disattiva ordinamento tag', // Command palette: Toggles between alphabetical and frequency tag sorting (English: Toggle tag sort order)
-        toggleTagsBySelection: 'Attiva/disattiva tag per selezione',
+        toggleHidden: 'Attiva/disattiva cartelle, etichette e note nascoste', // Command palette: Toggles showing hidden items (English: Toggle hidden items)
+        toggleTagSort: 'Attiva/disattiva ordinamento etichette', // Command palette: Toggles between alphabetical and frequency tag sorting (English: Toggle tag sort order)
+        toggleTagsBySelection: 'Attiva/disattiva etichette per selezione',
         togglePropertiesBySelection: 'Attiva/disattiva proprietà per selezione',
         toggleCompactMode: 'Attiva/disattiva modalità compatta', // Command palette: Toggles list mode between standard and compact (English: Toggle compact mode)
         togglePinnedSection: 'Attiva/disattiva sezione fissata',
         collapseExpand: 'Comprimi / espandi tutti gli elementi di navigazione', // Command palette: Collapse or expand all folders and tags (English: Collapse / expand all navigation items)
         collapseExpandListGroups: "Comprimi / espandi tutti i gruppi dell'elenco",
         collapseExpandSelectedItem: "Comprimi / espandi l'elemento selezionato",
-        addTag: 'Aggiungi tag ai file selezionati', // Command palette: Opens a dialog to add a tag to selected files (English: Add tag to selected files)
+        addTag: 'Aggiungi etichetta ai file selezionati', // Command palette: Opens a dialog to add a tag to selected files (English: Add tag to selected files)
         setProperty: 'Imposta proprietà sui file selezionati', // Command palette: Opens a fuzzy dialog to set a property on selected files (English: Set property on selected files)
-        removeTag: 'Rimuovi tag dai file selezionati', // Command palette: Opens a dialog to remove a tag from selected files (English: Remove tag from selected files)
-        removeAllTags: 'Rimuovi tutti i tag dai file selezionati', // Command palette: Removes all tags from selected files (English: Remove all tags from selected files)
+        removeTag: 'Rimuovi etichetta dai file selezionati', // Command palette: Opens a dialog to remove a tag from selected files (English: Remove tag from selected files)
+        removeAllTags: 'Rimuovi tutte le etichette dai file selezionati', // Command palette: Removes all tags from selected files (English: Remove all tags from selected files)
         openAllFiles: 'Apri tutti i file', // Command palette: Opens all files in the current folder or tag (English: Open all files)
         rebuildCache: 'Ricostruisci cache', // Command palette: Rebuilds the local Notebook Navigator cache (English: Rebuild cache)
         restoreDefaultSettings: 'Ripristina impostazioni predefinite' // Command palette: Replaces the settings file with defaults after startup was aborted (English: Restore default settings)
@@ -986,102 +1058,146 @@ export const STRINGS_IT = {
             exportSuccess: 'Report metadati falliti esportato in: {filename}',
             exportFailed: 'Impossibile esportare report metadati'
         },
-        sections: {
-            general: 'Generale',
-            vaultFilters: 'Filtri di visualizzazione',
-            appearanceBehavior: 'Aspetto e comportamento',
-            navigationPane: 'Pannello di navigazione',
-            calendar: 'Calendario',
-            fileOperations: 'Operazioni sui file',
-            icons: 'Pacchetti icone',
-            folders: 'Cartelle',
-            folderNotes: 'Note cartella',
-            folderNoteFiles: 'File note cartella',
-            propertyNotes: 'Note proprietà',
-            foldersAndFolderNotes: 'Cartelle e note cartella',
-            tagsAndProperties: 'Tag e proprietà',
-            tags: 'Tag',
-            listPane: 'Pannello lista',
-            notes: 'Visualizzazione file',
-            shortcutsAndRecentFiles: 'Scorciatoie e file recenti',
-            advanced: 'Avanzate'
+        index: {
+            label: 'Generale',
+            description: 'Note di rilascio, supporto, profilo vault, tipi di file e chiavi delle proprietà.',
+            groups: {
+                about: 'Informazioni'
+            }
         },
         pageGroups: {
             configuration: 'Configurazione',
-            navigationAndContent: 'Pannello di navigazione',
-            notesAndLists: 'Pannello lista',
+            navigationPane: 'Pannello di navigazione',
+            listPane: 'Pannello lista',
             calendarAndTools: 'Calendario e strumenti'
         },
-        pageDescriptions: {
-            general: 'Note di rilascio, supporto, profilo vault, tipi di file e chiavi delle proprietà.',
-            vaultFilters: 'Cartelle, tag, file, tag dei file e regole delle proprietà nascosti.',
-            appearanceBehavior: 'Comportamento, navigazione da tastiera, pulsanti del mouse, aspetto e formattazione.',
-            navigationPane: 'Layout, aspetto, conteggio file, comportamento del collasso e colori arcobaleno.',
-            shortcuts: 'Visibilità delle scorciatoie, badge, file recenti ed elementi fissati.',
-            calendar: 'Visualizzazione calendario, note data, modelli, locale e posizionamento della barra laterale.',
-            fileOperations: 'Modelli, conferme di eliminazione, allegati e comportamento in caso di conflitti di spostamento dei file.',
-            foldersAndFolderNotes: 'Visualizzazione cartelle, note cartella, modelli di note cartella e comportamento delle note cartella.',
-            tagsProperties: 'Sezioni tag e proprietà, icone, ordinamento, ambito ed ereditarietà.',
-            listPane: 'Ordinamento, raggruppamento, modalità lista, note fissate e anteprime dei disegni.',
-            frontmatter: 'Campi frontmatter per nomi visualizzati, timestamp, icone e colori.',
-            notes: 'Titoli, testo anteprima, immagini in evidenza, tag, proprietà, date, conteggio parole e conteggio caratteri.',
-            iconPacks: 'Icone interfaccia, icone file e gestione pacchetti icone.',
-            advanced: 'Diagnostica, pulizia metadati, importazione/esportazione e ripristino.'
-        },
-        groups: {
-            general: {
-                vaultConfiguration: 'Configurazione vault',
-                templates: 'Modelli',
-                behavior: 'Comportamento',
-                startup: 'Avvio',
-                keyboardNavigation: 'Navigazione da tastiera',
-                mouseButtons: 'Pulsanti del mouse',
-                view: 'Aspetto',
-                icons: 'Icone',
-                desktopAppearance: 'Aspetto desktop',
-                mobileAppearance: 'Aspetto mobile',
-                formatting: 'Formattazione'
+        pages: {
+            displayFilters: {
+                label: 'Filtri di visualizzazione',
+                description: 'Cartelle, etichette, file, etichette dei file e regole delle proprietà nascosti.'
+            },
+            appearanceAndBehavior: {
+                label: 'Aspetto e comportamento',
+                description: 'Comportamento, navigazione da tastiera, pulsanti del mouse, aspetto e formattazione.',
+                groups: {
+                    startup: 'Avvio',
+                    keyboardNavigation: 'Navigazione da tastiera',
+                    mouseButtons: 'Pulsanti del mouse',
+                    desktopAppearance: 'Aspetto desktop',
+                    mobileAppearance: 'Aspetto mobile',
+                    appearance: 'Aspetto',
+                    icons: 'Icone',
+                    formatting: 'Formattazione'
+                }
+            },
+            navigationPane: {
+                label: 'Pannello di navigazione',
+                description: 'Layout, aspetto, conteggio file, comportamento del collasso e colori arcobaleno.',
+                groups: {
+                    appearance: 'Aspetto',
+                    banner: 'Banner',
+                    collapseItems: 'Comprimi elementi',
+                    dragAndDrop: 'Trascina e rilascia',
+                    fileCounts: 'Conteggi file',
+                    rainbowColors: 'Colori arcobaleno'
+                }
+            },
+            shortcutsAndRecentFiles: {
+                label: 'Scorciatoie e file recenti',
+                description: 'Visibilità delle scorciatoie, badge, file recenti ed elementi fissati.',
+                groups: {
+                    shortcuts: 'Scorciatoie',
+                    recentFiles: 'File recenti'
+                }
+            },
+            foldersAndFolderNotes: {
+                label: 'Cartelle e note cartella',
+                description: 'Visualizzazione cartelle, note cartella, modelli di note cartella e comportamento delle note cartella.',
+                groups: {
+                    folders: 'Cartelle',
+                    folderNotes: 'Note cartella',
+                    folderNoteFiles: 'File note cartella'
+                }
+            },
+            tagsAndProperties: {
+                label: 'Etichette e proprietà',
+                description: 'Sezioni etichette e proprietà, icone, ordinamento, ambito ed ereditarietà.',
+                groups: {
+                    tags: 'Etichette',
+                    properties: 'Proprietà',
+                    propertyNotes: 'Note proprietà'
+                }
+            },
+            listPane: {
+                label: 'Pannello lista',
+                description: 'Ordinamento, raggruppamento, modalità lista, note fissate e anteprime dei disegni.',
+                groups: {
+                    appearance: 'Aspetto',
+                    sortAndGroup: 'Ordinamento e raggruppamento',
+                    groupHeaders: 'Intestazioni di gruppo',
+                    manualSort: 'Ordinamento manuale',
+                    pinnedNotes: 'Note fissate',
+                    behavior: 'Comportamento',
+                    drawingPreviews: 'Anteprime dei disegni'
+                }
+            },
+            fileOperations: {
+                label: 'Operazioni sui file e modelli',
+                description:
+                    'Modelli, comandi di creazione note, conferme di eliminazione, allegati e comportamento nei conflitti di spostamento dei file.',
+                groups: {
+                    templates: 'Modelli',
+                    templateCommands: 'Comandi di creazione note'
+                }
+            },
+            frontmatterFields: {
+                label: 'Campi frontmatter',
+                description: 'Campi frontmatter per nomi visualizzati, timestamp, icone e colori.'
+            },
+            fileDisplay: {
+                label: 'Visualizzazione file',
+                description:
+                    'Titoli, testo anteprima, immagini in evidenza, etichette, proprietà, date, conteggio parole e conteggio caratteri.',
+                groups: {
+                    icon: 'Icona',
+                    title: 'Titolo',
+                    previewText: 'Testo anteprima',
+                    featureImage: 'Immagine in evidenza',
+                    tags: 'Etichette',
+                    properties: 'Proprietà',
+                    tasks: 'Attività',
+                    date: 'Data',
+                    parentFolder: 'Cartella superiore',
+                    wordAndCharacterCount: 'Conteggio parole e caratteri'
+                }
+            },
+            calendar: {
+                label: 'Calendario',
+                description: 'Visualizzazione calendario, note data, modelli, locale e posizionamento della barra laterale.',
+                groups: {
+                    appearance: 'Aspetto',
+                    leftSidebar: 'Barra laterale sinistra',
+                    calendarIntegration: 'Integrazione calendario',
+                    rightSidebar: 'Barra laterale destra'
+                }
+            },
+            iconPacks: {
+                label: 'Pacchetti icone',
+                description: 'Icone interfaccia, icone file e gestione pacchetti icone.'
             },
             advanced: {
-                maintenance: 'Manutenzione',
-                resetSettings: 'Reimposta impostazioni'
-            },
-            navigation: {
-                appearance: 'Aspetto',
-                banner: 'Banner',
-                collapseItems: 'Comprimi elementi',
-                dragAndDrop: 'Trascina e rilascia',
-                noteCounts: 'Conteggi file',
-                rainbowColors: 'Colori arcobaleno',
-                leftSidebar: 'Barra laterale sinistra',
-                calendarIntegration: 'Integrazione calendario'
-            },
-            list: {
-                display: 'Aspetto',
-                sortAndGroup: 'Ordinamento e raggruppamento',
-                groupHeaders: 'Intestazioni di gruppo',
-                manualSort: 'Ordinamento manuale',
-                pinnedNotes: 'Note fissate',
-                drawingPreviews: 'Anteprime dei disegni'
-            },
-            notes: {
-                frontmatter: 'Campi frontmatter',
-                tasks: 'Attività',
-                icon: 'Icona',
-                title: 'Titolo',
-                previewText: 'Testo anteprima',
-                featureImage: 'Immagine in evidenza',
-                tags: 'Tag',
-                properties: 'Proprietà',
-                date: 'Data',
-                parentFolder: 'Cartella superiore',
-                wordCount: 'Conteggio parole e caratteri'
+                label: 'Avanzate',
+                description: 'Diagnostica, pulizia metadati, importazione/esportazione e ripristino.',
+                groups: {
+                    maintenance: 'Manutenzione',
+                    resetSettings: 'Reimposta impostazioni'
+                }
             }
         },
         syncMode: {
             notSynced: '(non sincronizzato)',
-            switchToSynced: 'Attiva sincronizzazione',
-            switchToLocal: 'Disattiva sincronizzazione'
+            enableSync: 'Attiva sincronizzazione',
+            disableSync: 'Disattiva sincronizzazione'
         },
         items: {
             listPaneTitle: {
@@ -1089,11 +1205,15 @@ export const STRINGS_IT = {
                 desc: 'Scegli dove mostrare il titolo del pannello lista.',
                 options: {
                     header: "Mostra nell'intestazione",
-                    list: 'Mostra nel pannello lista',
+                    listPane: 'Mostra nel pannello lista',
                     hidden: 'Non mostrare'
                 }
             },
-            sortNotesBy: {
+            colorListPaneTitle: {
+                name: 'Colora il titolo del pannello lista',
+                desc: 'Applica il colore della cartella, etichetta o proprietà selezionata al titolo del pannello lista.'
+            },
+            defaultSortOrder: {
                 name: 'Ordinamento predefinito',
                 desc: "Scegli l'ordinamento predefinito per le note. Le proprietà di Proprietà di ordinamento appaiono come opzioni di ordinamento aggiuntive.",
                 directions: {
@@ -1101,18 +1221,18 @@ export const STRINGS_IT = {
                     desc: 'Decrescente'
                 },
                 dateDirections: {
-                    desc: 'Più recenti in alto',
-                    asc: 'Più vecchie in alto'
+                    newestOnTop: 'Più recenti in alto',
+                    oldestOnTop: 'Più vecchie in alto'
                 },
                 textDirections: {
-                    asc: 'A in alto',
-                    desc: 'Z in alto'
+                    aOnTop: 'A in alto',
+                    zOnTop: 'Z in alto'
                 },
                 fields: {
-                    modified: 'Data di modifica',
-                    created: 'Data di creazione',
+                    dateEdited: 'Data di modifica',
+                    dateCreated: 'Data di creazione',
                     title: 'Titolo',
-                    filename: 'Nome file',
+                    fileName: 'Nome file',
                     property: 'Proprietà'
                 }
             },
@@ -1125,7 +1245,7 @@ export const STRINGS_IT = {
                     follow: "Segui l'ordinamento"
                 }
             },
-            propertySortKey: {
+            sortingProperties: {
                 name: 'Proprietà di ordinamento',
                 desc: "Proprietà frontmatter separate da virgole. Ogni proprietà appare come opzione di ordinamento nell'impostazione Ordinamento predefinito e nel menu di ordinamento nel pannello lista. Queste proprietà non vengono modificate.",
                 placeholder: 'published, author',
@@ -1135,14 +1255,14 @@ export const STRINGS_IT = {
                     both: "L'ordinamento predefinito e il raggruppamento predefinito sono stati ripristinati perché le loro proprietà non sono più disponibili."
                 }
             },
-            propertySortSecondary: {
+            propertySecondarySort: {
                 name: 'Ordinamento secondario',
                 desc: "Usato con l'ordinamento per proprietà quando le note hanno lo stesso valore di proprietà o nessun valore.",
                 options: {
                     title: 'Titolo',
-                    filename: 'Nome file',
-                    created: 'Data di creazione',
-                    modified: 'Data di modifica'
+                    fileName: 'Nome file',
+                    dateCreated: 'Data di creazione',
+                    dateEdited: 'Data di modifica'
                 }
             },
             propertySortInstructions: {
@@ -1152,19 +1272,19 @@ export const STRINGS_IT = {
                     "**Raggruppamento:** Scegliere una proprietà come Stato crea un'intestazione per ogni valore di Stato. Le note con lo stesso Stato vengono mostrate sotto la stessa intestazione.",
                     "**Valori multipli:** Se una proprietà contiene un elenco, Notebook Navigator usa l'elenco completo. Ad esempio, se Argomenti contiene Libri e Storia, la nota viene ordinata o raggruppata usando «Libri, Storia». Attiva **Dividi i valori multipli per gruppo** nel menu di ordinamento e raggruppamento per raggruppare la nota sotto Libri e sotto Storia separatamente.",
                     '**Valori mancanti:** Durante il raggruppamento, le note prive della proprietà vengono mostrate sotto **Nessuno** alla fine.',
-                    '**Viste per tag e proprietà:** Quando viene selezionato il raggruppamento **Cartella**, vengono mostrate invece intestazioni di data.'
+                    '**Viste per etichette e proprietà:** Quando viene selezionato il raggruppamento **Cartella**, vengono mostrate invece intestazioni di data.'
                 ]
             },
-            propertyGroupKey: {
+            groupingProperties: {
                 name: 'Proprietà di raggruppamento',
                 desc: "Proprietà frontmatter separate da virgole. Ogni proprietà appare come opzione di raggruppamento nell'impostazione Raggruppamento predefinito e nel menu di ordinamento nel pannello lista. Queste proprietà non vengono modificate.",
                 placeholder: 'status, genre'
             },
-            manualSortPropertyKey: {
+            manualSortProperty: {
                 name: 'Proprietà ordinamento manuale',
                 desc: "Proprietà frontmatter usata per memorizzare i valori indice numerici per l'ordinamento manuale."
             },
-            manualSortGroupHeaderProperty: {
+            groupHeaderProperty: {
                 name: 'Proprietà intestazione gruppo',
                 desc: 'Proprietà frontmatter usata per memorizzare le intestazioni di gruppo personalizzate.'
             },
@@ -1181,7 +1301,7 @@ export const STRINGS_IT = {
                 options: {
                     top: 'In alto',
                     bottom: 'In basso',
-                    'below-selected-note': 'Sotto la nota selezionata',
+                    belowSelectedNote: 'Sotto la nota selezionata',
                     unsorted: 'Non ordinato'
                 }
             },
@@ -1197,38 +1317,39 @@ export const STRINGS_IT = {
                     'Nel pannello lista, seleziona una nota o selezionane più, quindi premi **Cmd/Ctrl + Arrow Up/Down** per spostare la selezione su o giù.'
                 ]
             },
-            revealFileOnListChanges: {
+            scrollToSelectedFileOnListChanges: {
                 name: 'Scorri al file selezionato quando la lista cambia',
                 desc: "Scorri al file selezionato quando fissi note, mostri note discendenti, cambi l'aspetto cartella o esegui operazioni sui file."
             },
             includeDescendantNotes: {
                 name: 'Mostra note da sottocartelle / discendenti',
-                desc: 'Includi note da sottocartelle nidificate e discendenti di tag e proprietà quando visualizzi una cartella, tag o proprietà.'
+                desc: "Includi note da sottocartelle nidificate e discendenti di etichette e proprietà quando visualizzi una cartella, un'etichetta o una proprietà."
             },
-            limitPinnedToCurrentFolder: {
-                name: 'Fissare le note solo nella loro cartella',
-                desc: 'Le note fissate appaiono fissate solo nella propria cartella. Utile per le note cartella o se hai molte note fissate. Non influisce sulle viste per tag o proprietà.'
+            filterPinnedNotesByFolder: {
+                name: 'Fissa le note solo nella loro cartella',
+                desc: 'Le note fissate appaiono fissate solo nella propria cartella. Utile per le note cartella o se hai molte note fissate. Non influisce sulle viste per etichette o proprietà.'
             },
-            separateNoteCounts: {
+            separateFileCounts: {
                 name: 'Mostra conteggi file correnti e discendenti separatamente',
-                desc: 'Visualizza i conteggi file nel formato "correnti ▾ discendenti" per cartelle, tag e proprietà.'
+                desc: 'Visualizza i conteggi file nel formato "correnti ▾ discendenti" per cartelle, etichette e proprietà.'
             },
-            groupNotes: {
+            defaultGrouping: {
                 name: 'Raggruppamento predefinito',
-                desc: "Le **intestazioni** annotano l'elenco ordinato senza cambiarne l'ordine: Personalizzato mostra le intestazioni definite nel frontmatter e Data inserisce intestazioni di data. I **gruppi** riordinano l'elenco: i gruppi di cartelle e proprietà sono ordinati autonomamente e le note in ogni gruppo seguono l'ordinamento.",
+                desc: "Senza raggruppamento, l'elenco ordinato rimane piatto. Le **intestazioni** annotano l'elenco ordinato senza cambiarne l'ordine: Personalizzato mostra le intestazioni definite nel frontmatter e Data inserisce intestazioni di data. I **gruppi** riordinano l'elenco: i gruppi di cartelle e proprietà sono ordinati autonomamente e le note in ogni gruppo seguono l'ordinamento.",
                 families: {
                     headers: 'Intestazioni',
                     groups: 'Gruppi'
                 },
                 options: {
+                    none: 'Non raggruppare',
                     custom: 'Personalizzato',
                     date: 'Data',
                     folder: 'Cartella'
                 }
             },
-            showSelectedNavigationPills: {
-                name: 'Mostra sempre tutti i badge di tag e proprietà',
-                desc: 'Quando disattivato, i badge corrispondenti alla selezione di navigazione corrente vengono nascosti (ad es. il badge del tag "ricette" viene nascosto durante la navigazione nel tag "ricette"). Attiva per mantenere tutti i badge visibili.'
+            alwaysShowAllTagAndPropertyPills: {
+                name: 'Mostra sempre tutti i badge di etichette e proprietà',
+                desc: 'Quando disattivato, i badge corrispondenti alla selezione di navigazione corrente vengono nascosti (ad es. il badge dell\'etichetta "ricette" viene nascosto durante la navigazione nell\'etichetta "ricette"). Attiva per mantenere tutti i badge visibili.'
             },
             inheritPropertyValueHeaderAppearance: {
                 name: 'Decora le intestazioni dei gruppi',
@@ -1236,9 +1357,9 @@ export const STRINGS_IT = {
             },
             stickyGroupHeaders: {
                 name: 'Intestazioni di gruppo fisse',
-                desc: "Mantieni visibile l'intestazione corrente di data, cartella, proprietà o sezione fissate mentre scorri."
+                desc: "Mantieni visibile l'intestazione corrente di data, cartella, proprietà o sezione fissata mentre scorri."
             },
-            showFolderGroupPaths: {
+            showSubfolderPaths: {
                 name: 'Mostra percorsi sottocartelle',
                 desc: 'Quando raggruppi per cartella nel pannello lista, mostra i percorsi delle sottocartelle invece dei soli nomi cartella.'
             },
@@ -1260,29 +1381,38 @@ export const STRINGS_IT = {
             },
             showFileIcons: {
                 name: 'Mostra icone file',
-                desc: 'Visualizza icone file con spaziatura allineata a sinistra. Disabilitando rimuove sia icone che indentazione. Priorità: icona personalizzata > icona cartella > icona nome file > icona tipo file > icona predefinita.'
+                desc: "Visualizza icone file con spaziatura allineata a sinistra. Quando disabilitato, vengono rimosse sia le icone che l'indentazione. Priorità: icona attività incomplete > icona personalizzata > icona cartella > icona nome file > icona tipo file > icona predefinita."
+            },
+            unfinishedTaskIcon: {
+                name: 'Icona attività incomplete',
+                desc: "Sostituisci l'icona del file quando una nota contiene attività incomplete.",
+                options: {
+                    disabled: 'Disabilitato',
+                    compact: 'Modalità compatta',
+                    standardAndCompact: 'Standard e compatta'
+                }
             },
             useFolderIcon: {
                 name: 'Usa icona cartella',
                 desc: "Visualizza l'icona della cartella genitore quando non è impostata un'icona file personalizzata. Il colore della cartella viene usato quando non è impostato un colore file personalizzato."
             },
             showFileTaskProgress: {
-                name: 'Mostra attività',
+                name: 'Avanzamento attività',
                 desc: 'Mostra lo stato delle attività con barra di avanzamento e numero di attività opzionali. I colori delle attività incomplete e completate possono essere impostati separatamente con il plugin Style Settings.'
             },
             showFileTaskProgressBar: {
-                name: 'Mostra attività: barra di avanzamento',
+                name: 'Avanzamento attività: barra di avanzamento',
                 desc: "Mostra una barra di avanzamento accanto all'icona attività."
             },
             showFileTaskProgressCount: {
-                name: 'Mostra attività: numero di attività',
+                name: 'Avanzamento attività: numero di attività',
                 desc: 'Mostra il numero di attività completate e totali, ad esempio 3/7.'
             },
             hideFileTaskProgressWhenComplete: {
-                name: 'Mostra attività: nascondi al completamento',
+                name: 'Avanzamento attività: nascondi al completamento',
                 desc: "Nasconde l'avanzamento delle attività quando tutte le attività di una nota sono completate."
             },
-            showFileBackgroundUnfinishedTask: {
+            unfinishedTaskBackground: {
                 name: 'Sfondo attività incomplete',
                 desc: 'Applica un colore di sfondo quando una nota ha attività incomplete.'
             },
@@ -1290,7 +1420,7 @@ export const STRINGS_IT = {
                 name: 'Colore sfondo attività incomplete',
                 desc: 'Imposta il colore di sfondo usato quando una nota ha attività incomplete.'
             },
-            showFilenameMatchIcons: {
+            showFileNameIcons: {
                 name: 'Icone per nome file',
                 desc: 'Assegna icone ai file in base al testo nei loro nomi.'
             },
@@ -1300,7 +1430,7 @@ export const STRINGS_IT = {
                 placeholder: '# testo=icona\nriunione=ph-calendar\nfattura=ph-receipt',
                 editTooltip: 'Modifica mappature'
             },
-            showCategoryIcons: {
+            showFileTypeIcons: {
                 name: 'Icone per tipo file',
                 desc: 'Assegna icone ai file in base alla loro estensione.'
             },
@@ -1308,7 +1438,7 @@ export const STRINGS_IT = {
                 name: 'Preset icone file',
                 desc: 'Scegli le icone integrate o un preset di pacchetto icone. Le regole di estensione personalizzate sostituiscono questo preset.',
                 options: {
-                    none: 'Icone integrate'
+                    builtIn: 'Icone integrate'
                 },
                 notInstalledWarning: 'Questo pacchetto icone non è installato. Vengono mostrate invece le icone integrate.'
             },
@@ -1329,23 +1459,23 @@ export const STRINGS_IT = {
             },
             showParentFolder: {
                 name: 'Mostra cartella genitore',
-                desc: 'Visualizza il nome della cartella genitore per note in sottocartelle, tag o proprietà.'
+                desc: 'Visualizza il nome della cartella genitore per note in sottocartelle, etichette o proprietà.'
             },
-            showParentFolderFullPath: {
+            showFolderPath: {
                 name: 'Mostra percorso cartella',
-                desc: 'Mostra il percorso relativo alla cartella selezionata invece del solo nome della cartella. Tag e proprietà mostrano il percorso completo.'
+                desc: 'Mostra il percorso relativo alla cartella selezionata invece del solo nome della cartella. Etichette e proprietà mostrano il percorso completo.'
             },
-            parentFolderClickRevealsFile: {
-                name: 'Click su cartella genitore apre cartella',
-                desc: "Cliccando sull'etichetta cartella genitore apre la cartella nel pannello elenco."
+            parentFolderClickOpensFolder: {
+                name: 'Fai clic sulla cartella genitore per aprirla',
+                desc: 'Facendo clic sulla didascalia della cartella genitore si apre la cartella nel pannello lista.'
             },
             showParentFolderColor: {
                 name: 'Mostra colore cartella genitore',
-                desc: 'Usa i colori cartella sulle etichette cartella genitore.'
+                desc: 'Usa i colori cartella sulle didascalie della cartella genitore.'
             },
             showParentFolderIcon: {
                 name: 'Mostra icona cartella genitore',
-                desc: 'Mostra le icone delle cartelle accanto alle etichette cartella genitore.'
+                desc: 'Mostra le icone delle cartelle accanto alle didascalie della cartella genitore.'
             },
             showQuickActions: {
                 name: 'Mostra azioni rapide',
@@ -1363,16 +1493,16 @@ export const STRINGS_IT = {
                     vertical: 'Divisione verticale'
                 }
             },
-            narrowSidebarLayout: {
+            narrowSidebarBehavior: {
                 name: 'Quando la barra laterale è troppo stretta',
-                desc: 'Scegli cosa succede quando il pannello di navigazione e il pannello elenco non entrano affiancati.',
+                desc: 'Scegli cosa succede quando il pannello di navigazione e il pannello lista non entrano affiancati.',
                 options: {
                     none: 'Non fare nulla',
                     singlePane: 'Passa a pannello singolo',
                     vertical: 'Passa a divisione verticale'
                 }
             },
-            narrowSidebarTrigger: {
+            narrowSidebarThresholdMode: {
                 name: 'Soglia barra laterale stretta',
                 desc: 'Scegli come viene calcolata la soglia di larghezza della barra laterale.',
                 options: {
@@ -1380,92 +1510,92 @@ export const STRINGS_IT = {
                     customWidth: 'Larghezza personalizzata'
                 }
             },
-            narrowSidebarCustomWidth: {
+            narrowSidebarThresholdWidth: {
                 name: 'Larghezza soglia barra laterale stretta',
                 desc: 'Passa quando la barra laterale è più stretta di questa larghezza.',
                 resetTooltip: 'Ripristina larghezza predefinita'
             },
-            appearanceBackground: {
+            paneBackgroundColor: {
                 name: 'Colore sfondo',
                 desc: 'Scegli i colori sfondo per i pannelli navigazione e lista.',
                 options: {
                     separate: 'Sfondi separati',
-                    primary: 'Usa sfondo lista',
-                    secondary: 'Usa sfondo navigazione'
+                    listBackground: 'Usa sfondo lista',
+                    navigationBackground: 'Usa sfondo navigazione'
                 }
             },
-            appearanceScale: {
+            zoomLevel: {
                 name: 'Livello zoom',
                 desc: 'Controlla il livello di zoom complessivo di Notebook Navigator (percentuale).'
             },
-            useFloatingToolbars: {
+            useFloatingToolbarsOnIOS: {
                 name: 'Usa barre degli strumenti flottanti su iOS',
                 desc: 'Si applica solo a iOS.'
             },
-            startView: {
-                name: "Vista predefinita all'avvio",
-                desc: "Scegli quale pannello è attivo all'apertura di Notebook Navigator. Il layout a pannello singolo mostra prima questo pannello; il layout a doppio pannello gli assegna il focus della tastiera.",
+            defaultStartupView: {
+                name: 'Vista iniziale a pannello singolo',
+                desc: "Scegli quale pannello viene visualizzato all'apertura di Notebook Navigator nel layout a pannello singolo.",
                 options: {
                     navigation: 'Pannello navigazione',
-                    files: 'Pannello lista'
+                    listPane: 'Pannello lista'
                 }
             },
             toolbarButtons: {
                 name: 'Pulsanti barra strumenti',
                 desc: 'Scegli quali pulsanti appaiono nella barra strumenti. I pulsanti nascosti rimangono accessibili tramite comandi e menu.'
             },
-            createNewNotesInNewTab: {
+            openNewNotesInNewTab: {
                 name: 'Apri nuove note in una nuova scheda',
                 desc: 'Quando attivo, il comando Crea nuova nota apre le note in una nuova scheda. Quando disattivo, le note sostituiscono la scheda corrente.'
             },
             autoRevealActiveNote: {
                 name: 'Auto-mostra nota attiva',
-                desc: 'Mostra automaticamente le note quando aperte da Switcher rapido, link o ricerca.'
+                desc: 'Mostra automaticamente le note quando aperte da Selettore rapido, link o ricerca.'
             },
             autoRevealShortestPath: {
-                name: 'Rivelazione automatica: Usa il percorso più breve',
-                desc: 'Attivato: La rivelazione automatica seleziona la cartella antenata o il tag visibile più vicino. Disattivato: La rivelazione automatica seleziona la cartella effettiva del file e il tag esatto.'
+                name: 'Auto-mostra: Usa il percorso più breve',
+                desc: "Attivato: l'auto-mostra seleziona la cartella antenata o l'etichetta visibile più vicina. Disattivato: l'auto-mostra seleziona la cartella effettiva del file e l'etichetta esatta."
             },
             autoRevealIgnoreRightSidebar: {
-                name: 'Rivelazione automatica: Ignora eventi dalla barra laterale destra',
+                name: 'Auto-mostra: Ignora eventi dalla barra laterale destra',
                 desc: 'Non cambiare nota attiva quando clicchi o cambi note nella barra laterale destra.'
             },
             autoRevealIgnoreOtherWindows: {
-                name: 'Rivelazione automatica: Ignora eventi da altre finestre',
+                name: 'Auto-mostra: Ignora eventi da altre finestre',
                 desc: "Non cambiare nota attiva quando lavori con note in un'altra finestra."
             },
-            paneTransitionDuration: {
+            singlePaneAnimation: {
                 name: 'Animazione pannello singolo',
                 desc: 'Durata della transizione quando si passa tra i pannelli in modalità pannello singolo (millisecondi).',
                 resetTooltip: 'Ripristina predefinito'
             },
-            autoSelectFirstFileOnFocusChange: {
+            autoSelectFirstNote: {
                 name: 'Auto-seleziona prima nota',
-                desc: 'Apri automaticamente la prima nota quando cambi cartella, tag o proprietà.'
+                desc: 'Apri automaticamente la prima nota quando cambi cartella, etichetta o proprietà.'
             },
-            skipAutoScroll: {
+            disableShortcutAutoScroll: {
                 name: 'Disabilita auto-scroll per scorciatoie',
                 desc: 'Non scorrere il pannello navigazione quando clicchi elementi nelle scorciatoie.'
             },
-            autoExpandNavItems: {
+            expandOnSelection: {
                 name: 'Espandi alla selezione',
-                desc: 'Espandi cartelle e tag quando selezionati. In modalità pannello singolo, la prima selezione espande, la seconda mostra i file.'
+                desc: 'Espandi cartelle, etichette e proprietà quando selezionate. In modalità pannello singolo, la prima selezione espande, la seconda mostra i file.'
             },
             collapseOtherBranchesOnExpand: {
                 name: 'Un ramo espanso',
-                desc: 'Comprimi gli altri rami dello stesso albero quando espandi una cartella, un tag o una proprietà.'
+                desc: "Comprimi gli altri rami dello stesso albero quando espandi una cartella, un'etichetta o una proprietà."
             },
             springLoadedFolders: {
                 name: 'Espandi durante il trascinamento',
-                desc: 'Espandi cartelle e tag al passaggio del mouse durante il trascinamento.'
+                desc: 'Espandi cartelle ed etichette al passaggio del mouse durante il trascinamento.'
             },
             springLoadedFoldersInitialDelay: {
                 name: 'Espandi durante il trascinamento: Ritardo prima espansione',
-                desc: 'Ritardo prima che la prima cartella o tag si espanda durante un trascinamento (secondi).'
+                desc: 'Ritardo prima che la prima cartella o etichetta si espanda durante un trascinamento (secondi).'
             },
             springLoadedFoldersSubsequentDelay: {
                 name: 'Espandi durante il trascinamento: Ritardo espansioni successive',
-                desc: 'Ritardo prima di espandere cartelle o tag aggiuntivi durante lo stesso trascinamento (secondi).'
+                desc: 'Ritardo prima di espandere cartelle o etichette aggiuntive durante lo stesso trascinamento (secondi).'
             },
             navigationBanner: {
                 name: 'Banner navigazione (profilo vault)',
@@ -1485,16 +1615,16 @@ export const STRINGS_IT = {
                 name: 'Badge scorciatoia',
                 desc: "Cosa visualizzare accanto alle scorciatoie. Usa i comandi 'Apri scorciatoia 1-9' per aprire le scorciatoie direttamente.",
                 options: {
-                    index: 'Posizione (1-9)',
+                    position: 'Posizione (1-9)',
                     count: 'Numero elementi',
                     none: 'Nessuno'
                 }
             },
-            showRecentNotes: {
+            showRecentFiles: {
                 name: 'Mostra file recenti',
                 desc: 'Visualizza la sezione file recenti nel pannello navigazione.'
             },
-            hideRecentNotes: {
+            hideFileTypesFromRecentFiles: {
                 name: 'Nascondi tipi di file dai file recenti',
                 desc: 'Scegli quali tipi di file nascondere nella sezione file recenti.',
                 options: {
@@ -1504,17 +1634,17 @@ export const STRINGS_IT = {
                     allNotes: 'Note cartella e note proprietà'
                 }
             },
-            recentNotesCount: {
+            recentFilesCount: {
                 name: 'Numero file recenti',
                 desc: 'Numero di file recenti da visualizzare.'
             },
-            pinRecentNotesWithShortcuts: {
+            pinRecentFilesWithShortcuts: {
                 name: 'Fissa file recenti con scorciatoie',
                 desc: 'Includi i file recenti quando le scorciatoie sono fissate.'
             },
-            calendarEnabled: {
+            enableCalendar: {
                 name: 'Attiva calendario',
-                desc: 'Attivare le funzionalità del calendario di Notebook Navigator.'
+                desc: 'Attiva le funzionalità del calendario di Notebook Navigator.'
             },
             calendarPlacement: {
                 name: 'Posizione del calendario',
@@ -1524,12 +1654,12 @@ export const STRINGS_IT = {
                     rightSidebar: 'Barra laterale destra'
                 }
             },
-            calendarLeftPlacement: {
+            calendarSinglePanePlacement: {
                 name: 'Posizione pannello singolo',
                 desc: 'Dove viene mostrato il calendario in modalità pannello singolo.',
                 options: {
                     navigationPane: 'Pannello di navigazione',
-                    below: 'Sotto i pannelli'
+                    belowPanes: 'Sotto i pannelli'
                 }
             },
             calendarLocale: {
@@ -1551,7 +1681,7 @@ export const STRINGS_IT = {
                     thuFri: 'Giovedì e venerdì'
                 }
             },
-            calendarMonthHeadingFormat: {
+            calendarMonthNameFormat: {
                 name: 'Formato del nome del mese',
                 desc: 'Nome del mese lungo (gennaio) o abbreviato (gen).',
                 options: {
@@ -1563,7 +1693,7 @@ export const STRINGS_IT = {
                 name: 'Mostra pulsanti informazioni',
                 desc: "Mostra i pulsanti informazioni nella barra di ricerca e nell'intestazione del calendario."
             },
-            calendarWeeksToShow: {
+            calendarLeftSidebarWeeksToShow: {
                 name: 'Settimane da mostrare nella barra laterale sinistra',
                 desc: 'Il calendario nella barra laterale destra mostra sempre il mese completo.',
                 options: {
@@ -1590,7 +1720,11 @@ export const STRINGS_IT = {
             },
             calendarShowQuarter: {
                 name: 'Mostra trimestre',
-                desc: "Aggiungi un'etichetta del trimestre nell'intestazione del calendario."
+                desc: "Aggiungi una didascalia del trimestre nell'intestazione del calendario."
+            },
+            calendarShowOutsideMonthDays: {
+                name: 'Mostra i giorni degli altri mesi',
+                desc: 'Mostra i giorni del mese precedente e del mese successivo quando il calendario mostra un mese intero.'
             },
             calendarShowYearCalendar: {
                 name: 'Mostra calendario annuale',
@@ -1604,7 +1738,7 @@ export const STRINGS_IT = {
                 name: 'Mostra elementi nascosti',
                 desc: 'Quando abilitato, il calendario mostra sempre tutte le note del calendario, incluse le note nascoste dai filtri del profilo del vault.'
             },
-            calendarIntegrationMode: {
+            dailyNoteSource: {
                 name: 'Fonte note giornaliere',
                 desc: 'Fonte per le note del calendario.',
                 options: {
@@ -1624,31 +1758,71 @@ export const STRINGS_IT = {
                 }
             },
 
-            calendarCustomRootFolder: {
-                name: 'Cartella radice',
+            periodicNotesRootFolder: {
+                name: 'Cartella radice (profilo vault)',
                 desc: 'Cartella base per le note periodiche. I pattern di data possono includere sottocartelle. Cambia con il profilo del vault selezionato.',
-                placeholder: 'Personal/Diary'
+                placeholder: 'Personale/Diario'
             },
-            calendarTemplateFolder: {
+            templateFolderLocation: {
                 name: 'Posizione cartella modelli',
                 desc: 'Il selettore file modello mostra le note da questa cartella.',
-                placeholder: 'Templates',
-                usage: 'Usato dalle note calendario e dalle note cartella. Configura i modelli in Calendario > Integrazione calendario e Cartelle e note cartella > File note cartella.'
+                placeholder: 'Modelli',
+                usage: 'I modelli nella cartella dei modelli sono usati dalle note calendario, dalle note cartella, dai modelli cartella e da Nuova nota da modello. Configura i modelli del calendario in Calendario > Integrazione calendario e quelli delle note cartella in Cartelle e note cartella > File note cartella.'
             },
-            calendarCustomFilePattern: {
+            calendarDailyNotePattern: {
                 name: 'Note giornaliere',
-                desc: "Formatta percorso usando formato data Moment. Racchiudi i nomi delle sottocartelle tra parentesi quadre, es. [Work]/YYYY. Clicca sull'icona del modello per impostare un modello. Impostare la posizione della cartella modelli in Operazioni sui file > Modelli.",
+                desc: "Formatta percorso usando formato data Moment. Racchiudi i nomi delle sottocartelle tra parentesi quadre, es. [Work]/YYYY. Clicca sull'icona del modello per impostare un modello. Imposta la posizione della cartella modelli in Operazioni sui file e modelli > Modelli.",
+                placeholder: 'YYYY/YYYYMMDD',
+                parsingError: 'Il modello deve poter essere formattato e rianalizzato come una data completa (anno, mese, giorno).'
+            },
+            calendarPeriodicNotePatterns: {
                 momentDescPrefix: 'Formatta percorso usando ',
                 momentLinkText: 'formato data Moment',
                 momentDescSuffix:
-                    ". Racchiudi i nomi delle sottocartelle tra parentesi quadre, es. [Work]/YYYY. Clicca sull'icona del modello per impostare un modello. Impostare la posizione della cartella modelli in Operazioni sui file > Modelli.",
-                templaterSupportInstalled: '✅ Il plugin Templater è installato con supporto completo ai modelli.',
-                templaterSupportMissing: '⚠️ Installa il plugin Templater per il supporto completo ai modelli.',
-                placeholder: 'YYYY/YYYYMMDD',
-                example: 'Sintassi attuale: {path}',
-                parsingError: 'Il modello deve poter essere formattato e rianalizzato come una data completa (anno, mese, giorno).'
+                    ". Racchiudi i nomi delle sottocartelle tra parentesi quadre, es. [Work]/YYYY. Clicca sull'icona del modello per impostare un modello. Imposta la posizione della cartella modelli in Operazioni sui file e modelli > Modelli.",
+                example: 'Sintassi attuale: {path}'
             },
-            calendarCustomWeekPattern: {
+            templateEngine: {
+                name: 'Motore dei modelli',
+                desc: 'Motore che elabora i file modello quando Notebook Navigator crea note. Automatico usa Templater per i modelli che contengono <% quando il plugin Templater è installato. Tutti gli altri modelli usano il motore integrato.',
+                options: {
+                    automatic: 'Automatico',
+                    builtin: 'Notebook Navigator',
+                    templater: 'Templater'
+                },
+                templaterInstalled: 'Plugin Templater: installato',
+                templaterNotInstalled: 'Plugin Templater: non installato',
+                templaterAutomatic:
+                    'I modelli che contengono comandi Templater (<%) vengono elaborati da Templater. Tutti gli altri modelli vengono elaborati dal motore integrato.',
+                templaterUsage:
+                    'Tutti i modelli vengono elaborati da Templater. I token integrati nei file modello non vengono sostituiti.',
+                templaterMissingWarning:
+                    'Non è possibile creare note dai modelli. Cambia {setting} in {automatic} o {builtin} in {location}, oppure installa e attiva il plugin Templater.',
+                tokens: 'Token integrati: {{title}}, {{folder}}, {{path}}, {{date}}, {{date:FORMAT}}, {{date+1d}}, {{time}}, {{today}}, {{now}}, {{yesterday}}, {{tomorrow}}, {{monday}} a {{sunday}}, {{cursor}}. Scrivi {{!date}} per mantenere {{date}} come testo.',
+                usage: 'I token dei modelli come {{title}} e {{date}} vengono sostituiti alla creazione della nota. Configura il motore dei modelli in Operazioni sui file e modelli > Modelli.'
+            },
+            showFolderTemplateIcons: {
+                name: 'Mostra icone dei modelli cartella',
+                desc: "Contrassegna con un'icona nel riquadro di navigazione le cartelle che hanno un proprio modello."
+            },
+            templateCommands: {
+                name: 'Comandi',
+                desc: 'Ogni comando crea una nota con un nome file generato, dal proprio modello o dal modello cartella. Eseguilo dalla palette dei comandi oppure assegnalo a una scorciatoia o a un pulsante.',
+                empty: 'Nessun comando aggiunto.',
+                add: 'Aggiungi comando',
+                edit: 'Modifica',
+                unnamed: 'Comando senza nome',
+                locationCurrent: 'Cartella corrente',
+                locationFolder: 'Cartella specifica'
+            },
+            folderTemplates: {
+                name: 'Modelli cartella',
+                desc: 'Le nuove note usano il modello della loro cartella o della cartella superiore più vicina. Imposta i modelli dal menu contestuale della cartella. I modelli di calendario, note giornaliere e note cartella hanno la precedenza.',
+                empty: 'Nessun modello cartella impostato.',
+                scopeSubfolders: 'Cartella e sottocartelle',
+                scopeFolder: 'Solo questa cartella'
+            },
+            calendarWeeklyNotePattern: {
                 name: 'Note settimanali',
                 parsingError:
                     'Il modello deve poter essere formattato e rianalizzato come una settimana completa (anno settimana, numero settimana).',
@@ -1657,19 +1831,19 @@ export const STRINGS_IT = {
                 mixedWeekTokensWarning:
                     'Questo modello mescola token di settimana basati sul lunedì ("W" o "G") con token di settimana basati sulla lingua ("w" o "g"). Usa un solo insieme in modo coerente: "GGGG" con "WW" per settimane basate sul lunedì, o "gggg" con "ww" se le note settimanali devono seguire la lingua selezionata.'
             },
-            calendarCustomMonthPattern: {
+            calendarMonthlyNotePattern: {
                 name: 'Note mensili',
                 parsingError: 'Il modello deve poter essere formattato e rianalizzato come un mese completo (anno, mese).'
             },
-            calendarCustomQuarterPattern: {
+            calendarQuarterlyNotePattern: {
                 name: 'Note trimestrali',
                 parsingError: 'Il modello deve poter essere formattato e rianalizzato come un trimestre completo (anno, trimestre).'
             },
-            calendarCustomYearPattern: {
+            calendarYearlyNotePattern: {
                 name: 'Note annuali',
                 parsingError: 'Il modello deve poter essere formattato e rianalizzato come un anno completo (anno).'
             },
-            calendarTemplateFile: {
+            periodicNoteTemplateFile: {
                 current: 'File modello: {name}'
             },
             showTooltips: {
@@ -1680,9 +1854,13 @@ export const STRINGS_IT = {
                 name: 'Mostra percorso nei tooltip',
                 desc: 'Visualizza il percorso cartella sotto i nomi note nei tooltip.'
             },
+            showTooltipTags: {
+                name: 'Mostra etichette nei tooltip',
+                desc: 'Visualizza le etichette delle note nei tooltip quando la sezione etichette è attiva.'
+            },
             showTooltipWordCount: {
                 name: 'Mostra conteggio parole nei tooltip',
-                desc: 'Visualizza il conteggio delle parole delle note nei tooltip.'
+                desc: 'Visualizza il conteggio delle parole nei tooltip quando il conteggio delle parole è attivo.'
             },
             resetPaneSeparator: {
                 name: 'Ripristina posizione separatore pannelli',
@@ -1690,9 +1868,9 @@ export const STRINGS_IT = {
                 buttonText: 'Ripristina separatore',
                 notice: 'Posizione separatore ripristinata. Riavvia Obsidian o riapri Notebook Navigator per applicare.'
             },
-            settingsTransfer: {
+            importAndExportSettings: {
                 name: 'Importa ed esporta impostazioni',
-                desc: 'Esporta o importa le impostazioni di Notebook Navigator come JSON. L\u2019importazione sostituisce tutte le impostazioni.',
+                desc: "Esporta o importa le impostazioni di Notebook Navigator come JSON. L'importazione sostituisce tutte le impostazioni.",
                 importButtonText: 'Importa',
                 exportButtonText: 'Esporta',
                 import: {
@@ -1706,7 +1884,7 @@ export const STRINGS_IT = {
                     placeholder: '{\n  "folderSortOrder": "alpha-desc"\n}',
                     confirmButtonText: 'Importa',
                     confirmTitle: 'Importare le impostazioni?',
-                    confirmMessage: 'L’importazione sostituisce le impostazioni correnti di Notebook Navigator.',
+                    confirmMessage: "L'importazione sostituisce le impostazioni correnti di Notebook Navigator.",
                     backupToggleName: 'Salva le impostazioni correnti nella radice del vault prima di importare',
                     backupToggleDesc: 'Crea un file JSON con timestamp nella radice del vault.',
                     successWithBackupNotice: 'Impostazioni importate. Le impostazioni precedenti sono state salvate in {path}.',
@@ -1740,25 +1918,25 @@ export const STRINGS_IT = {
             },
             multiSelectModifier: {
                 name: 'Modificatore selezione multipla',
-                desc: 'Scegli quale tasto modificatore attiva la selezione multipla. Quando Option/Alt è selezionato, Cmd/Ctrl click apre le note in una nuova scheda.',
+                desc: 'Scegli quale tasto modificatore attiva la selezione multipla. Quando Option/Alt è selezionato, il clic con Cmd/Ctrl apre le note in una nuova scheda.',
                 options: {
-                    cmdCtrl: 'Click Cmd/Ctrl',
-                    optionAlt: 'Click Option/Alt'
+                    cmdCtrl: 'Clic con Cmd/Ctrl',
+                    optionAlt: 'Clic con Option/Alt'
                 }
             },
             enterToOpenFiles: {
                 name: 'Premi Invio per aprire i file',
                 desc: "Apri i file solo premendo Invio durante la navigazione da tastiera nell'elenco. Su macOS, questo impedisce a Invio di rinominare i file."
             },
-            shiftEnterOpenContext: {
+            shiftEnterAction: {
                 name: 'Shift+Invio',
                 desc: 'Scegli se Shift+Invio apre o rinomina il file selezionato.'
             },
-            cmdEnterOpenContext: {
+            cmdEnterAction: {
                 name: 'Cmd+Invio',
                 desc: 'Scegli se Cmd+Invio apre o rinomina il file selezionato.'
             },
-            ctrlEnterOpenContext: {
+            ctrlEnterAction: {
                 name: 'Ctrl+Invio',
                 desc: 'Scegli se Ctrl+Invio apre o rinomina il file selezionato.'
             },
@@ -1766,12 +1944,12 @@ export const STRINGS_IT = {
                 name: 'Pulsanti indietro/avanti del mouse',
                 desc: 'Azione per i pulsanti indietro e avanti del mouse su desktop.',
                 options: {
-                    none: 'Usa impostazione predefinita di sistema',
+                    systemDefault: 'Usa impostazione predefinita di sistema',
                     singlePaneSwitch: 'Cambia pannello (pannello singolo)',
                     history: 'Naviga nella cronologia'
                 }
             },
-            fileVisibility: {
+            showFileTypes: {
                 name: 'Mostra tipi file (profilo vault)',
                 desc: 'Filtra quali tipi di file vengono mostrati nel navigatore. I tipi file non supportati da Obsidian potrebbero aprirsi in applicazioni esterne.',
                 options: {
@@ -1782,7 +1960,7 @@ export const STRINGS_IT = {
             },
             homepage: {
                 name: 'Homepage',
-                desc: 'Scegli cosa Notebook Navigator apre automaticamente all\u2019avvio.',
+                desc: "Scegli cosa Notebook Navigator apre automaticamente all'avvio.",
                 current: 'Attuale: {path}',
                 chooseButton: 'Scegli file',
                 options: {
@@ -1803,19 +1981,19 @@ export const STRINGS_IT = {
                     desc: "Crea la nota periodica all'avvio o tramite comando se non esiste."
                 }
             },
-            excludedNotes: {
+            hideNotesWithPropertyRules: {
                 name: 'Nascondi note con regole di proprietà (profilo vault)',
                 desc: 'Lista di regole frontmatter separate da virgola. Usa voci `key` o `key=value` (es. status=done, published=true, archived).',
                 placeholder: 'status=done, published=true, archived'
             },
-            excludedFileNamePatterns: {
+            hideFiles: {
                 name: 'Nascondi file (profilo vault)',
                 desc: 'Lista di pattern di nomi file separati da virgola da nascondere. Supporta caratteri jolly * e percorsi / (es. temp-*, *.png, /assets/*).',
                 placeholder: 'temp-*, *.png, /assets/*'
             },
             vaultProfiles: {
                 name: 'Profilo vault',
-                desc: "I profili memorizzano visibilità tipi file, file nascosti, cartelle nascoste, tag nascosti, regole di proprietà per note nascoste, scorciatoie e banner navigazione. Cambia profilo dall'intestazione del pannello navigazione.",
+                desc: 'I profili memorizzano visibilità tipi file, file nascosti, cartelle nascoste, etichette nascoste, regole di proprietà per note nascoste, scorciatoie e banner navigazione. Cambia profilo qui o dal selettore profilo vault nel pannello navigazione.',
                 defaultName: 'Predefinito',
                 addButton: 'Aggiungi profilo',
                 editProfilesButton: 'Modifica profili',
@@ -1827,7 +2005,7 @@ export const STRINGS_IT = {
                 addModalPlaceholder: 'Nome profilo',
                 deleteModalTitle: 'Elimina {name}',
                 deleteModalMessage:
-                    'Rimuovere {name}? I filtri file, cartelle, tag e note basati su proprietà salvati in questo profilo saranno eliminati.',
+                    'Rimuovere {name}? I filtri file, cartelle, etichette e note basati su proprietà salvati in questo profilo saranno eliminati.',
                 moveUp: 'Sposta su',
                 moveDown: 'Sposta giù',
                 errors: {
@@ -1835,15 +2013,15 @@ export const STRINGS_IT = {
                     duplicateName: 'Nome profilo già esistente'
                 }
             },
-            vaultTitle: {
-                name: 'Posizione titolo vault',
-                desc: 'Scegli dove viene mostrato il titolo del vault.',
+            vaultProfileSwitcher: {
+                name: 'Selettore profilo vault',
+                desc: 'Scegli dove viene mostrato il selettore profilo vault.',
                 options: {
                     header: "Mostra nell'intestazione",
                     navigation: 'Mostra nel pannello di navigazione'
                 }
             },
-            excludedFolders: {
+            hideFolders: {
                 name: 'Nascondi cartelle (profilo vault)',
                 desc: 'Lista di cartelle da nascondere separate da virgola. Pattern nome: assets* (cartelle che iniziano con assets), *_temp (che finiscono con _temp). Pattern percorso: /archivio (solo archivio root), /res* (cartelle root che iniziano con res), /*/temp (cartelle temp un livello sotto), /progetti/* (tutte le cartelle in progetti).',
                 placeholder: 'modelli, assets*, /archivio, /res*'
@@ -1857,7 +2035,7 @@ export const STRINGS_IT = {
                 name: 'Mostra data',
                 desc: 'Visualizza la data sotto i nomi note.'
             },
-            alphabeticalDateMode: {
+            dateWhenSortingByName: {
                 name: 'Quando ordini per nome',
                 desc: 'Data da mostrare quando le note sono ordinate alfabeticamente.',
                 options: {
@@ -1866,24 +2044,24 @@ export const STRINGS_IT = {
                 }
             },
             showFileTags: {
-                name: 'Mostra tag file',
-                desc: 'Visualizza tag cliccabili negli elementi file.'
+                name: 'Mostra etichette file',
+                desc: 'Visualizza etichette cliccabili negli elementi file.'
             },
-            showFileTagAncestors: {
-                name: 'Mostra percorsi tag completi',
-                desc: "Visualizza percorsi gerarchia tag completi. Quando abilitato: 'ai/openai', 'lavoro/progetti/2024'. Quando disabilitato: 'openai', '2024'."
+            showFullTagPaths: {
+                name: 'Mostra percorsi completi delle etichette',
+                desc: "Visualizza i percorsi completi della gerarchia delle etichette. Quando abilitato: 'ai/openai', 'lavoro/progetti/2024'. Quando disabilitato: 'openai', '2024'."
             },
             colorFileTags: {
-                name: 'Colora tag file',
-                desc: 'Applica colori tag ai badge tag sugli elementi file.'
+                name: 'Colora etichette file',
+                desc: 'Applica i colori delle etichette ai loro badge sugli elementi file.'
             },
-            prioritizeColoredFileTags: {
-                name: 'Mostra tag colorati prima',
-                desc: 'Ordina i tag colorati prima degli altri tag sugli elementi file.'
+            showColoredTagsFirst: {
+                name: 'Mostra prima le etichette colorate',
+                desc: 'Ordina le etichette colorate prima delle altre etichette sugli elementi file.'
             },
             showFileTagsInCompactMode: {
-                name: 'Mostra tag file in modalità compatta',
-                desc: 'Visualizza tag quando data, anteprima e immagine sono nascosti.'
+                name: 'Mostra etichette file in modalità compatta',
+                desc: 'Visualizza le etichette quando data, anteprima e immagine sono nascoste.'
             },
             showFileProperties: {
                 name: 'Mostra proprietà file',
@@ -1893,7 +2071,7 @@ export const STRINGS_IT = {
                 name: 'Colora proprietà file',
                 desc: 'Applica i colori delle proprietà ai badge delle proprietà negli elementi file.'
             },
-            prioritizeColoredFileProperties: {
+            showColoredPropertiesFirst: {
                 name: 'Mostra proprietà colorate prima',
                 desc: 'Ordina le proprietà colorate prima delle altre proprietà negli elementi file.'
             },
@@ -1901,7 +2079,7 @@ export const STRINGS_IT = {
                 name: 'Mostra proprietà in modalità compatta',
                 desc: 'Visualizza le proprietà quando la modalità compatta è attiva.'
             },
-            textCountDisplay: {
+            textCountType: {
                 name: 'Tipo di conteggio',
                 desc: 'Scegli quali conteggi del testo mostrare negli elementi file.',
                 options: {
@@ -1929,15 +2107,30 @@ export const STRINGS_IT = {
             },
             wordCountTargetProperty: {
                 name: 'Proprietà obiettivo',
-                desc: 'Chiave della proprietà frontmatter contenente l’obiettivo di conteggio parole. Lascia vuoto per nascondere gli obiettivi.'
+                desc: "Chiave della proprietà frontmatter contenente l'obiettivo di conteggio parole. Lascia vuoto per nascondere gli obiettivi."
             },
-            showWordCountPercentage: {
+            showTargetPercentage: {
                 name: 'Mostra percentuale obiettivo',
                 desc: 'Mostra solo la percentuale di avanzamento quando è disponibile un obiettivo di conteggio parole.'
             },
-            propertyFields: {
-                name: 'Chiavi proprietà (profilo cassaforte)',
-                desc: "Chiavi proprietà dei metadati, con visibilità per chiave per la navigazione e l'elenco file.",
+            textCountActiveNotice: {
+                title: 'Il conteggio è ancora attivo',
+                summary:
+                    'I conteggi di parole o caratteri vengono ancora calcolati per tutte le note perché sono utilizzati dai seguenti elementi:',
+                more: 'e altri {count}',
+                reasons: {
+                    appearance: 'Aspetto dei file',
+                    'group-header': 'Intestazione di gruppo'
+                },
+                scopes: {
+                    folder: 'Cartella: {name}',
+                    tag: 'Tag: #{name}',
+                    property: 'Proprietà: {name}'
+                }
+            },
+            propertyKeys: {
+                name: 'Chiavi proprietà (profilo vault)',
+                desc: "Chiavi proprietà frontmatter, con visibilità per singola chiave nella navigazione e nell'elenco file.",
                 addButtonTooltip: 'Configura chiavi proprietà',
                 noneConfigured: 'Nessuna proprietà configurata',
                 singleConfigured: '1 proprietà configurata: {properties}',
@@ -1947,13 +2140,13 @@ export const STRINGS_IT = {
                 name: 'Mostra proprietà su righe separate',
                 desc: 'Mostra ogni proprietà sulla propria riga.'
             },
-            enablePropertyInternalLinks: {
-                name: 'Collega le etichette proprietà alle note',
-                desc: "Fai clic su un'etichetta proprietà per aprire la nota collegata."
+            linkPropertyPillsToNotes: {
+                name: 'Collega i badge proprietà alle note',
+                desc: 'Fai clic su un badge proprietà per aprire la nota collegata.'
             },
-            enablePropertyExternalLinks: {
-                name: 'Collega le etichette proprietà agli URL',
-                desc: "Fai clic su un'etichetta proprietà per aprire l'URL collegato."
+            linkPropertyPillsToUrls: {
+                name: 'Collega i badge proprietà agli URL',
+                desc: "Fai clic su un badge proprietà per aprire l'URL collegato."
             },
             dateFormat: {
                 name: 'Formato data',
@@ -1971,7 +2164,7 @@ export const STRINGS_IT = {
                 helpTooltip: 'Formato con Moment',
                 momentLinkText: 'formato Moment'
             },
-            showFilePreview: {
+            showNotePreview: {
                 name: 'Mostra anteprima nota',
                 desc: 'Visualizza testo anteprima sotto i nomi note.'
             },
@@ -2000,7 +2193,7 @@ export const STRINGS_IT = {
                 desc: 'Lista di proprietà frontmatter separate da virgola da controllare per testo anteprima. La prima proprietà con testo sarà usata.',
                 placeholder: 'summary, description, abstract'
             },
-            previewPropertiesFallback: {
+            fallbackToNoteContent: {
                 name: 'Ricorri al contenuto della nota',
                 desc: 'Mostra il contenuto della nota come anteprima quando nessuna delle proprietà specificate contiene testo.'
             },
@@ -2015,7 +2208,7 @@ export const STRINGS_IT = {
                     '5': '5 righe'
                 }
             },
-            fileNameRows: {
+            titleRows: {
                 name: 'Righe titolo',
                 desc: 'Numero di righe da visualizzare per i titoli note.',
                 options: {
@@ -2043,25 +2236,25 @@ export const STRINGS_IT = {
             },
             featureImageExcludeProperties: {
                 name: 'Escludi note con proprietà',
-                desc: 'Lista di proprietà frontmatter separate da virgola. Le note contenenti una di queste proprietà non memorizzano immagini di copertina.',
+                desc: 'Lista di proprietà frontmatter separate da virgola. Le note contenenti una di queste proprietà non memorizzano immagini in evidenza.',
                 placeholder: 'private, confidential'
             },
-            featureImageSize: {
+            featureImageDisplaySize: {
                 name: "Dimensione di visualizzazione dell'immagine in evidenza",
                 desc: 'Dimensione massima di rendering per le immagini in evidenza nelle liste di note.',
                 options: {
-                    standard: '64 px',
-                    large: '96 px',
-                    extraLarge: '128 px'
+                    '64': '64 px',
+                    '96': '96 px',
+                    '128': '128 px'
                 }
             },
             featureImagePixelSize: {
                 name: "Dimensione in pixel dell'immagine in evidenza",
                 desc: 'Risoluzione utilizzata per generare le miniature memorizzate delle immagini in evidenza. Aumenta questo valore se le anteprime più grandi appaiono sfocate.',
                 options: {
-                    standard: '256 x 144 px',
-                    large: '384 x 216 px',
-                    extraLarge: '512 x 288 px'
+                    '256x144': '256 x 144 px',
+                    '384x216': '384 x 216 px',
+                    '512x288': '512 x 288 px'
                 }
             },
 
@@ -2069,7 +2262,7 @@ export const STRINGS_IT = {
                 name: 'Scarica immagini esterne',
                 desc: 'Scarica immagini remote e miniature di YouTube per le immagini in evidenza.'
             },
-            hideDrawingPreviewImages: {
+            hideExportedPreviewImages: {
                 name: 'Nascondi le immagini di anteprima esportate',
                 desc: 'Nasconde i file PNG di anteprima dei disegni esportati. Attiva "Mostra elementi nascosti" per visualizzarli.'
             },
@@ -2102,30 +2295,30 @@ export const STRINGS_IT = {
                     alphaDesc: 'Z a A'
                 }
             },
-            showNoteCount: {
+            showFileCount: {
                 name: 'Mostra conteggio file',
-                desc: 'Visualizza i conteggi file accanto a cartelle, tag e proprietà.'
+                desc: 'Visualizza i conteggi file accanto a cartelle, etichette e proprietà.'
             },
-            showSectionIcons: {
+            showShortcutAndRecentItemIcons: {
                 name: 'Mostra icone per scorciatoie e elementi recenti',
                 desc: 'Visualizza icone accanto agli elementi nelle sezioni Scorciatoie e Recenti.'
             },
             interfaceIcons: {
                 name: "Icone dell'interfaccia",
-                desc: 'Modifica icone di barra strumenti, cartelle, tag, proprietà, elementi fissati, ricerca e ordinamento.',
+                desc: 'Modifica icone di barra strumenti, cartelle, etichette, proprietà, elementi fissati, ricerca e ordinamento.',
                 buttonText: 'Modifica icone'
             },
-            showIconsColorOnly: {
+            applyColorToIconsOnly: {
                 name: 'Applica colore solo alle icone',
-                desc: 'Quando abilitato, i colori personalizzati sono applicati solo alle icone. Quando disabilitato, i colori sono applicati sia alle icone che alle etichette testo.'
+                desc: 'Quando abilitato, i colori personalizzati sono applicati solo alle icone. Quando disabilitato, i colori sono applicati sia alle icone che al testo.'
             },
             navRainbowMode: {
                 name: 'Modalità colori arcobaleno (profilo vault)',
                 desc: 'Applica colori arcobaleno nel pannello di navigazione.',
                 options: {
-                    none: 'Disattivato',
-                    foreground: 'Colore del testo',
-                    background: 'Colore di sfondo'
+                    off: 'Disattivato',
+                    textColor: 'Colore del testo',
+                    backgroundColor: 'Colore di sfondo'
                 }
             },
             navRainbowFirstColor: {
@@ -2140,7 +2333,7 @@ export const STRINGS_IT = {
                 name: 'Stile di transizione',
                 desc: "Interpolazione utilizzata tra il primo e l'ultimo colore.",
                 options: {
-                    hue: 'Hue',
+                    hue: 'Tonalità',
                     rgb: 'RGB'
                 }
             },
@@ -2148,7 +2341,7 @@ export const STRINGS_IT = {
                 name: 'Applica alle scorciatoie',
                 desc: 'Applica colori arcobaleno alle scorciatoie.'
             },
-            navRainbowApplyToRecent: {
+            navRainbowApplyToRecentItems: {
                 name: 'Applica agli elementi recenti',
                 desc: 'Applica colori arcobaleno agli elementi recenti.'
             },
@@ -2166,12 +2359,12 @@ export const STRINGS_IT = {
                 }
             },
             navRainbowApplyToTags: {
-                name: 'Applica ai tag',
-                desc: 'Applica colori arcobaleno ai tag.'
+                name: 'Applica alle etichette',
+                desc: 'Applica colori arcobaleno alle etichette.'
             },
             navRainbowTagScope: {
-                name: 'Ambito tag',
-                desc: 'Seleziona quali livelli di tag avviano le assegnazioni di colore.',
+                name: 'Ambito etichette',
+                desc: 'Seleziona quali livelli di etichette avviano le assegnazioni di colore.',
                 options: {
                     root: 'Livello radice',
                     child: 'Livello figlio',
@@ -2182,7 +2375,7 @@ export const STRINGS_IT = {
                 name: 'Applica alle proprietà',
                 desc: 'Applica colori arcobaleno alle proprietà.'
             },
-            navRainbowBalanceHueLuminance: {
+            navRainbowConsistentBrightness: {
                 name: 'Luminosità uniforme tra le tonalità', // (English: Consistent brightness across hues)
                 desc: 'Interpola la luminosità tra i colori iniziale e finale durante le transizioni di tonalità.' // (English: Interpolates brightness between the start and end colors during hue transitions.)
             },
@@ -2200,17 +2393,17 @@ export const STRINGS_IT = {
                     all: 'Ogni livello'
                 }
             },
-            collapseBehavior: {
+            collapseItems: {
                 name: 'Comprimi elementi',
                 desc: 'Scegli cosa influenza il pulsante espandi/comprimi tutto.',
                 options: {
                     all: 'Tutto',
                     foldersOnly: 'Solo cartelle',
-                    tagsOnly: 'Solo tag',
+                    tagsOnly: 'Solo etichette',
                     propertiesOnly: 'Solo proprietà'
                 }
             },
-            smartCollapse: {
+            keepSelectedItemExpanded: {
                 name: 'Mantieni elemento selezionato espanso',
                 desc: "Quando comprimi, mantieni l'elemento selezionato e i suoi genitori espansi."
             },
@@ -2218,13 +2411,13 @@ export const STRINGS_IT = {
                 name: 'Ignora la root del vault quando comprimi',
                 desc: 'Quando comprimi tutti gli elementi, lascia la cartella root del vault nello stato corrente.'
             },
-            navIndent: {
+            treeIndentation: {
                 name: 'Indentazione albero',
-                desc: 'Regola la larghezza indentazione per cartelle, tag e proprietà nidificati (pixel).'
+                desc: 'Regola la larghezza indentazione per cartelle, etichette e proprietà nidificate (pixel).'
             },
             navItemHeight: {
                 name: 'Altezza elemento',
-                desc: "Regola l'altezza di cartelle, tag e proprietà nel pannello navigazione (pixel)."
+                desc: "Regola l'altezza di cartelle, etichette e proprietà nel pannello navigazione (pixel)."
             },
             navItemHeightScaleText: {
                 name: 'Scala testo con altezza elemento',
@@ -2232,7 +2425,7 @@ export const STRINGS_IT = {
             },
             showIndentGuides: {
                 name: 'Mostra guide di indentazione',
-                desc: 'Mostra guide di indentazione per cartelle, tag e proprietà nidificati.'
+                desc: 'Mostra guide di indentazione per cartelle, etichette e proprietà nidificate.'
             },
             navCountLeaderStyle: {
                 name: 'Mostra caratteri di riempimento',
@@ -2244,54 +2437,54 @@ export const STRINGS_IT = {
                     line: 'Linea'
                 }
             },
-            navRootSpacing: {
+            rootItemSpacing: {
                 name: 'Spaziatura elementi root',
-                desc: 'Spaziatura tra cartelle, tag e proprietà di livello root (pixel).'
+                desc: 'Spaziatura tra cartelle, etichette e proprietà di livello root (pixel).'
             },
             showTags: {
-                name: 'Mostra tag',
-                desc: 'Visualizza sezione tag nel navigatore.'
+                name: 'Mostra etichette',
+                desc: 'Visualizza sezione etichette nel navigatore.'
             },
             showTagIcons: {
-                name: 'Mostra icone tag',
-                desc: 'Visualizza icone accanto ai tag nel pannello navigazione.'
+                name: 'Mostra icone etichette',
+                desc: 'Visualizza icone accanto alle etichette nel pannello navigazione.'
             },
             inheritTagColors: {
-                name: 'Eredita colori dei tag',
-                desc: 'I tag figli ereditano il colore dai tag genitori.'
+                name: 'Eredita colori delle etichette',
+                desc: 'Le etichette figlie ereditano il colore dalle etichette genitore.'
             },
             tagSortOrder: {
-                name: 'Ordine tag',
-                desc: 'Fai clic destro su un tag per impostare un ordine diverso per i suoi elementi secondari.',
+                name: 'Ordine etichette',
+                desc: "Fai clic destro su un'etichetta per impostare un ordine diverso per i suoi elementi secondari.",
                 options: {
                     alphaAsc: 'A a Z',
                     alphaDesc: 'Z a A',
                     frequency: 'Frequenza',
-                    lowToHigh: 'bassa ad alta',
-                    highToLow: 'alta a bassa'
+                    lowToHigh: "dal basso all'alto",
+                    highToLow: "dall'alto al basso"
                 }
             },
-            showAllTagsFolder: {
-                name: 'Mostra cartella tag',
-                desc: 'Visualizza "Tag" come cartella comprimibile.'
+            showTagsFolder: {
+                name: 'Mostra cartella etichette',
+                desc: 'Visualizza "Etichette" come cartella comprimibile.'
             },
-            showUntagged: {
-                name: 'Mostra note senza tag',
-                desc: 'Visualizza elemento "Senza tag" per note senza alcun tag.'
+            showUntaggedNotes: {
+                name: 'Mostra note senza etichette',
+                desc: 'Visualizza elemento "Senza etichette" per note senza alcuna etichetta.'
             },
-            scopeTagsToCurrentContext: {
-                name: 'Filtra tag per selezione',
-                desc: 'Mostra solo i tag presenti nelle note nella cartella o proprietà selezionata.'
+            filterTagsBySelection: {
+                name: 'Filtra etichette per selezione',
+                desc: 'Mostra solo le etichette presenti nelle note nella cartella o proprietà selezionata.'
             },
             keepEmptyTagsProperty: {
-                name: 'Mantieni proprietà tags dopo rimozione ultimo tag',
-                desc: 'Mantieni la proprietà tags frontmatter quando tutti i tag sono rimossi. Quando disabilitato, la proprietà tags è eliminata dal frontmatter.'
+                name: 'Mantieni proprietà tags dopo rimozione ultima etichetta',
+                desc: 'Mantieni la proprietà tags frontmatter quando tutte le etichette sono rimosse. Quando disabilitato, la proprietà tags è eliminata dal frontmatter.'
             },
             showProperties: {
                 name: 'Mostra proprietà',
                 desc: 'Visualizza la sezione proprietà nel navigatore.',
                 propertyKeysInfoPrefix: 'Configura le proprietà in ',
-                propertyKeysInfoLinkText: 'Avvio > Chiavi proprietà',
+                propertyKeysInfoLinkText: 'Generale > Chiavi proprietà',
                 propertyKeysInfoSuffix: ''
             },
             showPropertyIcons: {
@@ -2303,8 +2496,8 @@ export const STRINGS_IT = {
                 desc: 'I valori delle proprietà ereditano colore e sfondo dalla loro chiave di proprietà.'
             },
             propertySortOrder: {
-                name: 'Ordine di ordinamento proprietà',
-                desc: 'Fai clic destro su una proprietà per impostare un ordine di ordinamento diverso per i suoi valori.',
+                name: 'Ordine proprietà',
+                desc: 'Fai clic destro su una proprietà per impostare un ordine diverso per i suoi valori.',
                 options: {
                     alphaAsc: 'A a Z',
                     alphaDesc: 'Z a A',
@@ -2313,28 +2506,28 @@ export const STRINGS_IT = {
                     highToLow: "dall'alto al basso"
                 }
             },
-            showAllPropertiesFolder: {
+            showPropertiesFolder: {
                 name: 'Mostra cartella proprietà',
                 desc: 'Visualizza "Proprietà" come cartella comprimibile.'
             },
-            scopePropertiesToCurrentContext: {
+            filterPropertiesBySelection: {
                 name: 'Filtra proprietà per selezione',
-                desc: 'Mostra solo le proprietà presenti nelle note nella cartella o tag selezionato.'
+                desc: 'Mostra solo le proprietà presenti nelle note nella cartella o etichetta selezionata.'
             },
             propertyHierarchyMaxDepth: {
                 name: 'Profondità massima della gerarchia',
                 desc: 'Quanti livelli annida una proprietà gerarchica sotto i suoi valori di primo livello. Un limite di sicurezza; la maggior parte dei vault non lo raggiunge mai.',
                 resetTooltip: 'Ripristina la profondità massima della gerarchia al valore predefinito'
             },
-            hiddenTags: {
-                name: 'Nascondi tag (profilo vault)',
-                desc: 'Lista di pattern tag separati da virgola. Pattern nome: tag* (inizia con), *tag (finisce con). Pattern percorso: archivio (tag e discendenti), archivio/* (solo discendenti), progetti/*/bozze (wildcard intermedio).',
+            hideTags: {
+                name: 'Nascondi etichette (profilo vault)',
+                desc: 'Lista di pattern di etichette separati da virgola. Pattern nome: tag* (inizia con), *tag (finisce con). Pattern percorso: archivio (etichetta e discendenti), archivio/* (solo discendenti), progetti/*/bozze (wildcard intermedio).',
                 placeholder: 'archivio*, *bozza, progetti/*/vecchio'
             },
-            hiddenFileTags: {
-                name: 'Nascondi note con tag (profilo vault)',
-                desc: 'Comma-separated list of tag patterns. Notes containing matching tags are hidden. Name patterns: tag* (starting with), *tag (ending with). Path patterns: archive (tag and descendants), archive/* (descendants only), projects/*/drafts (mid-segment wildcard).',
-                placeholder: 'archive*, *draft, projects/*/old'
+            hideNotesWithTags: {
+                name: 'Nascondi note con etichette (profilo vault)',
+                desc: 'Lista di pattern di etichette separati da virgola. Le note contenenti etichette corrispondenti vengono nascoste. Pattern nome: tag* (inizia con), *tag (finisce con). Pattern percorso: archivio (etichetta e discendenti), archivio/* (solo discendenti), progetti/*/bozze (wildcard intermedio).',
+                placeholder: 'archivio*, *bozza, progetti/*/vecchio'
             },
             enableFolderNotes: {
                 name: 'Abilita note cartella',
@@ -2352,29 +2545,24 @@ export const STRINGS_IT = {
             },
             folderNoteName: {
                 name: 'Nome nota cartella',
-                desc: 'Nome della nota cartella senza estensione. Lascia vuoto per usare lo stesso nome della cartella.',
-                placeholder: 'index'
-            },
-            folderNoteNamePattern: {
-                name: 'Modello nome nota cartella',
-                desc: 'Modello di nome per le note cartella senza estensione. Usa {{folder}} per inserire il nome della cartella. Se impostato, il nome della nota cartella non si applica.'
+                desc: 'Nome della nota cartella senza estensione. Usa {{folder}} per inserire il nome della cartella oppure inserisci un nome fisso come index.'
             },
             folderNoteTemplate: {
                 name: 'Modello nota cartella',
-                desc: 'File modello usato durante la creazione delle note cartella. I modelli Markdown possono usare Templater. I modelli Canvas e Base vengono copiati come contenuto del file. Impostare la posizione della cartella modelli in Operazioni sui file > Modelli.',
+                desc: 'File modello usato durante la creazione delle note cartella. I modelli Markdown possono usare Templater. I modelli Canvas e Base vengono copiati come contenuto del file. Imposta la posizione della cartella modelli in Operazioni sui file e modelli > Modelli.',
                 formatWarning: 'Il formato del modello deve corrispondere al tipo di nota cartella selezionato: .md, .canvas o .base.'
             },
-            enableFolderNoteLinks: {
+            folderNamesOpenFolderNotes: {
                 name: 'I nomi delle cartelle aprono note cartella',
                 desc: 'Facendo clic sul nome di una cartella si apre la relativa nota cartella. Quando disattivato, le note cartella forniscono solo metadati della cartella come nome, icona e colore.'
             },
             hideFolderNoteInList: {
                 name: 'Nascondi note cartella nella lista',
-                desc: "Nascondere le note cartella dall'elenco dei file."
+                desc: "Nascondi le note cartella dall'elenco dei file."
             },
             pinCreatedFolderNote: {
                 name: 'Fissa note cartella create',
-                desc: 'Fissare le note cartella quando create dal menu contestuale.'
+                desc: 'Fissa le note cartella quando vengono create dal menu contestuale.'
             },
             folderNoteOpenLocation: {
                 name: 'Apri note cartella in',
@@ -2385,7 +2573,7 @@ export const STRINGS_IT = {
                     rightSidebar: 'Barra laterale destra'
                 }
             },
-            showNearestFolderNoteInSidebar: {
+            showClosestFolderNoteInRightSidebar: {
                 name: 'Barra laterale destra: Mostra nota cartella più vicina',
                 desc: 'Quando viene selezionata una cartella, la barra laterale destra mostra automaticamente la nota cartella antenata più vicina.'
             },
@@ -2441,23 +2629,23 @@ export const STRINGS_IT = {
             },
             metadataCleanup: {
                 name: 'Pulisci metadati',
-                desc: 'Rimuove metadati orfani lasciati quando file, cartelle, tag o proprietà sono eliminati, spostati o rinominati fuori da Obsidian. Questo influisce solo sul file impostazioni Notebook Navigator.',
+                desc: 'Rimuove metadati orfani lasciati quando file, cartelle, etichette o proprietà sono eliminati, spostati o rinominati fuori da Obsidian. Questo influisce solo sul file impostazioni Notebook Navigator.',
                 buttonText: 'Pulisci metadati',
                 error: 'Pulizia impostazioni fallita',
                 loading: 'Controllo metadati...',
                 statusClean: 'Nessun metadato da pulire',
                 statusCounts:
-                    'Elementi orfani: {folders} cartelle, {tags} tag, {properties} proprietà, {files} file, {pinned} fissati, {separators} separatori'
+                    'Elementi orfani: {folders} cartelle, {tags} etichette, {properties} proprietà, {files} file, {pinned} fissati, {separators} separatori'
             },
             rebuildCache: {
                 name: 'Ricostruisci cache',
-                desc: 'Usa se riscontri tag mancanti, anteprime errate o immagini in evidenza mancanti. Questo può accadere dopo conflitti sync o chiusure inaspettate.',
+                desc: 'Usa se riscontri etichette mancanti, anteprime errate o immagini in evidenza mancanti. Questo può accadere dopo conflitti sync o chiusure inaspettate.',
                 buttonText: 'Ricostruisci cache',
                 error: 'Impossibile ricostruire cache',
                 indexingTitle: 'Indicizzazione del vault...',
                 progress: 'Aggiornamento della cache di Notebook Navigator.'
             },
-            externalIcons: {
+            iconPackManagement: {
                 downloadButton: 'Scarica',
                 downloadingLabel: 'Scaricamento...',
                 removeButton: 'Rimuovi',
@@ -2469,7 +2657,7 @@ export const STRINGS_IT = {
                 infoNote:
                     'I pacchetti icone scaricati sincronizzano lo stato installazione tra dispositivi. I pacchetti icone rimangono nel database locale su ogni dispositivo; la sync traccia solo se scaricarli o rimuoverli. I pacchetti icone si scaricano dal repository Notebook Navigator (https://github.com/johansan/notebook-navigator/tree/main/icon-assets).'
             },
-            useFrontmatterDates: {
+            useFrontmatterMetadata: {
                 name: 'Usa metadati frontmatter',
                 desc: 'Usa frontmatter per nome nota, timestamp, icone e colori'
             },
@@ -2488,17 +2676,17 @@ export const STRINGS_IT = {
                 desc: 'Campo frontmatter per colori di sfondo. Lascia vuoto per usare colori di sfondo salvati nelle impostazioni.',
                 placeholder: 'background'
             },
-            frontmatterMigration: {
+            migrateIconsAndColorsFromSettings: {
                 name: 'Migra icone e colori dalle impostazioni',
                 desc: 'Salvati nelle impostazioni: {icons} icone, {colors} colori.',
                 button: 'Migra',
                 buttonWorking: 'Migrazione...',
                 noticeNone: 'Nessuna icona o colore file salvato nelle impostazioni.',
-                noticeDone: 'Migrati {migratedIcons}/{icons} icone, {migratedColors}/{colors} colori.',
+                noticeDone: 'Migrati: {migratedIcons}/{icons} icone, {migratedColors}/{colors} colori.',
                 noticeFailures: 'Voci fallite: {failures}.',
                 noticeError: 'Migrazione fallita. Controlla console per dettagli.'
             },
-            frontmatterNameField: {
+            frontmatterNameFields: {
                 name: 'Campi nome',
                 desc: 'Elenco di campi frontmatter separati da virgola. Viene usato il primo valore non vuoto. Usa il nome file come alternativa.',
                 placeholder: 'title, name'
@@ -2513,9 +2701,9 @@ export const STRINGS_IT = {
                 desc: 'Nome campo frontmatter per timestamp modifica. Lascia vuoto per usare solo data file system.',
                 placeholder: 'modified'
             },
-            frontmatterDateFormat: {
+            frontmatterTimestampFormat: {
                 name: 'Formato timestamp',
-                desc: 'Formato usato per parsare timestamp nel frontmatter. Lascia vuoto per usare parsing ISO 8601.',
+                desc: "Formato usato per analizzare i timestamp nel frontmatter. Lascia vuoto per usare l'analisi ISO 8601.",
                 helpTooltip: 'Formato con Moment',
                 momentLinkText: 'formato Moment',
                 help: 'Formati comuni:\nYYYY-MM-DD[T]HH:mm:ss → 2025-01-04T14:30:45\nYYYY-MM-DD[T]HH:mm:ssZ → 2025-08-07T16:53:39+02:00\nDD/MM/YYYY HH:mm:ss → 04/01/2025 14:30:45\nMM/DD/YYYY h:mm:ss a → 01/04/2025 2:30:45 PM'
@@ -2526,40 +2714,49 @@ export const STRINGS_IT = {
                 buttonText: '❤️ Sponsorizza',
                 coffeeButton: '☕️ Offrimi un caffè'
             },
-            updateCheckOnStart: {
+            otherPlugins: {
+                name: 'Scopri i miei altri plugin',
+                betterPaste: 'Ripulisce testo, link e immagini incollati',
+                pixelPerfectImage: 'Ridimensionamento esatto delle immagini e altro'
+            },
+            checkForNewVersionOnStart: {
                 name: "Controlla nuova versione all'avvio",
                 desc: "Controlla nuovi rilasci plugin all'avvio e mostra notifica quando un aggiornamento è disponibile. I controlli avvengono al massimo una volta al giorno.",
                 status: 'Nuova versione disponibile: {version}'
             },
-            debugLogging: {
-                name: 'Registro di debug all’avvio',
-                desc: 'Scrive la diagnostica di avvio in un file Markdown con data e ora nella radice del vault, poi si ferma quando l’avvio si stabilizza. Il file può essere sincronizzato e può includere percorsi di file.'
+            startupDebugLogging: {
+                name: "Registro di debug all'avvio",
+                desc: "Scrive la diagnostica di avvio in un file Markdown con data e ora nella radice del vault, poi si ferma quando l'avvio si stabilizza. Il file può essere sincronizzato e può includere percorsi di file."
             },
             whatsNew: {
                 name: 'Novità in Notebook Navigator {version}',
                 desc: 'Vedi aggiornamenti e miglioramenti recenti',
                 buttonText: 'Vedi aggiornamenti recenti'
             },
+            showReleaseNotes: {
+                name: 'Mostra le novità dopo un aggiornamento',
+                desc: "Disattiva per impedire l'apertura automatica della finestra delle novità dopo gli aggiornamenti."
+            },
             masteringVideo: {
                 name: 'Padroneggiare Notebook Navigator (video)',
-                desc: 'Questo video copre tutto ciò che serve per essere produttivi in Notebook Navigator, incluse scorciatoie da tastiera, ricerca, tag e personalizzazione avanzata.'
+                desc: 'Questo video copre tutto ciò che serve per essere produttivi in Notebook Navigator, incluse scorciatoie da tastiera, ricerca, etichette e personalizzazione avanzata.'
             },
             cacheStatistics: {
                 localCache: 'Cache locale',
                 items: 'elementi',
-                withTags: 'con tag',
+                withTags: 'con etichette',
                 withPreviewText: 'con testo anteprima',
                 withFeatureImage: 'con immagine in evidenza',
                 withMetadata: 'con metadati'
             },
             metadataInfo: {
-                successfullyParsed: 'Parsati con successo',
+                successfullyParsed: 'Analizzati con successo',
                 itemsWithName: 'elementi con nome',
                 withCreatedDate: 'con data creazione',
                 withModifiedDate: 'con data modifica',
                 withIcon: 'con icona',
                 withColor: 'con colore',
-                failedToParse: 'Impossibile parsare',
+                failedToParse: 'Impossibile analizzare',
                 createdDates: 'date creazione',
                 modifiedDates: 'date modifica',
                 checkTimestampFormat: 'Controlla il formato timestamp.',

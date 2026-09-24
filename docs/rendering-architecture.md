@@ -70,7 +70,8 @@ Expensive data shaping lives outside component bodies. Examples:
   colours, and tracks virtual folders, banners, pinned shortcuts, and section ordering.
 - `useFolderDecorationState`, `useNavigationPaneSourceState`, `useNavigationPaneTreeSections`, and
   `useFileItemPillDecorationState` assemble the shared folder/tag/property source trees, root ordering, visibility
-  filters, and rainbow/metadata decoration models consumed by both panes.
+  filters, and rainbow/metadata decoration models consumed by both panes. Tag and property rainbow colors are assigned
+  from the unfiltered trees, so filter by selection does not change them.
 - `useNavigationRootReorder` exposes drag-and-drop reorder state and render helpers for root folders, tags, properties, and section
   headers.
 - `useListPaneData` assembles list pane items (pinned files, spacers, group headers, search metadata, hidden item
@@ -311,6 +312,8 @@ graph TD
   destination folders block creation unless hidden items are shown. The `calendarShowHiddenItems` setting
   disables profile visibility for the calendar, treating every note as shown.
 - Calls `onWeekCountChange` so parent panes can update scroll padding and CSS variables for the calendar layout.
+- Resolves no note for days outside the displayed month when `calendarShowOutsideMonthDays` is disabled in the full month
+  grid, so `CalendarGrid` renders those cells empty and no indicators or content are loaded for them.
 - Delegates presentation to `src/components/calendar/CalendarHeader.tsx`, `src/components/calendar/CalendarGrid.tsx`,
   and `src/components/calendar/CalendarYearPanel.tsx`.
 

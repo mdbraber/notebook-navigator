@@ -247,8 +247,8 @@ body {
     --nn-theme-file-preview-color: var(--nn-theme-foreground-muted);
     --nn-theme-file-preview-font-weight: 400;
     /* --nn-theme-file-task-color and --nn-theme-file-task-complete-color are
-       intentionally not declared here: task progress rules use var() fallbacks to detect whether
-       a theme or Style Settings set them, so customized colors can persist on selected rows. */
+       intentionally not declared here: task progress and replacement icon rules use var() fallbacks
+       to detect whether a theme or Style Settings set them, so customized colors can persist on selected rows. */
     --nn-theme-file-task-font-weight: 400;
     --nn-theme-file-task-complete-font-weight: 400;
     --nn-theme-file-date-color: var(--nn-theme-foreground-faded);
@@ -1500,6 +1500,123 @@ button.nn-icon-button.nn-icon-button-active svg:not(.nn-vault-icon-svg) {
     stroke-width: 2;
     fill: none;
 }
+/* Source: src/styles/sections/ui-tooltip.css */
+
+/* ========================================================================
+   Custom Item Tooltip
+   ======================================================================== */
+
+/*
+ * Custom hover tooltip for file, folder, and shortcut rows. Mirrors the built-in
+ * Obsidian `.tooltip` element (background, typography, radius, shadow, arrow, and
+ * pop animation) while allowing structured content such as tag pills. The element
+ * is positioned by TooltipContext with `top` at the anchor's vertical center; the
+ * base translateY(-50%) centers instant handoffs, while the animation keyframes
+ * preserve the same centering during the built-in-style pop animation.
+ */
+.nn-tooltip {
+    position: fixed;
+    z-index: var(--layer-tooltip);
+    background-color: var(--background-modifier-message);
+    color: #fafafa;
+    font-size: var(--font-ui-smaller);
+    font-weight: var(--font-medium);
+    line-height: var(--line-height-tight);
+    border-radius: var(--radius-s);
+    padding: var(--size-4-1) var(--size-4-2);
+    max-width: 300px;
+    box-shadow: 0 2px 8px var(--background-modifier-box-shadow);
+    pointer-events: none;
+    text-align: center;
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    transform: translateY(-50%);
+    animation: nn-tooltip-pop 200ms forwards ease-in-out;
+}
+
+/* Row-to-row handoffs already passed the initial delay, so replaying the opacity ramp
+   on every dense list row would keep the tooltip in a perpetual fade-in state. */
+.nn-tooltip[data-instant='true'] {
+    animation: none;
+}
+
+@keyframes nn-tooltip-pop {
+    0% {
+        opacity: 0;
+        transform: translateY(-50%) scale(1);
+    }
+    20% {
+        opacity: 0.7;
+        transform: translateY(-50%) scale(1.02);
+    }
+    40% {
+        opacity: 1;
+        transform: translateY(-50%) scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+    }
+}
+
+/* Triangle pointing at the anchor, matching the built-in tooltip arrow */
+.nn-tooltip-arrow {
+    position: absolute;
+    top: calc(50% - 5px);
+    width: 0;
+    height: 0;
+    font-size: 0;
+    line-height: 0;
+}
+
+.nn-tooltip[data-placement='right'] .nn-tooltip-arrow {
+    left: -5px;
+    border-right: 5px solid var(--background-modifier-message);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+}
+
+/* The arrow box starts at the tooltip's right edge so the triangle base touches it; the
+   built-in offset of calc(100% + 5px) relies on a margin-left the built-in base rule adds */
+.nn-tooltip[data-placement='left'] .nn-tooltip-arrow {
+    left: 100%;
+    border-left: 5px solid var(--background-modifier-message);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+}
+
+/* Secondary lines (folder path, dates) sit back so the title and pills read first */
+.nn-tooltip-muted {
+    color: color-mix(in srgb, #fafafa 75%, transparent);
+}
+
+/* Date block separated from the lines above like the blank line in built-in tooltips */
+.nn-tooltip-dates {
+    margin-top: var(--size-4-2);
+}
+
+/* Tag pills wrap to the tooltip width; the tooltip grows in height to fit all tags */
+.nn-tooltip-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--size-4-1);
+    margin-top: var(--size-4-1);
+    margin-bottom: var(--size-4-1);
+}
+
+/* Compact pill sizing inside the tooltip; custom tag colors come from the shared tag
+   pill rules, while uncustomized pills switch to light text and border because the
+   list-pane defaults are unreadable on the dark tooltip background in light themes */
+.nn-tooltip .nn-file-tag {
+    height: 18px;
+    font-size: 11px;
+    padding: 0 6px;
+    --nn-theme-file-tag-color: color-mix(in srgb, #fafafa 85%, transparent);
+    --nn-theme-file-tag-border-color: color-mix(in srgb, #fafafa 40%, transparent);
+    --nn-theme-file-tag-bg: transparent;
+}
 /* Source: src/styles/sections/layout-spacers.css */
 
 /* ========================================================================
@@ -2120,6 +2237,20 @@ button.nn-icon-button.nn-icon-button-active svg:not(.nn-vault-icon-svg) {
 }
 
 /* Folder file count - shows number of files in folder */
+/* Marks folders that have their own folder template. Placed before the note count. */
+.nn-navitem-template-indicator {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-inline-end: 4px;
+    color: var(--nn-theme-navitem-count-color);
+}
+
+.nn-navitem-template-indicator svg {
+    width: 12px;
+    height: 12px;
+}
+
 .nn-navitem-count {
     font-size: var(--nn-navitem-count-font-size);
     font-weight: var(--nn-theme-navitem-count-font-weight);
@@ -2981,6 +3112,8 @@ button.nn-navigation-calendar-year-month {
     z-index: 1;
     display: block;
     max-width: 100%;
+    /* Keeps Windows interface-font descenders inside the clipped label used for horizontal ellipsis. */
+    line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -3560,7 +3693,16 @@ button.nn-navigation-calendar-day {
 
 .nn-calendar-right-sidebar {
     --nn-calendar-right-sidebar-bg: var(--background-secondary);
-    overflow: auto;
+    /* The sidebar never scrolls. The calendar height follows its width (square day cells and
+       container-unit font sizes), so with overflow: auto the layout-consuming scrollbar on Windows
+       and Linux shrinks the calendar until it fits, disappears, and reappears on the next hover
+       relayout, which makes the calendar shake. clip rather than hidden because hidden still accepts
+       programmatic scrolling, such as focus() on a partly clipped button, which would shift the
+       content permanently with no way to scroll back. min-height: 0 because clip is not a scroll
+       container, so without it the flex item's automatic minimum size grows to the content height
+       and the surrounding view content starts scrolling instead. */
+    overflow: clip;
+    min-height: 0;
     background-color: var(--nn-calendar-right-sidebar-bg);
 }
 
@@ -4031,7 +4173,7 @@ button.nn-navigation-calendar-day {
     color: var(--nn-file-name-custom-color);
 }
 
-.nn-file-word-count-suffix {
+.nn-file-name-suffix {
     color: var(--nn-theme-file-word-count-color);
     font-weight: var(--nn-theme-file-word-count-font-weight);
 }
@@ -4118,6 +4260,16 @@ button.nn-navigation-calendar-day {
 
 .nn-file.nn-selected .nn-file-icon[data-has-color='false'] {
     color: var(--nn-theme-navitem-selected-icon-color);
+}
+
+/* A configured task color remains stable across selection states. Without one, the replacement
+   follows the same normal and selected colors as the file icon it replaces. */
+.nn-file-icon.nn-file-icon-unfinished-task[data-has-color='false'] {
+    color: var(--nn-theme-file-task-color, var(--nn-theme-navitem-icon-color));
+}
+
+.nn-file.nn-selected .nn-file-icon.nn-file-icon-unfinished-task[data-has-color='false'] {
+    color: var(--nn-theme-file-task-color, var(--nn-theme-navitem-selected-icon-color));
 }
 
 /* Quick actions panel - horizontal container for action icons */
@@ -4230,6 +4382,14 @@ button.nn-navigation-calendar-day {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}
+
+/* Emoji and icon-font providers render the glyph on the container instead of adding an SVG,
+   so they need an explicit font size to match the task indicator box. */
+.nn-file-task-progress-icon.nn-emoji-icon,
+.nn-file-task-progress-icon.nn-iconfont {
+    font-size: calc(var(--icon-size) * 0.8);
+    line-height: calc(var(--icon-size) * 0.8);
 }
 
 /* The icon has no font weight, so its stroke width tracks the state weight variable instead:
@@ -4562,7 +4722,7 @@ button.nn-navigation-calendar-day {
     );
 }
 
-.nn-file.nn-selected .nn-file-word-count-suffix {
+.nn-file.nn-selected .nn-file-name-suffix {
     color: var(--nn-selected-file-word-count-color);
 }
 
@@ -5154,6 +5314,30 @@ button.nn-list-group-header-collapse-button .nn-list-group-header-icon {
     border-right: none;
     border-bottom: 1px solid var(--nn-theme-divider-border-color);
 }
+
+/* Language loading precedes the view providers, so this shell also works before the storage skeleton mounts. */
+.nn-language-loading {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.nn-language-loading-skeleton {
+    height: 100%;
+}
+
+.nn-language-loading-status {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--size-4-3);
+    padding: var(--size-4-4);
+    color: var(--text-muted);
+    text-align: center;
+}
 /* Source: src/styles/sections/inline-rename.css */
 
 /* ========================================================================
@@ -5507,6 +5691,11 @@ body.nn-resizing {
 
 .nn-file.nn-compact.nn-context-menu-active:not(.nn-selected) .nn-file-content::after {
     border-radius: min(14px, var(--nn-theme-navitem-border-radius));
+}
+
+/* Appearance menu entries holding a per-selection custom value are marked in bold */
+.nn-menu-title-custom {
+    font-weight: 600;
 }
 /* Source: src/styles/sections/state-hidden-items.css */
 
@@ -7147,6 +7336,27 @@ body.nn-resizing {
     font-weight: 600;
 }
 
+.nn-setting-template-tokens,
+.nn-setting-template-status:not(:first-child) {
+    margin-top: 1em;
+}
+
+.nn-setting-template-status-header {
+    display: flex;
+    align-items: center;
+    gap: var(--size-2-2);
+}
+
+.nn-setting-template-status-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+
+.nn-setting-template-status-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
 .nn-setting-calendar-pattern-example-text {
     font-size: inherit;
     font-weight: var(--font-semibold);
@@ -7185,6 +7395,127 @@ body.nn-resizing {
 
 .nn-setting-info-list li + li {
     margin-top: 4px;
+}
+
+/* Folder template rows in File operations & templates > Templates: path text, then the scope dropdown and remove button on the right */
+.nn-setting-folder-template-list {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.nn-setting-folder-template-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nn-setting-folder-template-row + .nn-setting-folder-template-row {
+    margin-top: 6px;
+}
+
+.nn-setting-folder-template-text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.nn-setting-folder-template-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.nn-setting-folder-template-remove {
+    padding: 2px;
+}
+
+/* Template command rows in File operations & templates: name and summary on the left, edit and remove on the right */
+.nn-setting-template-commands {
+    flex-wrap: wrap;
+}
+
+/* Only the list wraps: the description shrinks so the add button stays on the first line */
+.nn-setting-template-commands > .setting-item-info {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.nn-setting-template-commands > .setting-item-control {
+    flex: 0 0 auto;
+}
+
+.nn-setting-template-command-list {
+    flex-basis: 100%;
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.nn-setting-template-command-list:empty {
+    display: none;
+}
+
+.nn-setting-template-command-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nn-setting-template-command-row + .nn-setting-template-command-row {
+    margin-top: 6px;
+}
+
+.nn-setting-template-command-text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.nn-setting-template-command-name {
+    color: var(--text-normal);
+}
+
+.nn-setting-template-command-summary {
+    font-size: var(--font-ui-smaller);
+}
+
+.nn-setting-template-command-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* Icon button next to the placement dropdown in the template command modal, and the icon shown in the command list */
+.nn-template-command-icon-button {
+    margin-inline-end: 8px;
+}
+
+.nn-setting-template-command-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-inline-end: 4px;
+    color: var(--text-muted);
+}
+
+.nn-setting-text-count-warning-header {
+    display: flex;
+    align-items: center;
+    gap: var(--size-2-2);
+    margin-bottom: var(--size-2-2);
+}
+
+.nn-setting-text-count-warning-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    color: var(--text-warning);
+}
+
+.nn-setting-text-count-warning-icon svg {
+    width: 16px;
+    height: 16px;
 }
 
 /* Wider text inputs for settings that benefit from more space */
@@ -7440,6 +7771,99 @@ button.nn-youtube-button svg {
     color: var(--nn-theme-foreground-muted);
     text-align: right;
     font-variant-numeric: tabular-nums;
+}
+
+/* Cards linking to the author's other plugins on the settings start page */
+.setting-item.nn-plugin-cards {
+    display: block;
+}
+
+/* One column when the settings pane is narrow, because the description needs the width */
+.nn-plugin-card-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
+    gap: var(--size-4-2);
+    margin-top: var(--size-4-2);
+}
+
+/* A button so the whole card can be reached from the keyboard. The declarations before the
+   layout undo the button styling a theme applies. */
+.nn-plugin-card {
+    height: auto;
+    padding: var(--size-4-3);
+    background-color: var(--background-secondary);
+    box-shadow: none;
+    text-align: start;
+    white-space: normal;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--size-4-3);
+    width: 100%;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    cursor: pointer;
+}
+
+.nn-plugin-card:hover {
+    border-color: var(--background-modifier-border-hover);
+    background-color: var(--background-modifier-hover);
+}
+
+.nn-plugin-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: var(--size-4-8);
+    height: var(--size-4-8);
+    border-radius: var(--radius-m);
+    background-color: var(--background-primary);
+    color: var(--text-accent);
+}
+
+/* min-width lets a long word wrap instead of stretching the card past its column */
+.nn-plugin-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--size-2-1);
+    min-width: 0;
+}
+
+.nn-plugin-card-name {
+    color: var(--text-normal);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+    line-height: 1.3;
+}
+
+/* One line whatever the language, cut with an ellipsis, so every card is the same height */
+.nn-plugin-card-description {
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Sits at the far edge, the way Obsidian marks a row that opens somewhere else. It keeps to
+   the middle of the card while the icon and the name line up at the top. */
+.nn-plugin-card-arrow {
+    display: flex;
+    align-items: center;
+    align-self: center;
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+    color: var(--text-faint);
+}
+
+.nn-plugin-card-arrow .svg-icon {
+    width: var(--icon-s);
+    height: var(--icon-s);
+}
+
+.nn-plugin-card:hover .nn-plugin-card-arrow {
+    color: var(--text-muted);
 }
 /* Source: src/styles/sections/settings-sponsor-button.css */
 
@@ -8919,6 +9343,13 @@ body.is-phone .notebook-navigator-android .nn-split-container {
     font-size: calc(var(--nn-file-icon-size-mobile, var(--nn-file-icon-size)) * var(--nn-android-font-scale-reciprocal, 1));
 }
 
+/* Task indicators are smaller than file icons, so preserve their 80% size while compensating
+   for Android textZoom. Without this override, the general icon rule above enlarges them. */
+.notebook-navigator-android .nn-mobile .nn-file-task-progress-icon.nn-emoji-icon,
+.notebook-navigator-android .nn-mobile .nn-file-task-progress-icon.nn-iconfont {
+    font-size: calc(var(--icon-size) * 0.8 * var(--nn-android-font-scale-reciprocal, 1));
+}
+
 /* Clamp height compensation - Android doesn't scale max-height, so match the compensated line-height after textZoom applies. */
 .notebook-navigator-android .nn-file-name {
     max-height: calc(var(--nn-file-title-line-height) * var(--filename-rows, 1) * var(--nn-android-font-scale, 1));
@@ -9726,7 +10157,7 @@ settings:
     -
         id: nn-theme-file-task-color
         title: File task color
-        description: Icon, bar, and count color for notes with unfinished tasks.
+        description: Color for the task display and replacement file icon in notes with unfinished tasks.
         type: variable-themed-color
         format: hex
         default-light: '#'

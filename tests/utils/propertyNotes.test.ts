@@ -23,7 +23,10 @@ import type { PropertyTreeNode } from '../../src/types/storage';
 import { showNotice } from '../../src/utils/noticeUtils';
 import { buildPropertyValueNodeId } from '../../src/utils/propertyTree';
 import { createPropertyNote, openPropertyNoteFile } from '../../src/utils/propertyNotes';
+import { DEFAULT_SETTINGS } from '../../src/settings/defaultSettings';
 import { createTestTFile } from './createTestTFile';
+
+const TEMPLATE_SETTINGS = DEFAULT_SETTINGS;
 
 // createPropertyNote's failure paths surface via Notice; spying on the real stub would touch the
 // DOM for no benefit, so the module is mocked and each notice call is asserted directly instead.
@@ -51,7 +54,7 @@ function createValueNode(key: string, valuePath: string, assignmentValue: string
  * An App stub for createPropertyNote tests: `folderName` already exists as a TFolder,
  * links never resolve by default, `fileManager.createNewMarkdownFile` creates and "registers"
  * a markdown file at the requested path (this is the real creation path
- * `createMarkdownFileFromTemplatePreferTemplater` takes when `templatePath` is null - it is
+ * `createMarkdownFileFromTemplate` takes when no template applies - it is
  * NOT `vault.create`), and the active leaf's `openFile` is a spy.
  */
 function createAppWithFolder(folderName: string): App {
@@ -257,6 +260,7 @@ describe('createPropertyNote', () => {
             commandQueue: null,
             node,
             propertyNoteFolder: 'References',
+            templateSettings: TEMPLATE_SETTINGS,
             openContext: null
         });
 
@@ -275,6 +279,7 @@ describe('createPropertyNote', () => {
             commandQueue: null,
             node,
             propertyNoteFolder: 'References',
+            templateSettings: TEMPLATE_SETTINGS,
             openContext: 'right-sidebar',
             openInRightSidebar
         });
@@ -293,6 +298,7 @@ describe('createPropertyNote', () => {
             commandQueue: null,
             node,
             propertyNoteFolder: 'References',
+            templateSettings: TEMPLATE_SETTINGS,
             openContext: null
         });
 
@@ -305,7 +311,16 @@ describe('createPropertyNote', () => {
         const app = createAppWithFolder('References');
         const node = createValueNode('status', 'draft', 'draft', ['note.md']);
 
-        expect(await createPropertyNote({ app, commandQueue: null, node, propertyNoteFolder: 'References', openContext: null })).toBeNull();
+        expect(
+            await createPropertyNote({
+                app,
+                commandQueue: null,
+                node,
+                propertyNoteFolder: 'References',
+                templateSettings: TEMPLATE_SETTINGS,
+                openContext: null
+            })
+        ).toBeNull();
     });
 
     it('returns null when the link already resolves', async () => {
@@ -313,7 +328,16 @@ describe('createPropertyNote', () => {
         app.metadataCache.getFirstLinkpathDest = () => createTestTFile('Apple.md');
         const node = createValueNode('references', 'apple', '[[Apple]]', ['note.md']);
 
-        expect(await createPropertyNote({ app, commandQueue: null, node, propertyNoteFolder: 'References', openContext: null })).toBeNull();
+        expect(
+            await createPropertyNote({
+                app,
+                commandQueue: null,
+                node,
+                propertyNoteFolder: 'References',
+                templateSettings: TEMPLATE_SETTINGS,
+                openContext: null
+            })
+        ).toBeNull();
     });
 
     it('does not overwrite an existing file at the target path', async () => {
@@ -323,7 +347,16 @@ describe('createPropertyNote', () => {
             path === 'References/Apple.md' ? createTestTFile('References/Apple.md') : null;
         const node = createValueNode('references', 'apple', '[[Apple]]', ['note.md']);
 
-        expect(await createPropertyNote({ app, commandQueue: null, node, propertyNoteFolder: 'References', openContext: null })).toBeNull();
+        expect(
+            await createPropertyNote({
+                app,
+                commandQueue: null,
+                node,
+                propertyNoteFolder: 'References',
+                templateSettings: TEMPLATE_SETTINGS,
+                openContext: null
+            })
+        ).toBeNull();
     });
 
     // Same scenario as above, but layered on top of createAppWithFolder's lookup instead of
@@ -339,7 +372,16 @@ describe('createPropertyNote', () => {
         const createNewMarkdownFile = vi.fn();
         app.fileManager.createNewMarkdownFile = createNewMarkdownFile;
 
-        expect(await createPropertyNote({ app, commandQueue: null, node, propertyNoteFolder: 'References', openContext: null })).toBeNull();
+        expect(
+            await createPropertyNote({
+                app,
+                commandQueue: null,
+                node,
+                propertyNoteFolder: 'References',
+                templateSettings: TEMPLATE_SETTINGS,
+                openContext: null
+            })
+        ).toBeNull();
         expect(createNewMarkdownFile).not.toHaveBeenCalled();
     });
 
@@ -348,7 +390,14 @@ describe('createPropertyNote', () => {
         const commandQueue = new CommandQueueService();
         const node = createValueNode('references', 'apple', '[[Apple]]', ['note.md']);
 
-        const file = await createPropertyNote({ app, commandQueue, node, propertyNoteFolder: 'References', openContext: null });
+        const file = await createPropertyNote({
+            app,
+            commandQueue,
+            node,
+            propertyNoteFolder: 'References',
+            templateSettings: TEMPLATE_SETTINGS,
+            openContext: null
+        });
 
         expect(file).not.toBeNull();
         expect(commandQueue.shouldSuppressNoteOpenReveal(file!.path)).toBe(true);
@@ -361,7 +410,14 @@ describe('createPropertyNote', () => {
         app.fileManager.getNewFileParent = getNewFileParent;
         const node = createValueNode('references', 'apple', '[[Apple]]', ['note.md']);
 
-        const file = await createPropertyNote({ app, commandQueue: null, node, propertyNoteFolder: '', openContext: null });
+        const file = await createPropertyNote({
+            app,
+            commandQueue: null,
+            node,
+            propertyNoteFolder: '',
+            templateSettings: TEMPLATE_SETTINGS,
+            openContext: null
+        });
 
         expect(getNewFileParent).toHaveBeenCalledWith('note.md');
         expect(file?.path).toBe('Inbox/Apple.md');
@@ -386,7 +442,14 @@ describe('createPropertyNote', () => {
         app.workspace.getLeaf = vi.fn().mockReturnValue({ openFile: vi.fn().mockResolvedValue(undefined) });
         const node = createValueNode('references', 'apple', '[[Apple]]', ['note.md']);
 
-        const file = await createPropertyNote({ app, commandQueue: null, node, propertyNoteFolder: 'References', openContext: null });
+        const file = await createPropertyNote({
+            app,
+            commandQueue: null,
+            node,
+            propertyNoteFolder: 'References',
+            templateSettings: TEMPLATE_SETTINGS,
+            openContext: null
+        });
 
         expect(createFolder).toHaveBeenCalledWith('References');
         expect(file?.path).toBe('References/Apple.md');
@@ -404,6 +467,7 @@ describe('createPropertyNote', () => {
             commandQueue: null,
             node,
             propertyNoteFolder: 'References/',
+            templateSettings: TEMPLATE_SETTINGS,
             openContext: null
         });
 
@@ -417,7 +481,16 @@ describe('createPropertyNote', () => {
         app.fileManager.createNewMarkdownFile = createNewMarkdownFile;
         const node = createValueNode('references', 'apple', '[[Apple]]', ['note.md']);
 
-        expect(await createPropertyNote({ app, commandQueue: null, node, propertyNoteFolder: 'References', openContext: null })).toBeNull();
+        expect(
+            await createPropertyNote({
+                app,
+                commandQueue: null,
+                node,
+                propertyNoteFolder: 'References',
+                templateSettings: TEMPLATE_SETTINGS,
+                openContext: null
+            })
+        ).toBeNull();
         expect(createNewMarkdownFile).not.toHaveBeenCalled();
         expect(showNotice).toHaveBeenCalledWith(strings.fileSystem.errors.propertyNoteFolderUnavailable, { variant: 'warning' });
     });
@@ -440,7 +513,14 @@ describe('createPropertyNote refuses a basename that would not be the file the l
         app.fileManager.createNewMarkdownFile = createNewMarkdownFile;
         const node = createValueNode('references', 'value', assignmentValue, ['note.md']);
 
-        const file = await createPropertyNote({ app, commandQueue: null, node, propertyNoteFolder: 'References', openContext: null });
+        const file = await createPropertyNote({
+            app,
+            commandQueue: null,
+            node,
+            propertyNoteFolder: 'References',
+            templateSettings: TEMPLATE_SETTINGS,
+            openContext: null
+        });
 
         expect(file).toBeNull();
         expect(createNewMarkdownFile).not.toHaveBeenCalled();

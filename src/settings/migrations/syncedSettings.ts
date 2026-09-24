@@ -19,7 +19,7 @@
 // Imports
 import type { NotebookNavigatorSettings } from '../types';
 import type { LocalStorageKeys } from '../../types';
-import type { FolderAppearance } from '../../hooks/useListPaneAppearance';
+import type { ListPaneAppearance } from '../listPaneAppearance';
 import { DEFAULT_SETTINGS } from '../defaultSettings';
 import { localStorage } from '../../utils/localStorage';
 import { cloneShortcuts, createPropertyKeysFromPropertyFields, DEFAULT_VAULT_PROFILE_ID } from '../../utils/vaultProfiles';
@@ -118,6 +118,12 @@ export function migrateLegacySyncedSettings(params: {
     delete mutableSettings.optimizeNoteHeight;
     delete mutableSettings.showPinnedIcon;
     delete mutableSettings.showPinnedGroupHeader;
+
+    const legacyShowFileIconUnfinishedTask = mutableSettings.showFileIconUnfinishedTask;
+    if (typeof storedData?.['unfinishedTaskIcon'] === 'undefined' && typeof legacyShowFileIconUnfinishedTask === 'boolean') {
+        // The legacy toggle affected standard and compact rows, so enabled values map to both modes.
+        settings.unfinishedTaskIcon = legacyShowFileIconUnfinishedTask ? 'all' : 'none';
+    }
     delete mutableSettings.showFileIconUnfinishedTask;
 
     const storedNoteGrouping = storedData ? storedData['noteGrouping'] : undefined;
@@ -154,7 +160,7 @@ export function migrateLegacySyncedSettings(params: {
     // Migrate legacy groupByDate boolean to noteGrouping dropdown
     const legacyGroupByDate = mutableSettings.groupByDate;
     if (typeof legacyGroupByDate === 'boolean' && typeof storedNoteGrouping === 'undefined') {
-        settings.noteGrouping = legacyGroupByDate ? 'date' : 'custom';
+        settings.noteGrouping = legacyGroupByDate ? 'date' : 'none';
     }
     delete mutableSettings.groupByDate;
 
@@ -189,7 +195,7 @@ export function migrateLegacySyncedSettings(params: {
     // encoded key is still configured is reconciled by the settings controller after migration.
     settings.noteGrouping = normalizeListNoteGroupingOption(settings.noteGrouping) ?? defaultSettings.noteGrouping;
 
-    const normalizeAppearanceGrouping = (collection: Record<string, FolderAppearance> | undefined): void => {
+    const normalizeAppearanceGrouping = (collection: Record<string, ListPaneAppearance> | undefined): void => {
         if (!collection) {
             return;
         }
@@ -397,17 +403,19 @@ export function migrateLegacySyncedSettings(params: {
         settings.propertySortOrder = defaultSettings.propertySortOrder;
     }
 
-    type LegacyAppearance = FolderAppearance & {
-        showDate?: boolean;
+    type LegacyAppearance = ListPaneAppearance & {
         showPreview?: boolean;
         showImage?: boolean;
     };
 
-    const migrateLegacyAppearanceMode = (appearance: LegacyAppearance | undefined): FolderAppearance | undefined => {
+    const migrateLegacyAppearanceMode = (appearance: LegacyAppearance | undefined): ListPaneAppearance | undefined => {
         if (!appearance) {
             return appearance;
         }
 
+        // Only the full slim-preset trio identifies the legacy compact mode. A stored showDate
+        // outside this trio stays untouched because showDate is a live per-selection toggle;
+        // current records never store showPreview or showImage, so the trio cannot match them.
         const isLegacyCompact =
             appearance.mode === undefined &&
             appearance.showDate === false &&
@@ -415,8 +423,8 @@ export function migrateLegacySyncedSettings(params: {
             appearance.showImage === false;
 
         if (isLegacyCompact) {
-            const migrated: FolderAppearance = { ...appearance, mode: 'compact' };
-            delete (migrated as LegacyAppearance).showDate;
+            const migrated: ListPaneAppearance = { ...appearance, mode: 'compact' };
+            delete migrated.showDate;
             delete (migrated as LegacyAppearance).showPreview;
             delete (migrated as LegacyAppearance).showImage;
             return migrated;
@@ -425,7 +433,7 @@ export function migrateLegacySyncedSettings(params: {
         return appearance;
     };
 
-    const migrateLegacyAppearances = (collection: Record<string, FolderAppearance> | undefined) => {
+    const migrateLegacyAppearances = (collection: Record<string, ListPaneAppearance> | undefined) => {
         if (!collection) {
             return;
         }
@@ -477,30 +485,53 @@ export function migrateLegacySyncedSettings(params: {
     delete mutableSettings['showFileTagsInSlimMode'];
 }
 
-// Migrates folder note template setting and removes legacy folderNoteProperties.
-export function migrateFolderNoteTemplateSetting(params: {
+// Migrates folder note settings and removes fields that no longer persist.
+export function migrateFolderNoteSettings(params: {
     settings: NotebookNavigatorSettings;
+    storedData: Record<string, unknown> | null;
     defaultSettings: NotebookNavigatorSettings;
-}): void {
-    const { settings, defaultSettings } = params;
+}): boolean {
+    const { settings, storedData, defaultSettings } = params;
     const settingsRecord = settings as unknown as Record<string, unknown>;
     const templateSetting = settings.folderNoteTemplate;
     const normalizedTemplatePath = normalizeOptionalVaultFilePath(templateSetting);
     settings.folderNoteTemplate = normalizedTemplatePath ?? defaultSettings.folderNoteTemplate;
-    if (typeof settings.folderNoteNamePattern !== 'string') {
-        settings.folderNoteNamePattern = defaultSettings.folderNoteNamePattern;
+
+    // The pattern already overrode the fixed name, so preserving that precedence keeps every
+    // existing vault on the same expected folder note filename after the two fields are merged.
+    const storedPattern = storedData?.['folderNoteNamePattern'];
+    const legacyFixedName = storedData?.['folderNoteName'];
+    if (typeof storedPattern === 'string' && storedPattern.length > 0) {
+        settings.folderNoteNamePattern = normalizeFolderNoteNamePattern(storedPattern);
+    } else if (typeof legacyFixedName === 'string' && legacyFixedName.length > 0) {
+        settings.folderNoteNamePattern = legacyFixedName;
     } else {
-        settings.folderNoteNamePattern = normalizeFolderNoteNamePattern(settings.folderNoteNamePattern);
+        settings.folderNoteNamePattern = defaultSettings.folderNoteNamePattern;
     }
+    delete settingsRecord['folderNoteName'];
 
     if (Object.prototype.hasOwnProperty.call(settingsRecord, 'folderNoteProperties')) {
         delete settingsRecord['folderNoteProperties'];
     }
+
+    if (!storedData) {
+        return false;
+    }
+
+    return (
+        Object.prototype.hasOwnProperty.call(storedData, 'folderNoteName') ||
+        (Object.prototype.hasOwnProperty.call(storedData, 'folderNoteNamePattern') && storedPattern !== settings.folderNoteNamePattern) ||
+        Object.prototype.hasOwnProperty.call(storedData, 'folderNoteProperties')
+    );
 }
 
 // Initializes newly added settings with defaults for existing users.
 export function applyExistingUserDefaults(params: { settings: NotebookNavigatorSettings }): void {
     const { settings } = params;
+
+    if (typeof settings.showReleaseNotes !== 'boolean') {
+        settings.showReleaseNotes = DEFAULT_SETTINGS.showReleaseNotes;
+    }
 
     // Initialize update check setting with default value for existing users
     if (typeof settings.checkForUpdatesOnStart !== 'boolean') {

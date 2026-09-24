@@ -21,6 +21,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1
 - Generates icon constants from `icon.svg`
 - Runs ESLint to check for code quality issues
 - Runs Stylelint and regenerates `styles.css`
+- Checks for unused localization keys and locale schema mismatches
 - Validates TypeScript types
 - Checks for unused imports and dead code
 - Formats code with Prettier
@@ -33,7 +34,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build.ps1
 
 - The build MUST complete with zero errors and zero warnings
 - The build summary must show "✅ No warnings"
-- Any lint, type-check, test, or warning failure will abort the deployment
+- Any lint, localization, type-check, test, or warning failure will abort the deployment
 - Node.js `>=24.0.0` is required by `package.json`
 
 ## build-icons.mjs
@@ -78,11 +79,11 @@ Automates the release process for the Obsidian plugin.
 **Usage:**
 
 ```bash
-node scripts/release.js                    # Publish an untagged merged version, or choose the next release
-node scripts/release.js patch              # Prepare a patch release PR
-node scripts/release.js minor              # Prepare a minor release PR
-node scripts/release.js major              # Prepare a major release PR
-node scripts/release.js patch --dry-run    # Preview release PR preparation
+node scripts/release.js                    # Publish an untagged version on main, or choose the next release
+node scripts/release.js patch              # Publish a patch release
+node scripts/release.js minor              # Publish a minor release
+node scripts/release.js major              # Publish a major release
+node scripts/release.js patch --dry-run    # Preview the release without making changes
 ```
 
 **Features:**
@@ -90,8 +91,8 @@ node scripts/release.js patch --dry-run    # Preview release PR preparation
 - Increments version numbers in `manifest.json`, `package.json`, `package-lock.json`, and `versions.json`
 - Validates git repository state (clean, on main branch, synced with remote)
 - Runs build verification before release
-- Creates a release branch and pull request with the version bump
-- With GitHub CLI, waits for release pull request checks, merges the pull request, then publishes by creating and pushing a git tag
+- Commits and pushes the version bump directly to `main`
+- Waits for the `Quality checks` workflow on that exact main commit before creating and pushing its release tag
 - Pushes the tag to trigger the GitHub Actions release workflow
 - Verifies the remote tag, GitHub release assets, release workflow result, and artifact attestations after publishing
 
@@ -106,9 +107,11 @@ node scripts/release.js patch --dry-run    # Preview release PR preparation
 - Never manually modify version numbers in files
 - Always commit all changes before running
 - Must be on main branch and synced with remote
-- An authenticated GitHub CLI is required for release pull request automation
-- If the script creates a pull request, leave it running while CI completes; it merges the pull request when checks pass and GitHub allows the merge
-- If you stop the script after merging the release pull request, run `node scripts/release.js` again to publish
+- An authenticated GitHub CLI is required to verify main CI and the published release
+- Leave the script running while CI completes; it publishes the tag after main CI passes
+- If you stop after pushing the version commit and before creating the tag, run `node scripts/release.js` again to publish
+- A rejected main push retains the local version commit; resolve the push failure, run `git push origin main`, then run `node scripts/release.js`
+- `--dry-run` previews writes, commits, pushes, and tagging without changing files, Git refs, or GitHub; it skips builds and CI waits
 
 ## gitdump.sh
 
@@ -148,6 +151,8 @@ node scripts/mdReleaseNotes.js 3.2.2      # Print release notes for a specific v
 - Reads release notes from `src/releaseNotes.ts`
 - Defaults to the latest release notes entry
 - Accepts a version argument, with or without a leading `v`
+- Prepends the optional release banner from `images/version-banners/`, using an image URL pinned to the release tag
+- Fails if a declared banner file is missing
 - Converts TypeScript object format to clean Markdown
 - Outputs formatted release notes ready for GitHub release descriptions
 - Automatically used by the release process
@@ -177,11 +182,14 @@ cp main.js manifest.json styles.css ~/Documents/ObsidianVault/.obsidian/plugins/
 Finds unused i18n keys in `src/i18n/locales/en.ts` by scanning for `strings.<keyPath>` usage across `src` (excluding `src/i18n/locales`). Also validates that every locale file matches the English locale shape.
 
 ```bash
+npm run check:strings
 node scripts/check-unused-strings.mjs          # Report and prompt before removing unused keys
 node scripts/check-unused-strings.mjs --check  # Exit non-zero if unused keys or locale shape issues exist
 node scripts/check-unused-strings.mjs --fix    # Remove unused keys without prompting
 node scripts/check-unused-strings.mjs --project-root /path/to/project-root
 ```
+
+`npm run build` runs `npm run check:strings` before TypeScript validation and bundling. This also covers the main build scripts and release workflow.
 
 To keep an intentionally dynamic key, add an allowlist comment:
 
@@ -225,3 +233,11 @@ Runs the icon pack updater from `icon-assets/scripts/update-icon-packs.ts`.
 - Uses `npx tsx` to run the TypeScript updater
 - Supports updating all packs or selected pack IDs
 - Supports check-only, forced update, and local manifest regeneration modes
+
+## build-languages.mjs
+
+Generates `languages.json` and `src/i18n/localeMetadata.ts` from the locale source files. Locale text and arrays are emitted as JSON; function-valued entries remain in the generated TypeScript alongside startup labels and date/time defaults. English remains bundled in full.
+
+Run `npm run build:languages` after editing locales. The build scripts and esbuild also run this automatically. The generated TypeScript is committed; `languages.json` is an ignored build artifact, published and attested alongside the other release assets. Downloads use the installed release tag, and the generated data ID prevents cached or downloaded text from a different build from being applied.
+
+Production builds report the byte size of `main.js`, warn at 4,500,000 bytes, and fail at 5,000,000 bytes.

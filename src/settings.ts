@@ -34,12 +34,7 @@ import { createSettingGroupFactory } from './settings/settingGroups';
 import { runAsyncAction } from './utils/async';
 import { NOTEBOOK_NAVIGATOR_ICON_ID } from './constants/notebookNavigatorIcon';
 import { SettingsDiagnosticsController } from './settings/SettingsDiagnosticsController';
-import {
-    SETTINGS_PAGE_DESCRIPTION_GETTERS,
-    SETTINGS_PAGE_GROUP_DEFINITIONS,
-    SETTINGS_PANE_DEFINITION_MAP,
-    type SettingsPaneId
-} from './settings/SettingsPaneDefinitions';
+import { SETTINGS_PAGE_GROUP_DEFINITIONS, SETTINGS_PANE_DEFINITION_MAP, type SettingsPaneId } from './settings/SettingsPaneDefinitions';
 import {
     applyAppearanceBehaviorControlValue,
     getAppearanceBehaviorControlValue,
@@ -425,7 +420,7 @@ export class NotebookNavigatorSettingTab extends PluginSettingTab {
 
         const name = definition.getLabel();
         const setting = addSetting(setting => {
-            setting.setName(name).setDesc(SETTINGS_PAGE_DESCRIPTION_GETTERS[tabId]());
+            setting.setName(name).setDesc(definition.getDescription());
             setting.addExtraButton(button => {
                 button.setIcon('lucide-chevron-right').onClick(() => this.openLegacySettingsPage(tabId));
                 button.extraSettingsEl.setAttr('aria-label', name);
@@ -501,15 +496,15 @@ export class NotebookNavigatorSettingTab extends PluginSettingTab {
         this.isFallbackSettingsDisplay = false;
         const context = this.createTabContext(this.containerEl);
 
-        // Native settings index: start resources, vault setup, then grouped page links.
+        // Native settings index: vault controls and page links come before informational resources.
         const items: SettingDefinitionItem[] = [
-            ...createStartResourcesSettingDefinitions(context),
             ...createVaultSetupSettingDefinitions(context),
             ...SETTINGS_PAGE_GROUP_DEFINITIONS.map(group => ({
                 type: 'group' as const,
                 heading: group.getHeading(),
                 items: group.items.map(tabId => this.createNativeSettingsPageDefinition(tabId))
-            }))
+            })),
+            ...createStartResourcesSettingDefinitions(context)
         ];
 
         return this.createNativeDefinitionItems(
@@ -603,7 +598,7 @@ export class NotebookNavigatorSettingTab extends PluginSettingTab {
     private createNativeSettingsPageDefinition(tabId: SettingsPaneId): SettingDefinitionPage {
         const definition = SETTINGS_PANE_DEFINITION_MAP.get(tabId);
         const name = definition?.getLabel() ?? tabId;
-        const desc = SETTINGS_PAGE_DESCRIPTION_GETTERS[tabId]();
+        const desc = definition?.getDescription() ?? '';
         const definitionItems = definition?.createDefinitions?.(this.createTabContext(this.containerEl));
         if (definitionItems) {
             let pageContainerEl: HTMLElement | null = null;
@@ -918,4 +913,3 @@ export type {
     PropertySortSecondaryOption,
     AlphabeticalDateMode
 } from './settings/types';
-export { DEFAULT_SETTINGS } from './settings/defaultSettings';

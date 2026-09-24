@@ -95,8 +95,8 @@ export function renderPropertiesTab(context: SettingsTabContext, heading?: strin
     addSettingSyncModeToggle({ setting: propertySortOrderSetting, plugin, settingId: 'propertySortOrder' });
 
     new Setting(propertiesDependentSettingsEl)
-        .setName(strings.settings.items.showAllPropertiesFolder.name)
-        .setDesc(strings.settings.items.showAllPropertiesFolder.desc)
+        .setName(strings.settings.items.showPropertiesFolder.name)
+        .setDesc(strings.settings.items.showPropertiesFolder.desc)
         .addToggle(toggle =>
             toggle.setValue(plugin.settings.showAllPropertiesFolder).onChange(async value => {
                 plugin.settings.showAllPropertiesFolder = value;
@@ -105,8 +105,8 @@ export function renderPropertiesTab(context: SettingsTabContext, heading?: strin
         );
 
     new Setting(propertiesDependentSettingsEl)
-        .setName(strings.settings.items.scopePropertiesToCurrentContext.name)
-        .setDesc(strings.settings.items.scopePropertiesToCurrentContext.desc)
+        .setName(strings.settings.items.filterPropertiesBySelection.name)
+        .setDesc(strings.settings.items.filterPropertiesBySelection.desc)
         .addToggle(toggle =>
             toggle.setValue(plugin.settings.scopePropertiesToCurrentContext).onChange(async value => {
                 plugin.settings.scopePropertiesToCurrentContext = value;
@@ -121,7 +121,7 @@ export function renderPropertiesTab(context: SettingsTabContext, heading?: strin
         `${strings.settings.items.showProperties.propertyKeysInfoPrefix}${strings.settings.items.showProperties.propertyKeysInfoLinkText}${strings.settings.items.showProperties.propertyKeysInfoSuffix}`
     );
 
-    const propertyNotesGroup = createGroup(strings.settings.sections.propertyNotes);
+    const propertyNotesGroup = createGroup(strings.settings.pages.tagsAndProperties.groups.propertyNotes);
 
     const enablePropertyNotesSetting = propertyNotesGroup.addSetting(setting => {
         setting.setName(strings.settings.items.enablePropertyNotes.name).setDesc(strings.settings.items.enablePropertyNotes.desc);

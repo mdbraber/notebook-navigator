@@ -9,6 +9,7 @@ main.js
 
 # Documentation
 docs/
+README.md
 
 # Tracked planning docs, excluded from formatting (superpowers skill workspace)
 .superpowers/
@@ -54,3 +55,5 @@ yarn.lock
 # Minified files
 *.min.js
 *.min.css
+# Generated release language pack
+languages.json

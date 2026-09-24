@@ -24,14 +24,14 @@
  *
  * 1. On plugin load, it compares the current version with the last shown version
  * 2. If version increased, it shows all release notes between versions
- * 3. If downgraded or same version, it shows the latest 5 releases
+ * 3. Same or downgraded versions never auto-display
  * 4. Individual releases can be marked with showOnUpdate: false to skip auto-display
  * 5. Users can always manually access release notes via plugin settings
  *
- * The lastShownVersion is stored in plugin settings to track what the user has seen.
+ * The lastShownVersion is stored in synced settings and device-local storage. The greater value is
+ * used so synced devices normally share one display while stale settings cannot repeat it locally.
  */
 
-import { compareVersions } from './utils/versionUtils';
 export { compareVersions } from './utils/versionUtils';
 
 /**
@@ -41,7 +41,7 @@ export { compareVersions } from './utils/versionUtils';
  * - Bold text: **text**
  * - Critical emphasis (red + bold): ==text==
  * - Inline code: `code`
- * - Markdown link: [label](https://example.com)
+ * - Markdown link: [label](https://example.com) or [label](obsidian://action)
  * - Auto-link: https://example.com
  *
  * Supported block formats in info:
@@ -78,8 +78,8 @@ export interface ReleaseNote {
     date: string;
     /** If false, skip automatic modal display for this version during startup */
     showOnUpdate?: boolean;
-    /** Optional banner image source. true uses version as banner id, string uses explicit URL or banner id */
-    bannerUrl?: boolean | string;
+    /** File name inside images/version-banners, extension included, such as '3.3.4.gif'. */
+    banner?: string;
     /** When true, the banner opens the full image in a new tab */
     bannerClickable?: boolean;
     /** Optional autoplay video source. true uses version as video id, string uses explicit URL or video id */
@@ -106,6 +106,132 @@ export interface ReleaseNote {
  */
 const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: '3.4.3',
+        date: '2026-09-24',
+        showOnUpdate: true,
+        banner: '3.4.3.jpg',
+        info: 'We just reached 1 million downloads! What a milestone! Thank you for using Notebook Navigator and for all your support and feedback!',
+        new: [
+            'New `{{number}}` token for the file name format of ==Create note commands==: `Note {{number:00}}` names notes `Note 01`, `Note 02` and so on, continuing from the highest number already used by notes with the same name pattern in the folder, and templates can insert the same number with `{{number}}`.'
+        ],
+        improved: [
+            'Moved all translations except English out of the plugin into a language pack that is downloaded once per plugin version and cached on the device, **reducing the plugin file size from 4.9 MB to 2.6 MB**, keeping it well below the 5 MB file size limit of Obsidian Sync Standard, and improving startup times.'
+        ],
+        changed: [
+            'Changed ==Color list pane title== to apply the color to the title text even when ==Apply color to icons only== is enabled.'
+        ],
+        fixed: [
+            'Switching between a Base folder note and another folder note in the right sidebar added a new pane each time and has been fixed [#1498](https://github.com/johansan/notebook-navigator/issues/1498).',
+            '`{{cursor}}` in a template did not move the cursor in new notes and has been fixed [#1501](https://github.com/johansan/notebook-navigator/issues/1501).',
+            'Templater `<% tp.file.cursor() %>` was left as text in notes created by ==Create note commands==, folder notes, and calendar notes and has been fixed [#1510](https://github.com/johansan/notebook-navigator/issues/1510).',
+            'Middle-clicking shortcuts, recent notes, folder notes, and calendar notes on Linux pasted the primary selection into the note and has been fixed [#1505](https://github.com/johansan/notebook-navigator/issues/1505).',
+            'Tag and property rainbow colors shifted on each selection with ==Filter tags by selection== or ==Filter properties by selection== enabled and did not match the list pane pills, which has been fixed.',
+            '`Add to shortcuts` from the command palette added a previously selected folder or tag instead of the open note and has been fixed [#1511](https://github.com/johansan/notebook-navigator/issues/1511).',
+            'Preview text left out links and formatted text containing a hashtag, such as `Issue #860`, and removed hashtags that Obsidian does not treat as tags, which has been fixed [#1514](https://github.com/johansan/notebook-navigator/issues/1514).'
+        ]
+    },
+    {
+        version: '3.4.1',
+        date: '2026-09-14',
+        showOnUpdate: true,
+        banner: '3.4.1.jpg',
+        info: 'Many users told me they do not want to install [Templater](https://community.obsidian.md/plugins/templater-obsidian), [QuickAdd](https://community.obsidian.md/plugins/quickadd) or [Commander](https://community.obsidian.md/plugins/cmdr) but would still want the functionality from those plugins. Notebook Navigator 3.4 adds important parts of those plugins to its core: a customizable built-in template engine (Templater), new create note commands (QuickAdd) and the option to place commands to the ribbon or tab bar buttons (Commander). Thank you for using Notebook Navigator!',
+        new: [
+            'A new customizable built-in template engine for calendar notes, folder notes and `New note from template` that replaces tokens such as `{{title}}`, `{{date}}`, `{{date+1d}}`, `{{yesterday}}`, `{{monday}}`, `{{time}}`, `{{now}}` and `{{cursor}}` without needing the Templater plugin (see the [Templates section in the README](https://github.com/johansan/notebook-navigator#106-templates) for the full list).',
+            'New setting in `File operations & templates`: ==Template engine== with `Automatic` (will use Templater for files containing `<%`, otherwise the built-in engine), `Notebook Navigator` and `Templater`.',
+            '==Create note commands==: under `File operations & templates` you can now add commands that create a note with a generated file name such as `{{date:YYYYMMDD}} {{prompt:Title}}` from a template or the folder template, in the current or a specific folder, ready to run from the command palette, a hotkey, or a button with its own icon on the ribbon or the tab bar.',
+            '==Folder templates==: right-click a folder, including the vault root, and choose `Set folder template...` so every new note in that folder or its subfolders starts from the template, with the closest folder winning. Lots of flexiblitity, such as apply to all subfolders or current folder only, and option to show or hide an icon in navigation pane for folders with templates assigned.',
+            'New setting in `List pane`: ==Color list pane title== applies the color of the selected folder, tag or property to the list pane title.'
+        ],
+        changed: [
+            'Renamed the `Vault title placement` setting to `Vault profile switcher` and changed so it is now hidden if only one vault profile exists [#1494](https://github.com/johansan/notebook-navigator/issues/1494).'
+        ],
+        fixed: [
+            'When the calendar in the right sidebar was slightly taller than its pane on Windows or Linux, hovering days or the month header made the calendar shake as the scrollbar appeared and disappeared. The calendar sidebar now never scrolls and keeps a stable size [#1492](https://github.com/johansan/notebook-navigator/issues/1492).',
+            'When moving selected files, files that remain in the current list, such as notes moved between folders while a tag is selected, now stay selected, and only files that leave the list are deselected [#1488](https://github.com/johansan/notebook-navigator/issues/1488).'
+        ]
+    },
+    {
+        version: '3.3.7',
+        date: '2026-09-07',
+        showOnUpdate: false,
+        fixed: [
+            'Obsidian 1.14 added support for colored highlights by placing circles inside the highlight (🔴🟠🟡🟢🔵🟣). These are now removed from the preview text in list pane.',
+            'Middle-clicking a file on Linux now opens it in a new tab without pasting the primary selection into the note.',
+            'When grouping notes by a property with `Group by`, a link value such as `[[Project Note]]` now shows as `Project Note` in the group header, matching how it appears in the property pills [#1478](https://github.com/johansan/notebook-navigator/issues/1478).'
+        ]
+    },
+    {
+        version: '3.3.6',
+        date: '2026-09-01',
+        showOnUpdate: true,
+        new: [
+            'New setting in Appearance & behavior > Desktop appearance: ==Show tags in tooltips==: displays the tags of a note as colored pills in the hover tooltip. Default disabled.',
+            'If you do not want to see custom group headers in a specific view like tags or properties, you can now pick the new sort option `None` under `Group by`. This can also be the default group option.'
+        ],
+        improved: [
+            'Rebuilt the **hover tooltips** with the same look and feel as the built-in Obsidian tooltips but with less flickering and support for tag pills and text hierarchy.',
+            'Added a notice under File display > **Word and character count** that lists the file appearances and group headers that keep word or character counting active, which can have a negative impact on performance.'
+        ],
+        changed: [
+            'Changed ==Show word count in tooltips== to show word counts only when word counts are enabled, so the tooltip setting no longer keeps word counting enabled just for the tooltip.'
+        ],
+        fixed: [
+            'When dragging multiple selected files to a folder, all files are now moved instead of only the first (issue was introduced in 3.2.1) [#1466](https://github.com/johansan/notebook-navigator/issues/1466).',
+            'Word counting for files now stays disabled for custom sort orders unless a list contains a custom group header that shows a word count.'
+        ]
+    },
+    {
+        version: '3.3.5',
+        date: '2026-08-23',
+        showOnUpdate: false,
+        improved: ["You can now turn off the `What's new` dialog on startup with the new setting ==Show release notes after updating==."],
+        fixed: [
+            'When the navigator starts in a sidebar too narrow for dual panes, it now properly respects ==Single-pane startup view== instead of always showing the list pane (issue was introduced in 3.1.4 with the automatic switch between single and dual panes).'
+        ]
+    },
+    {
+        version: '3.3.4',
+        date: '2026-08-17',
+        showOnUpdate: true,
+        banner: '3.3.4.gif',
+        info: 'I just launched a new plugin: [Better Paste](obsidian://show-plugin?id=better-paste)!\n\nYou can now finally paste images from Safari to Obsidian, it cleans up tracking data from URLs, it cleans up AI-generated text, it let\'s you choose if you want commas inside ("x," ) or outside ("x", ) quotes, it fetches page titles for URLs like the plugin **Auto Link Title** which hasn\'t been updated in years, it cleans up text copied from terminal, and much more.\n\n**Better Paste** is already saving me lots of time every day, so feel free to give it a try and let me know if you like it!',
+        new: [
+            'New appearance menu options: You can now show or hide `Date` and `Parent folder` per folder, tag, and property, for example turning them off globally and enabling them only for the root folder.'
+        ],
+        improved: [
+            'Changed settings sliders to match Obsidian 1.13 style with reset buttons to the left.',
+            'Improved all 20 language translations. They now better match built-in Obsidian strings and usage context.'
+        ],
+        changed: [
+            'Merged the two folder note name settings into one: ==Folder note name== that supports both fixed names and patterns.',
+            'Moved release notes, the mastering video, support links, and other plugin links into the new ==About== section at the bottom of settings.'
+        ],
+        fixed: [
+            '`New canvas` is now hidden if the Canvas core plugin is disabled.',
+            'Clicking a folder note in navpane with folder notes showing in list pane now properly selects it.',
+            'Submenus now close properly after selecting an option on mobile devices.'
+        ]
+    },
+    {
+        version: '3.3.3',
+        date: '2026-08-09',
+        showOnUpdate: true,
+        banner: '3.3.3.jpg',
+        new: [
+            "You can now **change the display of tags, properties, tasks, and word counts for each location!** Maybe you want word counts only for a specific folder, or you don't want to show tasks in another folder. This is now possible! Just click the new ==Appearance== menu in the list pane (see screenshot above).",
+            "When I added the new task display in 3.3.1 I removed the unfinished task icon. Unfortunately this meant no way of showing unfinished tasks in compact mode. So I put it back, and made it better. You can now choose if you want the unfinished task icon to appear in only compact or in both display modes. You'll find it at File display > Icon > ==Unfinished task icon==. Default set to compact mode.",
+            'New setting: Calendar > ==Show days from other months==. You can now leave the days before and after the current month empty, so only the days of the month are shown. Only applies when calendar is showing a full month. Enabled by default.'
+        ],
+        fixed: [
+            'Fixed selecting the default sort direction or property group order resetting the selected sort field or grouping property (issue was introduced with the new group and sort settings in 3.3.1).',
+            "Fixed an issue where the `What's new` dialog repeatedly reappeared on some sync providers.",
+            'Fixed renamed notes disappearing from the list when viewing a tag until you switched to another tag and back.',
+            'Fixed the bottom of month labels such as `Aug` being cut off in the year calendar on Windows.',
+            'Fixed `New note` setting a property to `true` when you created the note from a property name, such as `Categories`, instead of from one of its values. The new property is now empty.'
+        ]
+    },
+    {
         version: '3.3.2',
         date: '2026-08-02',
         showOnUpdate: false,
@@ -115,7 +241,7 @@ const RELEASE_NOTES: ReleaseNote[] = [
         version: '3.3.1',
         date: '2026-08-02',
         showOnUpdate: true,
-        bannerUrl: true,
+        banner: '3.3.1.jpg',
         info: "Lots of nice new things in this release! First up is a new **task display** in the list pane (see screenshot above). As usual you can customize everything and disable it if you don't want it.\n\nFor you power users out there you can finally set **sort by property** and **group by property** as default across the entire vault.\n\nAnd I know many of you have wanted this for a while now - if you hide the root folder **you can now temporarily show the root folder with Show hidden items**.\n\nHave a great day and thank you for using Notebook Navigator!",
         new: [
             'Much better task display in the list pane! Notes containing tasks now show a task icon, progress bar, and completed count, such as `5/7`, on the same line as the date and parent folder! Everything is optional of course, but this is now enabled by default. You will find all related settings in File display > ==Show tasks==. If you want a green color for completed tasks you can change this with the Style Settings plugin.',
@@ -199,7 +325,7 @@ const RELEASE_NOTES: ReleaseNote[] = [
         version: '3.2.3',
         date: '2026-07-09',
         showOnUpdate: true,
-        bannerUrl: true,
+        banner: '3.2.3.jpg',
         info: 'After making startup much faster in 3.2.0, I took the time to go through everything that runs when you actually use the plugin: scrolling, switching folders, typing in notes, editing tags, and moving folders.\n\nRendering while scrolling is now 15-25% more efficient, switching folders builds the list about 60% faster, warm starts load storage about 5 times faster, background processing while typing is cut in half, and moving a folder now batches its database writes instead of writing every file separately.\n\nYou should notice these improvements in your daily use, especially if you have a large vault. Thank you for using Notebook Navigator!',
         new: [
             '**Calendar.** New setting: Calendar > ==Show tasks==. You can now hide the indicator on days, weeks, and months with unfinished tasks. Enabled by default.',
@@ -230,7 +356,7 @@ const RELEASE_NOTES: ReleaseNote[] = [
         version: '3.2.1',
         date: '2026-06-29',
         showOnUpdate: true,
-        bannerUrl: true,
+        banner: '3.2.1.jpg',
         info: 'You can now **rename files, tags and properties inline** using Enter (macOS) or F2 (Windows and Linux)! And we got more optimizations! This release significantly reduces **preview work while typing** and also improves **drag and drop performance**. Previously there were lots of processing happening in the background every time Obsidian updated the current file when typing, now all actions are heavily gated.',
         new: [
             '**Inline rename.** ==Rename files, folders, tags, and properties inline== with Enter on macOS or F2 on Windows/Linux. The keyboard command is customizable with the `pane:rename` action.',
@@ -256,7 +382,7 @@ const RELEASE_NOTES: ReleaseNote[] = [
         version: '3.2.0',
         date: '2026-06-21',
         showOnUpdate: true,
-        bannerUrl: true,
+        banner: '3.2.0.jpg',
         info: '**This release makes Notebook Navigator start MUCH faster!** Most feature code now loads the first time you use a feature instead of while Obsidian starts up, and several background tasks no longer run during plugin load. Many users will see almost a tenfold improvement to startup time.',
         new: [
             '==New icon and color picker!== Redesigned and merged the icon and color pickers into a unified panel with preview, saturation/value rectangle and a new hue slider.',
@@ -312,7 +438,7 @@ const RELEASE_NOTES: ReleaseNote[] = [
         version: '3.1.0',
         date: '2026-06-07',
         showOnUpdate: true,
-        bannerUrl: true,
+        banner: '3.1.0.jpg',
         bannerClickable: true,
         info: 'This version adds two fantastic new features: ==Open folder notes in right sidebar== and ==Right sidebar: Show closest folder note==. When these settings are enabled, selecting a folder will now automatically open its folder note or the closest ancestor folder note in the right sidebar! Super useful for scratch pads related to different areas of your vault.\n\nThis release also includes dozens of ==list pane and navigation pane performance improvements==. Notebook Navigator now does less work when scrolling and moving through notes, folders, tags and properties. Give it a try and let me know if you notice any difference!',
         new: [
@@ -345,7 +471,7 @@ const RELEASE_NOTES: ReleaseNote[] = [
         version: '3.0.2',
         date: '2026-05-29',
         showOnUpdate: true,
-        bannerUrl: true,
+        banner: '3.0.2.jpg',
         info: 'Settings search, finally! Obsidian 1.13 introduced a completely new Settings window that stays open and supports text search. All settings in Notebook Navigator have been meticulously rewritten to fully support this new structure, while still providing support for older versions like 1.11 and 1.12. Give it a try and let me know how you like it.',
         new: [
             '**Settings.** Notebook Navigator now support the new ==Obsidian 1.13 settings API==, including the new Settings dialog and settings search.'
@@ -363,7 +489,7 @@ const RELEASE_NOTES: ReleaseNote[] = [
         version: '3.0.1',
         date: '2026-05-26',
         showOnUpdate: true,
-        bannerUrl: true,
+        banner: '3.0.1.jpg',
         info: 'Notebook Navigator should start quickly on all devices. If you feel Notebook Navigator starts slowly, then please enable the new setting "Startup debug logging", restart, review the generated markdown file, and upload it to https://github.com/johansan/notebook-navigator as a bug report and I will take a look at it.',
         new: [
             '**List pane.** You can now ==merge notes in the list pane==! Right click several files or a group header to create a new note from selected files. You can also use it through the command "Merge notes".',
@@ -455,37 +581,4 @@ export function isReleaseAutoDisplayEnabled(version: string): boolean {
         return true;
     }
     return note.showOnUpdate !== false;
-}
-
-/**
- * Determines whether release notes should appear automatically when upgrading between two versions.
- *
- * Upgrade decision rule:
- * - Evaluate release notes in the semantic range (fromVersion, toVersion]
- * - Return true when at least one note in that range has showOnUpdate not explicitly set to false
- *
- * Range resolution:
- * - If both versions exist in RELEASE_NOTES, use their index range in the ordered list
- * - If either version is missing, resolve the range by semantic version comparisons
- *
- * Non-upgrade transitions (same version or downgrade) use the target version setting.
- */
-export function shouldAutoDisplayReleaseNotesForUpdate(fromVersion: string, toVersion: string): boolean {
-    if (compareVersions(toVersion, fromVersion) <= 0) {
-        return isReleaseAutoDisplayEnabled(toVersion);
-    }
-
-    const fromIndex = RELEASE_NOTES.findIndex(note => note.version === fromVersion);
-    const toIndex = RELEASE_NOTES.findIndex(note => note.version === toVersion);
-
-    const releaseNotesInUpgradePath =
-        fromIndex === -1 || toIndex === -1
-            ? RELEASE_NOTES.filter(note => compareVersions(note.version, fromVersion) > 0 && compareVersions(note.version, toVersion) <= 0)
-            : RELEASE_NOTES.slice(Math.min(fromIndex, toIndex), Math.max(fromIndex, toIndex));
-
-    if (releaseNotesInUpgradePath.length === 0) {
-        return isReleaseAutoDisplayEnabled(toVersion);
-    }
-
-    return releaseNotesInUpgradePath.some(note => note.showOnUpdate !== false);
 }

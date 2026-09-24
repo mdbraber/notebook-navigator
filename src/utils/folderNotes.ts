@@ -17,9 +17,18 @@
  */
 
 import { App, type PaneType, TFile, TFolder } from 'obsidian';
+import type { SelectionDispatch } from '../context/selection/types';
 import { strings } from '../i18n';
+import type { FolderTemplateMapping, TemplateEngineSetting } from '../settings/types';
 import { FolderNoteType, FOLDER_NOTE_TYPE_EXTENSIONS, FolderNoteCreationPreference } from '../types/folderNote';
-import { buildPathInFolder, createDatabaseContent, createMarkdownFileFromTemplatePreferTemplater } from './fileCreationUtils';
+import {
+    buildPathInFolder,
+    createDatabaseContent,
+    createMarkdownFileFromTemplate,
+    getFolderTemplateFile,
+    getMarkdownTemplateFile
+} from './fileCreationUtils';
+import { applyPendingTemplateCursor } from './templateCursor';
 import type { FolderNoteNameSettings } from './folderNoteName';
 import { CommandQueueService } from '../services/CommandQueueService';
 import { promptForFolderNoteType } from '../modals/FolderNoteTypeModal';
@@ -33,14 +42,7 @@ import {
     resolveFolderNoteNameForFolder
 } from './folderNoteLookup';
 
-export {
-    getFolderNote,
-    getFolderNoteDetectionSettings,
-    isFolderNote,
-    isSupportedFolderNoteExtension,
-    resolveFolderNoteNameForFolder,
-    resolveRootFolderNoteSourceName
-} from './folderNoteLookup';
+export { getFolderNote, isFolderNote, isSupportedFolderNoteExtension, resolveFolderNoteNameForFolder } from './folderNoteLookup';
 export type { FolderNoteDetectionSettings } from './folderNoteLookup';
 
 export type FolderNoteOpenContext = PaneType | 'right-sidebar' | null;
@@ -61,6 +63,10 @@ interface OpenFolderNoteFileParams {
 export interface FolderNoteCreationSettings extends FolderNoteNameSettings {
     folderNoteType: FolderNoteCreationPreference;
     folderNoteTemplate: string | null;
+    templateEngine: TemplateEngineSetting;
+    dateFormat: string;
+    timeFormat: string;
+    folderTemplates: Record<string, FolderTemplateMapping>;
 }
 
 interface CreateFolderNoteOptions {
@@ -98,6 +104,18 @@ export function isFolderNoteTemplateCompatible(
     }
 
     return extension === FOLDER_NOTE_TYPE_EXTENSIONS[folderNoteType];
+}
+
+/**
+ * Selects a folder note through the existing manual-reveal pipeline so collapsed groups,
+ * delayed list rebuilds, and scrolling use the same path as other explicit file reveals.
+ */
+export function revealFolderNoteInNavigator(selectionDispatch: SelectionDispatch, folderNote: TFile): void {
+    selectionDispatch({
+        type: 'REVEAL_FILE',
+        file: folderNote,
+        isManualReveal: true
+    });
 }
 
 function getFolderNoteTemplateFile(app: App, templatePath: string | null | undefined, folderNoteType: FolderNoteType): TFile | null {
@@ -209,7 +227,6 @@ export async function createFolderNote(
         folder,
         getFolderNoteDetectionSettings({
             enableFolderNotes: true,
-            folderNoteName: settings.folderNoteName,
             folderNoteNamePattern: settings.folderNoteNamePattern
         })
     );
@@ -242,14 +259,18 @@ export async function createFolderNote(
     }
 
     try {
-        let file: TFile;
+        let file: TFile | null;
         const templatePath = isFolderNoteTemplateCompatible(settings.folderNoteTemplate, selectedType) ? settings.folderNoteTemplate : null;
         if (selectedType === 'markdown') {
-            file = await createMarkdownFileFromTemplatePreferTemplater({
+            file = await createMarkdownFileFromTemplate({
                 app,
                 folder,
                 baseName,
-                templatePath,
+                // A configured folder note template wins; the folder's own template only fills the gap when none is set.
+                templateFile: settings.folderNoteTemplate
+                    ? getMarkdownTemplateFile(app, templatePath, 'folder note')
+                    : getFolderTemplateFile(app, settings, folder.path),
+                settings,
                 templateErrorContext: 'folder note'
             });
         } else if (selectedType === 'canvas') {
@@ -258,6 +279,9 @@ export async function createFolderNote(
         } else {
             const templateContent = await readFolderNoteTemplateContent(app, templatePath, selectedType);
             file = await app.vault.create(notePath, templateContent ?? createDatabaseContent());
+        }
+        if (!file) {
+            return null;
         }
 
         await openFolderNoteFile({
@@ -269,6 +293,10 @@ export async function createFolderNote(
             active: true,
             openInRightSidebar: options?.openInRightSidebar
         });
+        // The plain-leaf and right sidebar routes inside openFolderNoteFile call leaf.openFile without applying the
+        // cursor, so it is applied here after every route has finished loading the note. Without this call only
+        // the openFileInContext route would place the cursor.
+        applyPendingTemplateCursor(app, file);
         return file;
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

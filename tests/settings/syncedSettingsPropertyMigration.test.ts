@@ -32,6 +32,16 @@ function createSettings(): NotebookNavigatorSettings {
 }
 
 describe('applyExistingUserDefaults', () => {
+    it('shows release notes when the setting is missing', () => {
+        const settings = createSettings();
+        const settingsRecord = settings as unknown as Record<string, unknown>;
+        delete settingsRecord['showReleaseNotes'];
+
+        applyExistingUserDefaults({ settings });
+
+        expect(settings.showReleaseNotes).toBe(true);
+    });
+
     it('hides group header item counts when the setting is missing', () => {
         const settings = createSettings();
         const settingsRecord = settings as unknown as Record<string, unknown>;
@@ -173,16 +183,12 @@ describe('migrateLegacySyncedSettings property key migration', () => {
         expect(Object.prototype.hasOwnProperty.call(appearanceRecord, 'customPropertyType')).toBe(false);
     });
 
-    it('migrates legacy none grouping to custom groups', () => {
+    it('preserves none grouping', () => {
         const settings = createSettings();
-        const settingsRecord = settings as unknown as Record<string, unknown>;
-        settingsRecord['noteGrouping'] = 'none';
-        settings.folderAppearances = { Inbox: { groupBy: 'date' } };
-        (settings.folderAppearances.Inbox as unknown as Record<string, unknown>)['groupBy'] = 'none';
-        settings.tagAppearances = { '#work': { groupBy: 'date' } };
-        (settings.tagAppearances['#work'] as unknown as Record<string, unknown>)['groupBy'] = 'none';
-        settings.propertyAppearances = { 'key:status': { groupBy: 'date' } };
-        (settings.propertyAppearances['key:status'] as unknown as Record<string, unknown>)['groupBy'] = 'none';
+        settings.noteGrouping = 'none';
+        settings.folderAppearances = { Inbox: { groupBy: 'none' } };
+        settings.tagAppearances = { '#work': { groupBy: 'none' } };
+        settings.propertyAppearances = { 'key:status': { groupBy: 'none' } };
 
         migrateLegacySyncedSettings({
             settings,
@@ -191,9 +197,9 @@ describe('migrateLegacySyncedSettings property key migration', () => {
             defaultSettings: DEFAULT_SETTINGS
         });
 
-        expect(settings.noteGrouping).toBe('custom');
-        expect(settings.folderAppearances.Inbox?.groupBy).toBe('custom');
-        expect(settings.tagAppearances['#work']?.groupBy).toBe('custom');
-        expect(settings.propertyAppearances['key:status']?.groupBy).toBe('custom');
+        expect(settings.noteGrouping).toBe('none');
+        expect(settings.folderAppearances.Inbox?.groupBy).toBe('none');
+        expect(settings.tagAppearances['#work']?.groupBy).toBe('none');
+        expect(settings.propertyAppearances['key:status']?.groupBy).toBe('none');
     });
 });

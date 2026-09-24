@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Setting } from 'obsidian';
+import { Setting, setIcon } from 'obsidian';
 import type { SettingDefinitionItem } from 'obsidian';
 import { strings } from '../../i18n';
 import { showNotice } from '../../utils/noticeUtils';
@@ -37,6 +37,14 @@ import {
 import { formatCommaSeparatedList, parseCommaSeparatedList } from '../../utils/commaSeparatedListUtils';
 import { EXTERNAL_ICON_PROVIDERS } from '../../services/icons/external/providerRegistry';
 import { FILE_TYPE_ICON_PROVIDER_PRESET_IDS, isFileTypeIconPreset, isFileTypeIconProviderPreset } from '../../utils/fileTypeIconPresets';
+import {
+    getMarkdownTextCountDependencies,
+    subscribeMarkdownWordCountConsumerChanges,
+    type MarkdownTextCountDependency
+} from '../../utils/markdownPipelineContentTypes';
+import { parsePropertyNodeId } from '../../utils/propertyTree';
+import { ItemType, PROPERTIES_ROOT_VIRTUAL_FOLDER_ID } from '../../types';
+import { getVirtualTagCollection, isVirtualTagCollectionId } from '../../utils/virtualTagCollections';
 
 function parseFileTypeIconMapText(value: string): IconMapParseResult {
     return parseIconMapText(value, normalizeFileTypeIconMapKey);
@@ -57,15 +65,86 @@ interface FileTypeIconPresetOption {
     isInstalled: boolean;
 }
 
+const MAX_VISIBLE_TEXT_COUNT_DEPENDENCIES = 3;
+
+export function formatTextCountDependencyScope(dependency: MarkdownTextCountDependency): string {
+    if (dependency.reason === 'group-header') {
+        return dependency.path;
+    }
+
+    const labels = strings.settings.items.textCountActiveNotice.scopes;
+    switch (dependency.selectionType) {
+        case ItemType.FOLDER:
+            return labels.folder.replace('{name}', dependency.key);
+        case ItemType.TAG:
+            if (isVirtualTagCollectionId(dependency.key)) {
+                return getVirtualTagCollection(dependency.key).getLabel();
+            }
+            return labels.tag.replace('{name}', dependency.key);
+        case ItemType.PROPERTY: {
+            if (dependency.key === PROPERTIES_ROOT_VIRTUAL_FOLDER_ID) {
+                return strings.navigationPane.properties;
+            }
+            const parsed = parsePropertyNodeId(dependency.key);
+            const name = parsed ? (parsed.valuePath ? `${parsed.key} = ${parsed.valuePath}` : parsed.key) : dependency.key;
+            return labels.property.replace('{name}', name);
+        }
+        default:
+            return dependency.key;
+    }
+}
+
+/** Renders the explanatory footer shown when non-display settings keep word or character counting active. */
+export function renderTextCountActiveNotice(setting: Setting, context: SettingsTabContext): void {
+    const dependencies = getMarkdownTextCountDependencies(context.app, context.plugin.settings);
+    const copy = strings.settings.items.textCountActiveNotice;
+
+    setting.setName('').setDesc('');
+    setting.settingEl.addClass('nn-setting-info-container');
+    setting.settingEl.addClass('nn-setting-info-list');
+    setting.settingEl.addClass('nn-setting-text-count-warning');
+    setting.descEl.empty();
+
+    const headerEl = setting.descEl.createDiv({ cls: 'nn-setting-text-count-warning-header' });
+    const iconEl = headerEl.createSpan({ cls: 'nn-setting-text-count-warning-icon', attr: { 'aria-hidden': 'true' } });
+    setIcon(iconEl, 'lucide-triangle-alert');
+    headerEl.createEl('strong', { text: copy.title });
+
+    setting.descEl.createDiv({ text: copy.summary });
+
+    const listEl = setting.descEl.createEl('ol');
+    dependencies.slice(0, MAX_VISIBLE_TEXT_COUNT_DEPENDENCIES).forEach(dependency => {
+        const itemEl = listEl.createEl('li');
+        const reason = copy.reasons[dependency.reason];
+        itemEl.createEl('strong', { text: reason });
+        itemEl.appendText(`: ${formatTextCountDependencyScope(dependency)}`);
+    });
+    if (dependencies.length > MAX_VISIBLE_TEXT_COUNT_DEPENDENCIES) {
+        const remainingCount = dependencies.length - MAX_VISIBLE_TEXT_COUNT_DEPENDENCIES;
+        listEl.createEl('li', { text: copy.more.replace('{count}', remainingCount.toString()) });
+    }
+}
+
 /** Builds native 1.13 setting definitions for note appearance and metadata settings. */
 export function createNotesSettingDefinitions(context: SettingsTabContext): SettingDefinitionItem[] {
     const { plugin } = context;
 
     return [
-        createGroupDefinition(strings.settings.groups.notes.icon, [
+        createGroupDefinition(strings.settings.pages.fileDisplay.groups.icon, [
             createToggleDefinition('showFileIcons', {
                 name: strings.settings.items.showFileIcons.name,
                 desc: strings.settings.items.showFileIcons.desc
+            }),
+            createDropdownDefinition('unfinishedTaskIcon', {
+                name: strings.settings.items.unfinishedTaskIcon.name,
+                desc: strings.settings.items.unfinishedTaskIcon.desc,
+                aliases: Object.values(strings.settings.items.unfinishedTaskIcon.options),
+                options: {
+                    none: strings.settings.items.unfinishedTaskIcon.options.disabled,
+                    compact: strings.settings.items.unfinishedTaskIcon.options.compact,
+                    all: strings.settings.items.unfinishedTaskIcon.options.standardAndCompact
+                },
+                visible: () => plugin.settings.showFileIcons
             }),
             createToggleDefinition('useFolderIconForFiles', {
                 name: strings.settings.items.useFolderIcon.name,
@@ -73,8 +152,8 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                 visible: () => plugin.settings.showFileIcons
             }),
             createToggleDefinition('showFilenameMatchIcons', {
-                name: strings.settings.items.showFilenameMatchIcons.name,
-                desc: strings.settings.items.showFilenameMatchIcons.desc,
+                name: strings.settings.items.showFileNameIcons.name,
+                desc: strings.settings.items.showFileNameIcons.desc,
                 visible: () => plugin.settings.showFileIcons
             }),
             createRenderDefinition({
@@ -98,8 +177,8 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                     })
             }),
             createToggleDefinition('showCategoryIcons', {
-                name: strings.settings.items.showCategoryIcons.name,
-                desc: strings.settings.items.showCategoryIcons.desc,
+                name: strings.settings.items.showFileTypeIcons.name,
+                desc: strings.settings.items.showFileTypeIcons.desc,
                 visible: () => plugin.settings.showFileIcons
             }),
             createRenderDefinition({
@@ -130,11 +209,11 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                     })
             })
         ]),
-        createGroupDefinition(strings.settings.groups.notes.title, [
+        createGroupDefinition(strings.settings.pages.fileDisplay.groups.title, [
             createRenderDefinition({
-                name: strings.settings.items.fileNameRows.name,
-                desc: strings.settings.items.fileNameRows.desc,
-                aliases: Object.values(strings.settings.items.fileNameRows.options),
+                name: strings.settings.items.titleRows.name,
+                desc: strings.settings.items.titleRows.desc,
+                aliases: Object.values(strings.settings.items.titleRows.options),
                 render: setting => renderFileNameRowsSetting(setting, context)
             }),
             createToggleDefinition('useFolderColorForTitles', {
@@ -142,10 +221,10 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                 desc: strings.settings.items.useFolderColor.desc
             })
         ]),
-        createGroupDefinition(strings.settings.groups.notes.previewText, [
+        createGroupDefinition(strings.settings.pages.fileDisplay.groups.previewText, [
             createToggleDefinition('showFilePreview', {
-                name: strings.settings.items.showFilePreview.name,
-                desc: strings.settings.items.showFilePreview.desc
+                name: strings.settings.items.showNotePreview.name,
+                desc: strings.settings.items.showNotePreview.desc
             }),
             createRenderDefinition({
                 name: strings.settings.items.previewRows.name,
@@ -197,12 +276,12 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                     })
             }),
             createToggleDefinition('previewPropertiesFallback', {
-                name: strings.settings.items.previewPropertiesFallback.name,
-                desc: strings.settings.items.previewPropertiesFallback.desc,
+                name: strings.settings.items.fallbackToNoteContent.name,
+                desc: strings.settings.items.fallbackToNoteContent.desc,
                 visible: () => plugin.settings.showFilePreview && plugin.settings.previewProperties.length > 0
             })
         ]),
-        createGroupDefinition(strings.settings.groups.notes.featureImage, [
+        createGroupDefinition(strings.settings.pages.fileDisplay.groups.featureImage, [
             createToggleDefinition('showFeatureImage', {
                 name: strings.settings.items.showFeatureImage.name,
                 desc: strings.settings.items.showFeatureImage.desc
@@ -240,9 +319,9 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                     })
             }),
             createRenderDefinition({
-                name: strings.settings.items.featureImageSize.name,
-                desc: strings.settings.items.featureImageSize.desc,
-                aliases: Object.values(strings.settings.items.featureImageSize.options),
+                name: strings.settings.items.featureImageDisplaySize.name,
+                desc: strings.settings.items.featureImageDisplaySize.desc,
+                aliases: Object.values(strings.settings.items.featureImageDisplaySize.options),
                 visible: () => plugin.settings.showFeatureImage,
                 render: setting => renderFeatureImageSizeSetting(setting, context)
             }),
@@ -265,7 +344,7 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
             })
         ]),
         createGroupDefinition(
-            strings.settings.groups.notes.tags,
+            strings.settings.pages.fileDisplay.groups.tags,
             [
                 createToggleDefinition('showFileTags', {
                     name: strings.settings.items.showFileTags.name,
@@ -277,13 +356,13 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                     visible: () => plugin.settings.showFileTags
                 }),
                 createToggleDefinition('prioritizeColoredFileTags', {
-                    name: strings.settings.items.prioritizeColoredFileTags.name,
-                    desc: strings.settings.items.prioritizeColoredFileTags.desc,
+                    name: strings.settings.items.showColoredTagsFirst.name,
+                    desc: strings.settings.items.showColoredTagsFirst.desc,
                     visible: () => plugin.settings.showFileTags && plugin.settings.colorFileTags
                 }),
                 createToggleDefinition('showFileTagAncestors', {
-                    name: strings.settings.items.showFileTagAncestors.name,
-                    desc: strings.settings.items.showFileTagAncestors.desc,
+                    name: strings.settings.items.showFullTagPaths.name,
+                    desc: strings.settings.items.showFullTagPaths.desc,
                     visible: () => plugin.settings.showFileTags
                 }),
                 createToggleDefinition('showFileTagsInCompactMode', {
@@ -294,7 +373,7 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
             ],
             { visible: () => plugin.settings.showTags }
         ),
-        createGroupDefinition(strings.settings.groups.notes.properties, [
+        createGroupDefinition(strings.settings.pages.fileDisplay.groups.properties, [
             createToggleDefinition('showFileProperties', {
                 name: strings.settings.items.showFileProperties.name,
                 desc: strings.settings.items.showFileProperties.desc
@@ -305,8 +384,8 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                 visible: () => plugin.settings.showFileProperties
             }),
             createToggleDefinition('prioritizeColoredFileProperties', {
-                name: strings.settings.items.prioritizeColoredFileProperties.name,
-                desc: strings.settings.items.prioritizeColoredFileProperties.desc,
+                name: strings.settings.items.showColoredPropertiesFirst.name,
+                desc: strings.settings.items.showColoredPropertiesFirst.desc,
                 visible: () => plugin.settings.showFileProperties && plugin.settings.colorFileProperties
             }),
             createToggleDefinition('showFilePropertiesInCompactMode', {
@@ -320,17 +399,17 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                 visible: () => plugin.settings.showFileProperties
             }),
             createToggleDefinition('enablePropertyInternalLinks', {
-                name: strings.settings.items.enablePropertyInternalLinks.name,
-                desc: strings.settings.items.enablePropertyInternalLinks.desc,
+                name: strings.settings.items.linkPropertyPillsToNotes.name,
+                desc: strings.settings.items.linkPropertyPillsToNotes.desc,
                 visible: () => plugin.settings.showFileProperties
             }),
             createToggleDefinition('enablePropertyExternalLinks', {
-                name: strings.settings.items.enablePropertyExternalLinks.name,
-                desc: strings.settings.items.enablePropertyExternalLinks.desc,
+                name: strings.settings.items.linkPropertyPillsToUrls.name,
+                desc: strings.settings.items.linkPropertyPillsToUrls.desc,
                 visible: () => plugin.settings.showFileProperties
             })
         ]),
-        createGroupDefinition(strings.settings.groups.notes.tasks, [
+        createGroupDefinition(strings.settings.pages.fileDisplay.groups.tasks, [
             createToggleDefinition('showFileTaskProgress', {
                 name: strings.settings.items.showFileTaskProgress.name,
                 desc: strings.settings.items.showFileTaskProgress.desc
@@ -351,8 +430,8 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                 visible: () => plugin.settings.showFileTaskProgress
             }),
             createToggleDefinition('showFileBackgroundUnfinishedTask', {
-                name: strings.settings.items.showFileBackgroundUnfinishedTask.name,
-                desc: strings.settings.items.showFileBackgroundUnfinishedTask.desc
+                name: strings.settings.items.unfinishedTaskBackground.name,
+                desc: strings.settings.items.unfinishedTaskBackground.desc
             }),
             createRenderDefinition({
                 name: strings.settings.items.unfinishedTaskBackgroundColor.name,
@@ -379,35 +458,35 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                     })
             })
         ]),
-        createGroupDefinition(strings.settings.groups.notes.date, [
+        createGroupDefinition(strings.settings.pages.fileDisplay.groups.date, [
             createToggleDefinition('showFileDate', {
                 name: strings.settings.items.showFileDate.name,
                 desc: strings.settings.items.showFileDate.desc
             }),
             createDropdownDefinition('alphabeticalDateMode', {
-                name: strings.settings.items.alphabeticalDateMode.name,
-                desc: strings.settings.items.alphabeticalDateMode.desc,
-                aliases: Object.values(strings.settings.items.alphabeticalDateMode.options),
+                name: strings.settings.items.dateWhenSortingByName.name,
+                desc: strings.settings.items.dateWhenSortingByName.desc,
+                aliases: Object.values(strings.settings.items.dateWhenSortingByName.options),
                 visible: () => plugin.settings.showFileDate,
                 options: {
-                    created: strings.settings.items.alphabeticalDateMode.options.created,
-                    modified: strings.settings.items.alphabeticalDateMode.options.modified
+                    created: strings.settings.items.dateWhenSortingByName.options.created,
+                    modified: strings.settings.items.dateWhenSortingByName.options.modified
                 }
             })
         ]),
-        createGroupDefinition(strings.settings.groups.notes.parentFolder, [
+        createGroupDefinition(strings.settings.pages.fileDisplay.groups.parentFolder, [
             createToggleDefinition('showParentFolder', {
                 name: strings.settings.items.showParentFolder.name,
                 desc: strings.settings.items.showParentFolder.desc
             }),
             createToggleDefinition('showParentFolderFullPath', {
-                name: strings.settings.items.showParentFolderFullPath.name,
-                desc: strings.settings.items.showParentFolderFullPath.desc,
+                name: strings.settings.items.showFolderPath.name,
+                desc: strings.settings.items.showFolderPath.desc,
                 visible: () => plugin.settings.showParentFolder
             }),
             createToggleDefinition('parentFolderClickRevealsFile', {
-                name: strings.settings.items.parentFolderClickRevealsFile.name,
-                desc: strings.settings.items.parentFolderClickRevealsFile.desc,
+                name: strings.settings.items.parentFolderClickOpensFolder.name,
+                desc: strings.settings.items.parentFolderClickOpensFolder.desc,
                 visible: () => plugin.settings.showParentFolder
             }),
             createToggleDefinition('showParentFolderColor', {
@@ -421,16 +500,16 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                 visible: () => plugin.settings.showParentFolder
             })
         ]),
-        createGroupDefinition(strings.settings.groups.notes.wordCount, [
+        createGroupDefinition(strings.settings.pages.fileDisplay.groups.wordAndCharacterCount, [
             createDropdownDefinition('textCountDisplay', {
-                name: strings.settings.items.textCountDisplay.name,
-                desc: strings.settings.items.textCountDisplay.desc,
-                aliases: Object.values(strings.settings.items.textCountDisplay.options),
+                name: strings.settings.items.textCountType.name,
+                desc: strings.settings.items.textCountType.desc,
+                aliases: Object.values(strings.settings.items.textCountType.options),
                 options: {
-                    none: strings.settings.items.textCountDisplay.options.none,
-                    words: strings.settings.items.textCountDisplay.options.words,
-                    characters: strings.settings.items.textCountDisplay.options.characters,
-                    both: strings.settings.items.textCountDisplay.options.both
+                    none: strings.settings.items.textCountType.options.none,
+                    words: strings.settings.items.textCountType.options.words,
+                    characters: strings.settings.items.textCountType.options.characters,
+                    both: strings.settings.items.textCountType.options.both
                 }
             }),
             createDropdownDefinition('textCountPlacement', {
@@ -473,9 +552,24 @@ export function createNotesSettingDefinitions(context: SettingsTabContext): Sett
                 }
             }),
             createToggleDefinition('showWordCountPercentage', {
-                name: strings.settings.items.showWordCountPercentage.name,
-                desc: strings.settings.items.showWordCountPercentage.desc,
+                name: strings.settings.items.showTargetPercentage.name,
+                desc: strings.settings.items.showTargetPercentage.desc,
                 visible: () => showsWordCount(plugin.settings.textCountDisplay)
+            }),
+            createRenderDefinition({
+                name: strings.settings.items.textCountActiveNotice.title,
+                searchable: false,
+                visible: () => getMarkdownTextCountDependencies(context.app, plugin.settings).length > 0,
+                render: setting => {
+                    const refresh = () => renderTextCountActiveNotice(setting, context);
+                    context.registerSettingsUpdateListener('notes-text-count-active-notice', refresh);
+                    const unsubscribe = subscribeMarkdownWordCountConsumerChanges(context.app, () => {
+                        refresh();
+                        context.refreshSettingsDomState();
+                    });
+                    context.registerSettingsRenderCleanup(unsubscribe);
+                    refresh();
+                }
             })
         ])
     ];
@@ -501,7 +595,7 @@ function renderColorSetting(
 function getFileTypeIconPresetOptions(context: SettingsTabContext): Record<string, FileTypeIconPresetOption> {
     const options: Record<string, FileTypeIconPresetOption> = {
         none: {
-            label: strings.settings.items.fileTypeIconPreset.options.none,
+            label: strings.settings.items.fileTypeIconPreset.options.builtIn,
             isInstalled: true
         }
     };
@@ -644,13 +738,13 @@ function renderFileNameRowsSetting(setting: Setting, context: SettingsTabContext
     const { plugin } = context;
 
     setting
-        .setName(strings.settings.items.fileNameRows.name)
-        .setDesc(strings.settings.items.fileNameRows.desc)
+        .setName(strings.settings.items.titleRows.name)
+        .setDesc(strings.settings.items.titleRows.desc)
         .addDropdown(dropdown =>
             dropdown
-                .addOption('1', strings.settings.items.fileNameRows.options['1'])
-                .addOption('2', strings.settings.items.fileNameRows.options['2'])
-                .addOption('3', strings.settings.items.fileNameRows.options['3'])
+                .addOption('1', strings.settings.items.titleRows.options['1'])
+                .addOption('2', strings.settings.items.titleRows.options['2'])
+                .addOption('3', strings.settings.items.titleRows.options['3'])
                 .setValue(plugin.settings.fileNameRows.toString())
                 .onChange(async value => {
                     plugin.settings.fileNameRows = parseInt(value, 10);
@@ -709,13 +803,13 @@ function renderFeatureImageSizeSetting(setting: Setting, context: SettingsTabCon
     const { plugin } = context;
 
     setting
-        .setName(strings.settings.items.featureImageSize.name)
-        .setDesc(strings.settings.items.featureImageSize.desc)
+        .setName(strings.settings.items.featureImageDisplaySize.name)
+        .setDesc(strings.settings.items.featureImageDisplaySize.desc)
         .addDropdown(dropdown =>
             dropdown
-                .addOption('64', strings.settings.items.featureImageSize.options.standard)
-                .addOption('96', strings.settings.items.featureImageSize.options.large)
-                .addOption('128', strings.settings.items.featureImageSize.options.extraLarge)
+                .addOption('64', strings.settings.items.featureImageDisplaySize.options['64'])
+                .addOption('96', strings.settings.items.featureImageDisplaySize.options['96'])
+                .addOption('128', strings.settings.items.featureImageDisplaySize.options['128'])
                 .setValue(plugin.settings.featureImageSize)
                 .onChange(value => {
                     if (!isFeatureImageSizeSetting(value)) {
@@ -735,9 +829,9 @@ function renderFeatureImagePixelSizeSetting(setting: Setting, context: SettingsT
         .setDesc(strings.settings.items.featureImagePixelSize.desc)
         .addDropdown(dropdown =>
             dropdown
-                .addOption('256', strings.settings.items.featureImagePixelSize.options.standard)
-                .addOption('384', strings.settings.items.featureImagePixelSize.options.large)
-                .addOption('512', strings.settings.items.featureImagePixelSize.options.extraLarge)
+                .addOption('256', strings.settings.items.featureImagePixelSize.options['256x144'])
+                .addOption('384', strings.settings.items.featureImagePixelSize.options['384x216'])
+                .addOption('512', strings.settings.items.featureImagePixelSize.options['512x288'])
                 .setValue(plugin.settings.featureImagePixelSize)
                 .onChange(value => {
                     if (!isFeatureImagePixelSizeSetting(value)) {

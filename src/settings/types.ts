@@ -17,7 +17,6 @@
  */
 
 import type { FileVisibility } from '../utils/fileTypeUtils';
-import type { FolderAppearance, TagAppearance } from '../hooks/useListPaneAppearance';
 import type { BackgroundMode, DualPaneOrientation, PinnedNotes } from '../types';
 import type { FolderNoteCreationPreference } from '../types/folderNote';
 import type { KeyboardShortcutConfig } from '../utils/keyboardShortcuts';
@@ -413,6 +412,101 @@ export type CalendarIntegrationMode = 'daily-notes' | 'notebook-navigator';
 /** Locale source used when Notebook Navigator formats periodic note paths */
 export type CalendarPeriodicNotesLocaleSource = 'calendar' | 'obsidian';
 
+/**
+ * Engine that processes template files when Notebook Navigator creates notes.
+ * - `automatic`: Templater when it is installed and the template contains Templater commands, otherwise the built-in engine.
+ * - `builtin`: the built-in `{{token}}` engine.
+ * - `templater`: the Templater plugin. Note creation stops with a notice when Templater is not installed.
+ */
+export type TemplateEngineSetting = 'automatic' | 'builtin' | 'templater';
+
+export function isTemplateEngineSetting(value: unknown): value is TemplateEngineSetting {
+    return value === 'automatic' || value === 'builtin' || value === 'templater';
+}
+
+export function resolveTemplateEngineSetting(value: unknown, fallback: TemplateEngineSetting): TemplateEngineSetting {
+    return isTemplateEngineSetting(value) ? value : fallback;
+}
+
+/** Template assigned to a folder from the folder context menu. */
+export interface FolderTemplateMapping {
+    /** Vault path of the template file. */
+    template: string;
+    /** Whether notes created in subfolders use this template too, unless a closer folder has its own applicable mapping. */
+    includeSubfolders: boolean;
+}
+
+/** Where a template command creates its note. */
+export type TemplateCommandLocation = 'current' | 'folder';
+
+/** Where a template command shows a button besides the command palette. */
+export type TemplateCommandPlacement = 'none' | 'ribbon' | 'tabBar';
+
+export const DEFAULT_TEMPLATE_COMMAND_ICON = 'lucide-file-plus';
+
+/** A user-defined command that creates a note from a template with a generated file name. */
+export interface TemplateCommand {
+    /** Stable id used in the Obsidian command id, so hotkeys survive renames. */
+    id: string;
+    name: string;
+    /** Vault path of the template file. */
+    template: string;
+    /** File name without extension; template tokens are replaced when the command runs. */
+    fileNameFormat: string;
+    location: TemplateCommandLocation;
+    /** Target folder path when `location` is `folder`. */
+    folder: string;
+    /** Icon id shown on the ribbon or tab bar button. */
+    icon: string;
+    placement: TemplateCommandPlacement;
+}
+
+export function isTemplateCommandLocation(value: unknown): value is TemplateCommandLocation {
+    return value === 'current' || value === 'folder';
+}
+
+export function isTemplateCommandPlacement(value: unknown): value is TemplateCommandPlacement {
+    return value === 'none' || value === 'ribbon' || value === 'tabBar';
+}
+
+/** Drops malformed entries and duplicate ids from persisted template commands. */
+export function sanitizeTemplateCommands(value: unknown): TemplateCommand[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+    const seenIds = new Set<string>();
+    const commands: TemplateCommand[] = [];
+    value.forEach((entry: unknown) => {
+        if (typeof entry !== 'object' || entry === null) {
+            return;
+        }
+        const record = entry as Record<string, unknown>;
+        if (typeof record.id !== 'string' || !record.id || seenIds.has(record.id) || typeof record.name !== 'string') {
+            return;
+        }
+        seenIds.add(record.id);
+        commands.push({
+            id: record.id,
+            name: record.name,
+            template: typeof record.template === 'string' ? record.template : '',
+            fileNameFormat: typeof record.fileNameFormat === 'string' ? record.fileNameFormat : '',
+            location: isTemplateCommandLocation(record.location) ? record.location : 'current',
+            folder: typeof record.folder === 'string' ? record.folder : '',
+            icon: typeof record.icon === 'string' && record.icon ? record.icon : DEFAULT_TEMPLATE_COMMAND_ICON,
+            placement: isTemplateCommandPlacement(record.placement) ? record.placement : 'none'
+        });
+    });
+    return commands;
+}
+
+export function isFolderTemplateMapping(value: unknown): value is FolderTemplateMapping {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+    const record = value as Record<string, unknown>;
+    return typeof record.template === 'string' && typeof record.includeSubfolders === 'boolean';
+}
+
 export function isCalendarPeriodicNotesLocaleSource(value: unknown): value is CalendarPeriodicNotesLocaleSource {
     return value === 'calendar' || value === 'obsidian';
 }
@@ -424,8 +518,15 @@ export function isListDisplayMode(value: unknown): value is ListDisplayMode {
     return value === 'standard' || value === 'compact';
 }
 
+/** List modes where unfinished tasks replace the file icon. */
+export type UnfinishedTaskIconMode = 'none' | 'compact' | 'all';
+
+export function isUnfinishedTaskIconMode(value: unknown): value is UnfinishedTaskIconMode {
+    return value === 'none' || value === 'compact' || value === 'all';
+}
+
 /** Built-in grouping modes for list pane notes */
-export type ListNoteGroupingBaseOption = 'custom' | 'date' | 'folder';
+export type ListNoteGroupingBaseOption = 'none' | 'custom' | 'date' | 'folder';
 
 /** Resolved direction applied when arranging property groups */
 export type PropertyGroupingDirection = 'asc' | 'desc';
@@ -457,6 +558,21 @@ export type ListNoteGroupingOption =
     | `property-each-desc:${string}`
     | `property-each-follow:${string}`;
 
+export interface ListPaneAppearance {
+    mode?: ListDisplayMode;
+    titleRows?: number;
+    /** Zero hides preview text for this selection; undefined inherits the global row count. */
+    previewRows?: number;
+    groupBy?: ListNoteGroupingOption;
+    showTags?: boolean;
+    showProperties?: boolean;
+    showTaskProgress?: boolean;
+    showDate?: boolean;
+    showParentFolder?: boolean;
+    /** Undefined inherits the global count type; `none` explicitly hides counts for this selection. */
+    textCount?: TextCountDisplay;
+}
+
 const PROPERTY_GROUPING_PREFIX = 'property:';
 const PROPERTY_GROUPING_DESC_PREFIX = 'property-desc:';
 const PROPERTY_GROUPING_FOLLOW_PREFIX = 'property-follow:';
@@ -465,7 +581,7 @@ const PROPERTY_GROUPING_EACH_DESC_PREFIX = 'property-each-desc:';
 const PROPERTY_GROUPING_EACH_FOLLOW_PREFIX = 'property-each-follow:';
 
 function isListNoteGroupingBaseOption(value: unknown): value is ListNoteGroupingBaseOption {
-    return value === 'custom' || value === 'date' || value === 'folder';
+    return value === 'none' || value === 'custom' || value === 'date' || value === 'folder';
 }
 
 // The six prefixes are mutually prefix-independent: each one diverges from the others
@@ -523,12 +639,7 @@ export function createPropertyGroupingOption(propertyKey: string, order: Propert
     return `${prefix}${propertyKey.trim()}`;
 }
 
-/** Validates a base grouping mode, mapping the legacy `none` value to `custom`. */
 function normalizeListNoteGroupingBaseOption(value: unknown): ListNoteGroupingBaseOption | null {
-    if (value === 'none') {
-        return 'custom';
-    }
-
     return isListNoteGroupingBaseOption(value) ? value : null;
 }
 
@@ -673,6 +784,7 @@ export interface NotebookNavigatorSettings {
     narrowSidebarCustomWidth: number;
     showTooltips: boolean;
     showTooltipPath: boolean;
+    showTooltipTags: boolean;
     showTooltipWordCount: boolean;
     desktopBackground: BackgroundMode;
     desktopScale: number;
@@ -692,6 +804,13 @@ export interface NotebookNavigatorSettings {
     dateFormat: string;
     timeFormat: string;
     calendarTemplateFolder: string;
+    templateEngine: TemplateEngineSetting;
+    /** Folder path (root is `/`) to template mapping. New notes use the closest applicable mapping in their folder ancestry. */
+    folderTemplates: Record<string, FolderTemplateMapping>;
+    /** Marks folders that have their own folder template with an icon in the navigation pane. */
+    showFolderTemplateIcons: boolean;
+    /** User-defined commands that create a note from a template. */
+    templateCommands: TemplateCommand[];
 
     // Files tab
     confirmBeforeDelete: boolean;
@@ -700,6 +819,9 @@ export interface NotebookNavigatorSettings {
 
     // Icon packs tab
     externalIconProviders: Record<string, boolean>;
+
+    // About
+    showReleaseNotes: boolean;
 
     // Advanced tab
     checkForUpdatesOnStart: boolean;
@@ -743,7 +865,6 @@ export interface NotebookNavigatorSettings {
     folderSortOrder: AlphaSortOrder;
     enableFolderNotes: boolean;
     folderNoteType: FolderNoteCreationPreference;
-    folderNoteName: string;
     folderNoteNamePattern: string;
     folderNoteTemplate: string | null;
     enableFolderNoteLinks: boolean;
@@ -805,6 +926,8 @@ export interface NotebookNavigatorSettings {
     confirmBeforeManualSort: boolean;
     revealFileOnListChanges: boolean;
     listPaneTitle: ListPaneTitleOption;
+    // Applies the selected folder, tag, or property color to the list pane title text and icon.
+    colorListPaneTitle: boolean;
     // Supports base modes and property grouping encoded as `property:<key>`, `property-desc:<key>`,
     // or `property-follow:<key>`. Property keys must match an entry in propertyGroupKey;
     // reconciliation resets to the default grouping when the key is removed from the configured list.
@@ -845,6 +968,7 @@ export interface NotebookNavigatorSettings {
     unfinishedTaskBackgroundColor: string;
     unfinishedTaskBackgroundColorDark: string;
     showFileIcons: boolean;
+    unfinishedTaskIcon: UnfinishedTaskIconMode;
     useFolderIconForFiles: boolean;
     showFilenameMatchIcons: boolean;
     fileNameIconMap: Record<string, string>;
@@ -908,6 +1032,7 @@ export interface NotebookNavigatorSettings {
     calendarMonthHighlights: Record<string, string>;
     calendarShowWeekNumber: boolean;
     calendarShowQuarter: boolean;
+    calendarShowOutsideMonthDays: boolean;
     calendarShowYearCalendar: boolean;
     calendarLeftPlacement: CalendarLeftPlacement;
     calendarWeeksToShow: CalendarWeeksToShow;
@@ -941,19 +1066,19 @@ export interface NotebookNavigatorSettings {
     folderBackgroundColors: Record<string, string>;
     folderSortOverrides: Record<string, ListSortOverrideValue>;
     folderTreeSortOverrides: Record<string, AlphaSortOrder>;
-    folderAppearances: Record<string, FolderAppearance>;
+    folderAppearances: Record<string, ListPaneAppearance>;
     tagIcons: Record<string, string>;
     tagColors: Record<string, string>;
     tagBackgroundColors: Record<string, string>;
     tagSortOverrides: Record<string, ListSortOverrideValue>;
     tagTreeSortOverrides: Record<string, AlphaSortOrder>;
-    tagAppearances: Record<string, TagAppearance>;
+    tagAppearances: Record<string, ListPaneAppearance>;
     propertyIcons: Record<string, string>;
     propertyColors: Record<string, string>;
     propertyBackgroundColors: Record<string, string>;
     propertySortOverrides: Record<string, ListSortOverrideValue>;
     propertyTreeSortOverrides: Record<string, AlphaSortOrder>;
-    propertyAppearances: Record<string, FolderAppearance>;
+    propertyAppearances: Record<string, ListPaneAppearance>;
     virtualFolderColors: Record<string, string>;
     virtualFolderBackgroundColors: Record<string, string>;
     navigationSeparators: Record<string, boolean>;

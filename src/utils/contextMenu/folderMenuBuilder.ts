@@ -29,7 +29,7 @@ import {
     shouldExcludeFolderFromDescendants
 } from '../../utils/fileFilters';
 import { ItemType } from '../../types';
-import { addCopySubmenu, setAsyncOnClick, tryCreateSubmenu } from './menuAsyncHelpers';
+import { addCopySubmenu, setAsyncOnClick, setSubmenuOnClick, tryCreateSubmenu } from './menuAsyncHelpers';
 import { addShortcutRenameMenuItem } from './shortcutRenameMenuItem';
 import { resolveNavigationFolderIcon, resolveUXIconForMenu } from '../uxIcons';
 import {
@@ -41,7 +41,9 @@ import {
 import { casefold } from '../../utils/recordUtils';
 import { EXCALIDRAW_PLUGIN_ID, TLDRAW_PLUGIN_ID } from '../../constants/pluginIds';
 import { addFolderStyleChangeActions, addFolderStyleMenu } from './styleMenuBuilder';
-import { getTemplaterCreateNewNoteFromTemplate } from '../templaterIntegration';
+import { TemplateFileModal } from '../../modals/TemplateFileModal';
+import { normalizeCalendarCustomRootFolder } from '../calendarCustomNotePatterns';
+import { createNoteFromTemplateInFolder, isTemplateFolderConfigured } from '../fileCreationUtils';
 import { resolveFolderDisplayName } from '../folderDisplayName';
 import { INTERNAL_NOTEBOOK_NAVIGATOR_API } from '../../api/NotebookNavigatorAPI';
 import { expandNavigationTreeItems, getFolderAncestorPaths, isFolderEffectivelyExpanded } from '../navigationExpansion';
@@ -100,15 +102,12 @@ export function buildFolderCreationMenu(params: FolderMenuBuilderParams, folderD
         });
     });
 
-    const createNewNoteFromTemplate = getTemplaterCreateNewNoteFromTemplate(app);
-    if (createNewNoteFromTemplate) {
-        menu.addItem((item: MenuItem) => {
-            setAsyncOnClick(item.setTitle(strings.contextMenu.folder.newNoteFromTemplate).setIcon('templater-icon'), () => {
-                ensureFolderSelected();
-                return createNewNoteFromTemplate(folder);
-            });
+    menu.addItem((item: MenuItem) => {
+        setAsyncOnClick(item.setTitle(strings.contextMenu.folder.newNoteFromTemplate).setIcon('lucide-notepad-text-dashed'), () => {
+            ensureFolderSelected();
+            return createNoteFromTemplateInFolder(app, params.settings, folder);
         });
-    }
+    });
 
     menu.addItem((item: MenuItem) => {
         setAsyncOnClick(item.setTitle(strings.contextMenu.folder.newFolder).setIcon('lucide-folder-plus'), async () => {
@@ -129,13 +128,16 @@ export function buildFolderCreationMenu(params: FolderMenuBuilderParams, folderD
         });
     });
 
-    menu.addItem((item: MenuItem) => {
-        setAsyncOnClick(item.setTitle(strings.contextMenu.folder.newCanvas).setIcon('lucide-layout-grid'), async () => {
-            ensureFolderSelected();
-            const createdCanvas = await fileSystemOps.createCanvas(folder);
-            handleFileCreation(createdCanvas);
+    const canvasPlugin = getInternalPlugin(app, 'canvas');
+    if (canvasPlugin?.enabled) {
+        menu.addItem((item: MenuItem) => {
+            setAsyncOnClick(item.setTitle(strings.contextMenu.folder.newCanvas).setIcon('lucide-layout-grid'), async () => {
+                ensureFolderSelected();
+                const createdCanvas = await fileSystemOps.createCanvas(folder);
+                handleFileCreation(createdCanvas);
+            });
         });
-    });
+    }
 
     const basesPlugin = getInternalPlugin(app, 'bases');
     if (basesPlugin?.enabled) {
@@ -171,6 +173,36 @@ export function buildFolderCreationMenu(params: FolderMenuBuilderParams, folderD
                 ensureFolderSelected();
                 const createdDrawing = await fileSystemOps.createNewDrawing(folder, 'tldraw');
                 handleFileCreation(createdDrawing);
+            });
+        });
+    }
+
+    // Folder template: applied to new notes in this folder and its subfolders unless a closer folder has its own
+    menu.addSeparator();
+    const currentFolderTemplate = settings.folderTemplates[folder.path]?.template;
+    menu.addItem((item: MenuItem) => {
+        item.setTitle(
+            currentFolderTemplate ? strings.contextMenu.folder.changeFolderTemplate : strings.contextMenu.folder.setFolderTemplate
+        )
+            .setIcon('lucide-notepad-text-dashed')
+            .onClick(() => {
+                if (!isTemplateFolderConfigured(settings.calendarTemplateFolder)) {
+                    showNotice(strings.templates.folderNotSet, { variant: 'warning' });
+                    return;
+                }
+                new TemplateFileModal(app, normalizeCalendarCustomRootFolder(settings.calendarTemplateFolder), async templateFile => {
+                    // Changing the template keeps the subfolder scope chosen in settings.
+                    const includeSubfolders = plugin.settings.folderTemplates[folder.path]?.includeSubfolders ?? true;
+                    plugin.settings.folderTemplates[folder.path] = { template: templateFile.path, includeSubfolders };
+                    await plugin.saveSettingsAndUpdate();
+                }).open();
+            });
+    });
+    if (currentFolderTemplate) {
+        menu.addItem((item: MenuItem) => {
+            setAsyncOnClick(item.setTitle(strings.contextMenu.folder.removeFolderTemplate).setIcon('lucide-x'), async () => {
+                delete plugin.settings.folderTemplates[folder.path];
+                await plugin.saveSettingsAndUpdate();
             });
         });
     }
@@ -212,9 +244,12 @@ export function buildFolderCreationMenu(params: FolderMenuBuilderParams, folderD
                         folder,
                         {
                             folderNoteType: settings.folderNoteType,
-                            folderNoteName: settings.folderNoteName,
                             folderNoteNamePattern: settings.folderNoteNamePattern,
-                            folderNoteTemplate: settings.folderNoteTemplate
+                            folderNoteTemplate: settings.folderNoteTemplate,
+                            templateEngine: settings.templateEngine,
+                            dateFormat: settings.dateFormat,
+                            timeFormat: settings.timeFormat,
+                            folderTemplates: settings.folderTemplates
                         },
                         services.commandQueue,
                         {
@@ -320,7 +355,7 @@ export function buildFolderMenu(params: FolderMenuBuilderParams): void {
 
             sortOrderSubmenu.addItem(subItem => {
                 subItem.setTitle(`${strings.folderAppearance.defaultLabel} (${globalDefaultLabel})`).setChecked(!currentOverride);
-                setAsyncOnClick(subItem, async () => {
+                setSubmenuOnClick(menu, subItem, async () => {
                     await metadataService.removeFolderChildSortOrderOverride(folder.path);
                     app.workspace.requestSaveLayout();
                 });
@@ -330,7 +365,7 @@ export function buildFolderMenu(params: FolderMenuBuilderParams): void {
 
             sortOrderSubmenu.addItem(subItem => {
                 subItem.setTitle(strings.settings.items.folderSortOrder.options.alphaAsc).setChecked(currentOverride === 'alpha-asc');
-                setAsyncOnClick(subItem, async () => {
+                setSubmenuOnClick(menu, subItem, async () => {
                     await metadataService.setFolderChildSortOrderOverride(folder.path, 'alpha-asc');
                     app.workspace.requestSaveLayout();
                 });
@@ -338,7 +373,7 @@ export function buildFolderMenu(params: FolderMenuBuilderParams): void {
 
             sortOrderSubmenu.addItem(subItem => {
                 subItem.setTitle(strings.settings.items.folderSortOrder.options.alphaDesc).setChecked(currentOverride === 'alpha-desc');
-                setAsyncOnClick(subItem, async () => {
+                setSubmenuOnClick(menu, subItem, async () => {
                     await metadataService.setFolderChildSortOrderOverride(folder.path, 'alpha-desc');
                     app.workspace.requestSaveLayout();
                 });

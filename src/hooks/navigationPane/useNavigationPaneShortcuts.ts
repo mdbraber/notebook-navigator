@@ -128,6 +128,7 @@ export function useNavigationPaneShortcuts({
 
     const includeDescendantNotes = uxPreferences.includeDescendantNotes;
     const showHiddenItems = uxPreferences.showHiddenItems;
+    const searchActive = uxPreferences.searchActive;
     const { hiddenFolders, descendantExcludedFolders, hiddenFileNames, hiddenFileTags, fileVisibility } = activeProfile;
     const effectiveFrontmatterExclusions = getEffectiveFrontmatterExclusions(settings, showHiddenItems);
     const effectiveFrontmatterExclusionMatcher = useMemo(() => {
@@ -162,7 +163,8 @@ export function useNavigationPaneShortcuts({
             propertyTreeService,
             commandQueue,
             shortcuts,
-            visibility: { includeDescendantNotes, showHiddenItems }
+            visibility: { includeDescendantNotes, showHiddenItems },
+            searchActive
         }),
         [
             app,
@@ -174,6 +176,7 @@ export function useNavigationPaneShortcuts({
             plugin,
             propertyOperations,
             propertyTreeService,
+            searchActive,
             shortcuts,
             showHiddenItems,
             tagOperations,

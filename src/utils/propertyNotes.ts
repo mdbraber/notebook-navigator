@@ -20,12 +20,13 @@ import { App, TFile, TFolder } from 'obsidian';
 import { strings } from '../i18n';
 import { CommandQueueService } from '../services/CommandQueueService';
 import type { PropertyTreeNode } from '../types/storage';
-import { buildPathInFolder, createMarkdownFileFromTemplatePreferTemplater } from './fileCreationUtils';
+import { buildPathInFolder, createMarkdownFileFromTemplate, getFolderTemplateFile, type TemplateSettings } from './fileCreationUtils';
 import { containsForbiddenNameCharactersWindows, containsInvalidLinkCharacters } from './fileNameUtils';
 import { showNotice } from './noticeUtils';
 import { openFileInContext } from './openFileInContext';
 import { normalizeOptionalVaultFolderPath } from './pathUtils';
 import { getPropertyNoteLinkTarget, getPropertyNoteSourcePath, resolvePropertyNote } from './propertyNoteLookup';
+import { applyPendingTemplateCursor } from './templateCursor';
 
 export interface OpenPropertyNoteFileParams {
     app: App;
@@ -92,6 +93,7 @@ export interface CreatePropertyNoteParams {
     commandQueue: CommandQueueService | null;
     node: PropertyTreeNode;
     propertyNoteFolder: string;
+    templateSettings: TemplateSettings;
     openContext: 'tab' | 'right-sidebar' | null;
     openInRightSidebar?: (propertyNote: TFile) => Promise<void>;
 }
@@ -162,6 +164,7 @@ export async function createPropertyNote({
     commandQueue,
     node,
     propertyNoteFolder,
+    templateSettings,
     openContext,
     openInRightSidebar
 }: CreatePropertyNoteParams): Promise<TFile | null> {
@@ -204,15 +207,24 @@ export async function createPropertyNote({
     }
 
     try {
-        const file = await createMarkdownFileFromTemplatePreferTemplater({
+        // Property notes have no template setting of their own, so the target folder's template applies,
+        // matching every other note the plugin creates.
+        const file = await createMarkdownFileFromTemplate({
             app,
             folder: targetFolder,
             baseName,
-            templatePath: null,
+            templateFile: getFolderTemplateFile(app, templateSettings, targetFolder.path),
+            settings: templateSettings,
             templateErrorContext: 'property note'
         });
+        if (!file) {
+            return null;
+        }
 
         await openPropertyNoteFile({ app, commandQueue, propertyNote: file, context: openContext, active: true, openInRightSidebar });
+        // The right sidebar route opens the note with leaf.openFile, which does not place the template
+        // cursor, so it is applied here once every route has finished loading the note.
+        applyPendingTemplateCursor(app, file);
         return file;
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

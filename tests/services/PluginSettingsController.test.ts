@@ -37,7 +37,7 @@ const { mockLocalStorageStore, localStorageInit, localStorageGet, localStorageSe
 vi.mock('../../src/utils/localStorage', () => {
     return {
         LEGACY_STORAGE_KEYS: ['notebook-navigator-file-cache'],
-        LOCALSTORAGE_VERSION: 2,
+        LOCALSTORAGE_VERSION: 3,
         localStorage: {
             init: localStorageInit,
             get: localStorageGet,
@@ -190,6 +190,26 @@ describe('PluginSettingsController.loadSettings', () => {
         expect(savedSettings.openFolderNotesInNewTab).toBeUndefined();
     });
 
+    it('migrates the legacy unfinished task icon toggle to both list modes', async () => {
+        const saveData = vi.fn().mockResolvedValue(undefined);
+        const controller = new PluginSettingsController({
+            keys: STORAGE_KEYS,
+            loadData: vi.fn(async () => ({
+                showFileIconUnfinishedTask: true
+            })),
+            saveData,
+            mirrorUXPreferences: vi.fn()
+        });
+
+        await controller.loadSettings();
+
+        expect(controller.settings.unfinishedTaskIcon).toBe('all');
+        expect(saveData).toHaveBeenCalledTimes(1);
+        const savedSettings = saveData.mock.calls[0][0] as Record<string, unknown>;
+        expect(savedSettings.unfinishedTaskIcon).toBe('all');
+        expect(savedSettings.showFileIconUnfinishedTask).toBeUndefined();
+    });
+
     it('persists cleanup when legacy folder color title setting is migrated', async () => {
         const saveData = vi.fn().mockResolvedValue(undefined);
         const controller = new PluginSettingsController({
@@ -262,7 +282,7 @@ describe('PluginSettingsController.loadSettings', () => {
         expect((saveData.mock.calls[0][0] as Record<string, unknown>).manualSortPropertyKey).toBe(DEFAULT_SETTINGS.manualSortPropertyKey);
     });
 
-    it('persists cleanup when legacy none grouping is migrated', async () => {
+    it('preserves none grouping values', async () => {
         const saveData = vi.fn().mockResolvedValue(undefined);
         const statusNodeId = buildPropertyKeyNodeId('status');
         const controller = new PluginSettingsController({
@@ -273,7 +293,7 @@ describe('PluginSettingsController.loadSettings', () => {
                     Inbox: { groupBy: 'none' }
                 },
                 tagAppearances: {
-                    '#work': { groupBy: 'none' }
+                    work: { groupBy: 'none' }
                 },
                 propertyAppearances: {
                     [statusNodeId]: { groupBy: 'none' }
@@ -285,17 +305,93 @@ describe('PluginSettingsController.loadSettings', () => {
 
         await controller.loadSettings();
 
-        expect(controller.settings.noteGrouping).toBe('custom');
-        expect(controller.settings.folderAppearances.Inbox?.groupBy).toBe('custom');
-        // Tag appearance keys are canonicalized by the settings pipeline, so '#work' is stored as 'work'
-        expect(controller.settings.tagAppearances['work']?.groupBy).toBe('custom');
-        expect(controller.settings.propertyAppearances[statusNodeId]?.groupBy).toBe('custom');
-        expect(saveData).toHaveBeenCalledTimes(1);
+        expect(controller.settings.noteGrouping).toBe('none');
+        expect(controller.settings.folderAppearances.Inbox?.groupBy).toBe('none');
+        expect(controller.settings.tagAppearances.work?.groupBy).toBe('none');
+        expect(controller.settings.propertyAppearances[statusNodeId]?.groupBy).toBe('none');
+    });
+
+    it('sanitizes stored selection appearance intent while keeping explicit enable and hide toggles', async () => {
+        const controller = new PluginSettingsController({
+            keys: STORAGE_KEYS,
+            loadData: vi.fn(async () => ({
+                folderAppearances: {
+                    Valid: {
+                        mode: 'standard',
+                        titleRows: 2,
+                        previewRows: 4,
+                        showTags: true,
+                        showProperties: false,
+                        textCount: 'characters',
+                        showFilePreview: false,
+                        textCountDisplay: 'characters',
+                        groupBy: 'folder',
+                        unknown: 'discard me'
+                    },
+                    Invalid: {
+                        mode: 'dense',
+                        titleRows: 9,
+                        previewRows: -1,
+                        showTags: 'yes',
+                        textCount: 'on'
+                    }
+                }
+            })),
+            saveData: vi.fn().mockResolvedValue(undefined),
+            mirrorUXPreferences: vi.fn()
+        });
+
+        await controller.loadSettings();
+
+        expect(controller.settings.folderAppearances).toEqual({
+            Valid: {
+                mode: 'standard',
+                titleRows: 2,
+                previewRows: 4,
+                showTags: true,
+                showProperties: false,
+                textCount: 'characters',
+                groupBy: 'folder'
+            }
+        });
+    });
+
+    it('stores appearance values matching global settings as inheritance', async () => {
+        const saveData = vi.fn().mockResolvedValue(undefined);
+        const controller = new PluginSettingsController({
+            keys: STORAGE_KEYS,
+            loadData: vi.fn(async () => ({
+                textCountDisplay: 'none',
+                folderAppearances: {
+                    Inbox: { mode: 'compact', titleRows: 1, previewRows: 2, textCount: 'none' },
+                    Writing: { titleRows: 3, previewRows: 0, textCount: 'words' }
+                }
+            })),
+            saveData,
+            mirrorUXPreferences: vi.fn()
+        });
+
+        await controller.loadSettings();
+
+        expect(controller.settings.folderAppearances).toEqual({
+            Inbox: { mode: 'compact' },
+            Writing: { titleRows: 3, previewRows: 0, textCount: 'words' }
+        });
+
+        saveData.mockClear();
+        controller.settings.fileNameRows = 3;
+        controller.settings.textCountDisplay = 'words';
+        await controller.saveSettings();
+
+        expect(controller.settings.folderAppearances).toEqual({
+            Inbox: { mode: 'compact' },
+            Writing: { previewRows: 0 }
+        });
         const savedSettings = saveData.mock.calls[0][0] as Record<string, unknown>;
-        expect(savedSettings.noteGrouping).toBe('custom');
-        expect((savedSettings.folderAppearances as Record<string, Record<string, unknown>>).Inbox?.groupBy).toBe('custom');
-        expect((savedSettings.tagAppearances as Record<string, Record<string, unknown>>)['work']?.groupBy).toBe('custom');
-        expect((savedSettings.propertyAppearances as Record<string, Record<string, unknown>>)[statusNodeId]?.groupBy).toBe('custom');
+        expect(savedSettings['folderAppearances']).toEqual({
+            Inbox: { mode: 'compact' },
+            Writing: { previewRows: 0 }
+        });
     });
 });
 
@@ -375,6 +471,67 @@ describe('PluginSettingsController.loadSettings result classification', () => {
         stored = { recentNotesCount: 23 };
         await expect(controller.loadSettings()).resolves.toBe('loaded');
         expect(controller.settings.recentNotesCount).toBe(23);
+    });
+
+    it('keeps a synced marker locally and repairs a later synced regression', async () => {
+        let stored: unknown = { lastShownVersion: '3.3.2' };
+        const { controller, saveData } = createController(async () => stored);
+
+        await expect(controller.loadSettings()).resolves.toBe('loaded');
+
+        expect(controller.settings.lastShownVersion).toBe('3.3.2');
+        expect(mockLocalStorageStore.get(STORAGE_KEYS.lastShownVersionKey)).toBe('3.3.2');
+
+        saveData.mockClear();
+        stored = { lastShownVersion: '3.3.1' };
+        await expect(controller.loadSettings()).resolves.toBe('loaded');
+
+        expect(controller.settings.lastShownVersion).toBe('3.3.2');
+        expect(saveData).toHaveBeenCalledTimes(1);
+        const persisted = saveData.mock.calls[0][0] as Record<string, unknown>;
+        expect(persisted.lastShownVersion).toBe('3.3.2');
+    });
+
+    it('uses the device-local marker as the floor after a restart with regressed synced settings', async () => {
+        mockLocalStorageStore.set(STORAGE_KEYS.lastShownVersionKey, '3.3.2');
+        const { controller, saveData } = createController(async () => ({ lastShownVersion: '3.3.1' }));
+
+        await expect(controller.loadSettings()).resolves.toBe('loaded');
+
+        expect(controller.settings.lastShownVersion).toBe('3.3.2');
+        const persisted = saveData.mock.calls[saveData.mock.calls.length - 1][0] as Record<string, unknown>;
+        expect(persisted.lastShownVersion).toBe('3.3.2');
+    });
+
+    it('cleans up a malformed synced marker instead of promoting it locally', async () => {
+        const { controller, saveData } = createController(async () => ({ lastShownVersion: '999.invalid' }));
+
+        await expect(controller.loadSettings()).resolves.toBe('loaded');
+
+        expect(controller.settings.lastShownVersion).toBe('');
+        expect(mockLocalStorageStore.has(STORAGE_KEYS.lastShownVersionKey)).toBe(false);
+        const persisted = saveData.mock.calls[saveData.mock.calls.length - 1][0] as Record<string, unknown>;
+        expect(persisted.lastShownVersion).toBe('');
+    });
+
+    it('replaces a malformed local marker with a valid synced marker', async () => {
+        mockLocalStorageStore.set(STORAGE_KEYS.lastShownVersionKey, '999.invalid');
+        const { controller } = createController(async () => ({ lastShownVersion: '3.3.2' }));
+
+        await expect(controller.loadSettings()).resolves.toBe('loaded');
+
+        expect(controller.settings.lastShownVersion).toBe('3.3.2');
+        expect(mockLocalStorageStore.get(STORAGE_KEYS.lastShownVersionKey)).toBe('3.3.2');
+    });
+
+    it('removes a malformed local marker when no valid synced marker exists', async () => {
+        mockLocalStorageStore.set(STORAGE_KEYS.lastShownVersionKey, '999.invalid');
+        const { controller } = createController(async () => ({ lastShownVersion: '' }));
+
+        await expect(controller.loadSettings()).resolves.toBe('loaded');
+
+        expect(controller.settings.lastShownVersion).toBe('');
+        expect(mockLocalStorageStore.has(STORAGE_KEYS.lastShownVersionKey)).toBe(false);
     });
 
     it('preserves first-launch settings when a later load returns missing data', async () => {
@@ -600,6 +757,28 @@ describe('PluginSettingsController.applySettingsRecord', () => {
         expect(saveData).not.toHaveBeenCalled();
     });
 
+    it('migrates a fixed folder note name into the single naming pattern', () => {
+        const { controller } = createController();
+
+        const needsCleanup = controller.applySettingsRecord(
+            { folderNoteName: 'index', folderNoteNamePattern: '' },
+            { isFirstLaunch: false }
+        );
+
+        expect(controller.settings.folderNoteNamePattern).toBe('index');
+        expect(controller.settings).not.toHaveProperty('folderNoteName');
+        expect(controller.getPersistableSettings()).not.toHaveProperty('folderNoteName');
+        expect(needsCleanup).toBe(true);
+    });
+
+    it('preserves a folder note pattern when the legacy fixed name is also set', () => {
+        const { controller } = createController();
+
+        controller.applySettingsRecord({ folderNoteName: 'index', folderNoteNamePattern: '_{{folder_name}}' }, { isFirstLaunch: false });
+
+        expect(controller.settings.folderNoteNamePattern).toBe('_{{folder}}');
+    });
+
     it('uses imported values instead of existing device mirrors for local-mode settings', () => {
         const { controller } = createController();
         const syncModes = structuredClone(DEFAULT_SETTINGS.syncModes);
@@ -698,6 +877,45 @@ describe('PluginSettingsController.applySettingsRecord', () => {
 });
 
 describe('PluginSettingsController.saveSettings', () => {
+    it('merges the device-local marker into every whole-file settings save', async () => {
+        const saveData = vi.fn().mockResolvedValue(undefined);
+        const controller = new PluginSettingsController({
+            keys: STORAGE_KEYS,
+            loadData: vi.fn().mockResolvedValue(null),
+            saveData,
+            mirrorUXPreferences: vi.fn()
+        });
+        const settings = structuredClone(DEFAULT_SETTINGS);
+        settings.lastShownVersion = '3.3.1';
+        controller.settings = settings;
+        mockLocalStorageStore.set(STORAGE_KEYS.lastShownVersionKey, '3.3.2');
+
+        await controller.saveSettings();
+
+        expect(controller.settings.lastShownVersion).toBe('3.3.2');
+        const persisted = saveData.mock.calls[0][0] as Record<string, unknown>;
+        expect(persisted.lastShownVersion).toBe('3.3.2');
+    });
+
+    it('advances the local and synced markers without allowing a regression', () => {
+        const controller = new PluginSettingsController({
+            keys: STORAGE_KEYS,
+            loadData: vi.fn().mockResolvedValue(null),
+            saveData: vi.fn().mockResolvedValue(undefined),
+            mirrorUXPreferences: vi.fn()
+        });
+        const settings = structuredClone(DEFAULT_SETTINGS);
+        settings.lastShownVersion = '3.3.1';
+        controller.settings = settings;
+
+        expect(controller.advanceLastShownVersion('3.3.2')).toBe(true);
+        expect(mockLocalStorageStore.get(STORAGE_KEYS.lastShownVersionKey)).toBe('3.3.2');
+        expect(controller.settings.lastShownVersion).toBe('3.3.2');
+        expect(controller.advanceLastShownVersion('3.3.1')).toBe(false);
+        expect(mockLocalStorageStore.get(STORAGE_KEYS.lastShownVersionKey)).toBe('3.3.2');
+        expect(controller.settings.lastShownVersion).toBe('3.3.2');
+    });
+
     it('updates local homepage storage when homepage is local', async () => {
         let storedData: Record<string, unknown> | null = null;
 

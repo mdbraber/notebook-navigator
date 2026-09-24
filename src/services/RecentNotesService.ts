@@ -71,7 +71,6 @@ export class RecentNotesService {
             if (parent instanceof TFolder) {
                 const isFolder = isFolderNote(file, parent, {
                     enableFolderNotes: true,
-                    folderNoteName: settings.folderNoteName,
                     folderNoteNamePattern: settings.folderNoteNamePattern
                 });
                 if (isFolder) {

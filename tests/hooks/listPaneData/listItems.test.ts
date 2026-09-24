@@ -70,8 +70,7 @@ function createListConfig(pinnedNotes: ListPaneConfig['pinnedNotes']): ListPaneC
         pinnedNotes,
         showCurrentFolderFilesAtBottom: DEFAULT_SETTINGS.showCurrentFolderFilesAtBottom,
         showFolderGroupPaths: DEFAULT_SETTINGS.showFolderGroupPaths,
-        showFileTags: false,
-        showTags: false
+        showFileTags: false
     };
 }
 
@@ -247,6 +246,35 @@ describe('resolveListGroupExpansionToggleState', () => {
 });
 
 describe('buildListItems pinned display scope', () => {
+    it('records tag rows when tags are enabled by the active list appearance', () => {
+        const app = createApp();
+        const file = createTestTFile('Notes/Tagged.md');
+        const db = createDb({
+            [file.path]: { tags: ['writing'], properties: null }
+        });
+
+        const items = buildListItems({
+            app,
+            dayKey: '2026-03-07',
+            fileVisibility: FILE_VISIBILITY.DOCUMENTS,
+            files: [file],
+            getDB: () => db,
+            getFileTimestamps: () => ({ created: 0, modified: 0 }),
+            hiddenFileState: new Map(),
+            hiddenTags: [],
+            listConfig: { ...createListConfig({}), showFileTags: true },
+            searchMetaMap: new Map(),
+            selectedFolder: null,
+            selectedTag: null,
+            selectionType: ItemType.FOLDER,
+            showHiddenItems: false,
+            sortOption: 'alphabetical-asc'
+        });
+
+        const fileItem = items.find(item => item.type === ListPaneItemType.FILE);
+        expect(fileItem?.hasTags).toBe(true);
+    });
+
     it('attaches internal search evidence to its file row', () => {
         const app = createApp();
         const file = createTestTFile('Notes/Notebook Navigator.md');
@@ -1048,6 +1076,43 @@ describe('buildListItems pinned display scope', () => {
         ]);
         expect(items.find(item => item.key === PINNED_SECTION_HEADER_KEY)?.groupFilePaths).toEqual([pinnedFile.path]);
         expect(items.find(item => item.key === 'header-unsorted')?.groupFilePaths).toEqual([unsortedHeaderFile.path]);
+    });
+
+    it('keeps the list flat when grouping is none', () => {
+        const app = createApp();
+        const headerFile = createTestTFile('notes/header.md');
+        const plainFile = createTestTFile('notes/plain.md');
+        app.metadataCache.getFileCache = (file: TFile) => ({
+            frontmatter: file.path === headerFile.path ? { group_header: 'Hidden header' } : {}
+        });
+        const db = createDb({
+            [headerFile.path]: { tags: null, properties: null },
+            [plainFile.path]: { tags: null, properties: null }
+        });
+
+        const items = buildListItems({
+            app,
+            dayKey: '2026-03-07',
+            fileVisibility: FILE_VISIBILITY.DOCUMENTS,
+            files: [headerFile, plainFile],
+            getDB: () => db,
+            getFileTimestamps: () => ({ created: 0, modified: 0 }),
+            hiddenFileState: new Map(),
+            hiddenTags: [],
+            listConfig: { ...createListConfig({}), groupBy: 'none' },
+            searchMetaMap: new Map(),
+            selectedFolder: null,
+            selectionType: ItemType.TAG,
+            showHiddenItems: false,
+            sortOption: 'title-asc',
+            manualSortGroupHeaderPropertyKey: 'group_header'
+        });
+
+        expect(getHeaderItems(items)).toEqual([]);
+        expect(getFileItems(items)).toEqual([
+            { path: headerFile.path, isPinned: false },
+            { path: plainFile.path, isPinned: false }
+        ]);
     });
 
     it('adds manual sort custom header word counts and targets', () => {
@@ -2044,6 +2109,64 @@ describe('buildListItems property grouping', () => {
         ]);
         expect(getFileItems(items).map(item => item.path)).toEqual([listValued.path]);
         expect(findCollapsedListGroupRevealTarget(items, scalar.path, true)).toEqual({ type: 'list-group', collapseKey });
+    });
+
+    it('labels link-valued groups with the link display text while keying groups by the raw value', () => {
+        const wikiLink = createTestTFile('notes/WikiLink.md');
+        const aliasLink = createTestTFile('notes/AliasLink.md');
+        const plain = createTestTFile('notes/Plain.md');
+        const listValued = createTestTFile('notes/List.md');
+        const app = createFrontmatterApp({
+            [wikiLink.path]: { related: '[[Project Note]]' },
+            [aliasLink.path]: { related: '[[Project Note|Alias]]' },
+            [plain.path]: { related: 'Project Note' },
+            [listValued.path]: { related: ['[[Zeta]]', '[Docs](https://example.com)'] }
+        });
+        const db = createDb({
+            [wikiLink.path]: { tags: null, properties: null },
+            [aliasLink.path]: { tags: null, properties: null },
+            [plain.path]: { tags: null, properties: null },
+            [listValued.path]: { tags: null, properties: null }
+        });
+
+        const items = buildListItems({
+            app,
+            dayKey: '2026-03-07',
+            fileVisibility: FILE_VISIBILITY.DOCUMENTS,
+            files: [wikiLink, aliasLink, plain, listValued],
+            getDB: () => db,
+            getFileTimestamps: () => ({ created: 0, modified: 0 }),
+            hiddenFileState: new Map(),
+            hiddenTags: [],
+            listConfig: {
+                ...createListConfig({}),
+                groupBy: 'property:related'
+            },
+            searchMetaMap: new Map(),
+            selectedFolder: null,
+            selectedTag: null,
+            selectionType: ItemType.FOLDER,
+            showHiddenItems: false,
+            sortOption: 'title-asc'
+        });
+
+        // Groups sort by their display label, and the raw value "Project Note" stays a separate
+        // group from the wiki link "[[Project Note]]" even though both render the same label.
+        expect(getHeaderItems(items)).toEqual([
+            { data: 'Alias', kind: 'property' },
+            { data: 'Project Note', kind: 'property' },
+            { data: 'Project Note', kind: 'property' },
+            { data: 'Zeta, Docs', kind: 'property' }
+        ]);
+
+        const projectNoteHeaders = items.filter(
+            item => item.type === ListPaneItemType.HEADER && item.headerKind === 'property' && item.data === 'Project Note'
+        );
+        expect(projectNoteHeaders.map(item => item.collapseKey)).toEqual([
+            createCollapseKey('property:related', 'property-value:Project Note'),
+            createCollapseKey('property:related', 'property-value:[[Project Note]]')
+        ]);
+        expect(projectNoteHeaders.map(item => item.groupFilePaths)).toEqual([[plain.path], [wikiLink.path]]);
     });
 
     it('orders number-valued groups numerically, including negatives, with strings in natural order', () => {

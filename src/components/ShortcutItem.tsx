@@ -56,7 +56,7 @@ interface ShortcutItemProps {
     dragHandleConfig?: DragHandleConfig;
     hasFolderNote?: boolean;
     hasPropertyNote?: boolean;
-    tooltip?: string;
+    tooltip?: React.ReactNode;
     onLabelClick?: (event: React.MouseEvent<HTMLSpanElement>) => void;
     onLabelMouseDown?: (event: React.MouseEvent<HTMLSpanElement>) => void;
     dragRef?: (node: HTMLDivElement | null) => void;

@@ -44,7 +44,7 @@ import { useKeyboardNavigation, KeyboardNavigationHelpers } from './useKeyboardN
 import { matchesShortcut, KeyboardShortcutAction } from '../utils/keyboardShortcuts';
 import { runAsyncAction } from '../utils/async';
 import { getNavigationIndex } from '../utils/navigationIndex';
-import { getFolderNote, openFolderNoteFile } from '../utils/folderNotes';
+import { getFolderNote, openFolderNoteFile, revealFolderNoteInNavigator } from '../utils/folderNotes';
 import { resolvePropertyNote, shouldOpenPropertyNoteOnEnter } from '../utils/propertyNoteLookup';
 import { openPropertyNoteFile } from '../utils/propertyNotes';
 import { isEnterKey, resolveFolderNoteDefaultOpenContext, resolveKeyboardEnterAction } from '../utils/keyboardOpenContext';
@@ -328,6 +328,7 @@ export function useNavigationPaneKeyboard({
                     }
 
                     const openContext = modifierAction ?? resolveFolderNoteDefaultOpenContext(settings.folderNoteOpenLocation);
+                    revealFolderNoteInNavigator(selectionDispatch, folderNote);
 
                     runAsyncAction(() =>
                         openFolderNoteFile({

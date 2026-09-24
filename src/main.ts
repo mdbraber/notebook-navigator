@@ -60,6 +60,12 @@ import WorkspaceCoordinator from './services/workspace/WorkspaceCoordinator';
 import HomepageController from './services/workspace/HomepageController';
 import { FolderNoteSidebarService } from './services/workspace/FolderNoteSidebarService';
 import { PropertyNoteSidebarService } from './services/workspace/PropertyNoteSidebarService';
+import {
+    disposeTemplateCommandButtons,
+    startTemplateCommandButtons,
+    syncTemplateCommandButtons,
+    syncTemplateCommands
+} from './services/commands/templateCommands';
 import registerWorkspaceEvents from './services/workspace/registerWorkspaceEvents';
 import registerNavigatorCommands from './services/commands/registerNavigatorCommands';
 import type { RevealFileOptions } from './hooks/useNavigatorReveal';
@@ -90,6 +96,9 @@ import { DEFAULT_SETTINGS } from './settings/defaultSettings';
 import { buildFilePathInFolder, generateUniqueFilename } from './utils/fileCreationUtils';
 import { showNotice } from './utils/noticeUtils';
 import { strings } from './i18n';
+import { LanguageService } from './i18n/LanguageService';
+import { LanguageDatabase } from './i18n/LanguageCache';
+import { refreshMarkdownWordCountConsumerSettings } from './utils/markdownPipelineContentTypes';
 
 interface ObsidianSettingsModal {
     open(): void;
@@ -146,6 +155,7 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
     // Map of callbacks to notify open React views when files are renamed
     private fileRenameListeners = new Map<string, (oldPath: string, newPath: string) => void>();
     private updateNoticeListeners = new Map<string, (notice: ReleaseUpdateNotice | null) => void>();
+    languageService!: LanguageService;
     // Flag indicating plugin is being unloaded to prevent operations during shutdown
     private isUnloading = false;
     // Set when completeStartup finishes with established settings, from onload or from the user-enable recovery
@@ -420,6 +430,22 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
 
         // Initialize database early for StorageContext consumers
         const appId = (this.app as ExtendedApp).appId || '';
+        this.languageService = new LanguageService(this.manifest.version, new LanguageDatabase(appId));
+        recordStartupDiagnostic('languages.cache.start');
+        const languageInitialization = this.languageService.initialize();
+        this.register(
+            this.languageService.subscribe(() => {
+                if (this.languageService.getSnapshot().failed && this.languageService.locale !== 'en') {
+                    showNotice(this.languageService.bootstrap.downloadFailed);
+                }
+            })
+        );
+        // Read the small language cache before bulk vault-cache hydration can consume its timeout.
+        // Only the local cache is awaited; downloads must not block settings or workspace restoration.
+        await languageInitialization;
+        if (this.isUnloading) return;
+        recordStartupDiagnostic('languages.cache.complete', { ready: this.languageService.getSnapshot().ready });
+
         // Use a fixed per-platform LRU size for feature image blobs.
         const featureImageCacheMaxEntries = Platform.isMobile ? 200 : 1000;
         // Use a fixed per-platform LRU size for preview text strings.
@@ -789,8 +815,23 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
             return new FolderNoteSidebarPlaceholderView(leaf);
         });
 
-        // Register commands
-        registerNavigatorCommands(this);
+        // Commands capture their displayed names at registration. Wait for the initial language choice;
+        // settings stay available in English while the navigator shows the download skeleton.
+        runAsyncAction(async () => {
+            await this.languageService.ready;
+            if (this.isUnloading) return;
+            this.settingTab?.refreshLanguage();
+            // Register commands
+            registerNavigatorCommands(this);
+            // Template commands come from settings, so they are registered now and again whenever settings change.
+            syncTemplateCommands(this);
+            startTemplateCommandButtons(this);
+            this.registerSettingsUpdateListener('template-commands', () => {
+                syncTemplateCommands(this);
+                syncTemplateCommandButtons(this);
+            });
+            recordStartupDiagnostic('languages.ready');
+        });
 
         // ==== Settings tab ====
         this.settingTab = new LazyNotebookNavigatorSettingTab(this.app, this);
@@ -815,6 +856,9 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
 
                 await this.homepageController?.handleWorkspaceReady({ shouldActivateOnStartup });
                 await this.folderNoteSidebarService?.handleWorkspaceReady();
+
+                await this.languageService.ready;
+                if (this.isUnloading) return;
 
                 if (isFirstLaunch) {
                     const { WelcomeModal } = await import('./modals/WelcomeModal');
@@ -1347,6 +1391,7 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
         }
 
         this.isUnloading = true;
+        this.languageService?.dispose();
         this.startupSettingsAbortController?.abort();
         this.startupSettingsAbortController = null;
         this.missingSettingsAwaitingUserEnable = false;
@@ -1415,6 +1460,7 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
         this.folderNoteSidebarService?.dispose();
         this.folderNoteSidebarService = null;
         this.propertyNoteSidebarService = null;
+        disposeTemplateCommandButtons(this);
 
         // Clear all listeners first to prevent any callbacks during cleanup
         this.settingsUpdateListeners.clear();
@@ -1461,6 +1507,17 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
     async saveSettingsAndUpdate() {
         await this.settingsController.saveSettings();
         this.onSettingsUpdate();
+    }
+
+    /**
+     * Records a displayed What's new version locally before persisting the shared marker. The
+     * controller rejects older versions so a delayed modal callback cannot regress either marker.
+     */
+    public async advanceLastShownVersion(version: string): Promise<void> {
+        if (!this.settingsController.advanceLastShownVersion(version)) {
+            return;
+        }
+        await this.saveSettingsAndUpdate();
     }
 
     public createSettingsTransferJson(): string {
@@ -1756,6 +1813,10 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
     public onSettingsUpdate() {
         if (this.isUnloading) return;
 
+        // Settings controls mutate the plugin settings object in place, so rebuild identity-based
+        // consumer caches before any settings or view listener reads the newly published values.
+        refreshMarkdownWordCountConsumerSettings(this.app, this.settings);
+
         // Update API caches with new settings
         if (this.api) {
             this.api[INTERNAL_NOTEBOOK_NAVIGATOR_API].metadata.updateFromSettings(this.settings);
@@ -1932,22 +1993,27 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
         // Get current version from manifest
         const currentVersion = this.manifest.version;
 
-        // Get last shown version from settings
-        const lastShownVersion = this.settings.lastShownVersion;
+        // The greater local or synced marker prevents stale settings files from re-showing a release.
+        const lastShownVersion = this.settingsController.getLastShownVersion();
 
         // Initialize lastShownVersion on first install.
         if (!lastShownVersion) {
             if (isFirstLaunch) {
-                this.settings.lastShownVersion = currentVersion;
-                await this.saveSettingsAndUpdate();
+                await this.advanceLastShownVersion(currentVersion);
+                return;
+            }
+
+            // Disabled dialogs still advance the marker so re-enabling them starts with
+            // the next update instead of replaying every release skipped meanwhile.
+            if (!this.settings.showReleaseNotes) {
+                await this.advanceLastShownVersion(currentVersion);
                 return;
             }
 
             const { getLatestReleaseNotes, isReleaseAutoDisplayEnabled } = await import('./releaseNotes');
 
             if (!isReleaseAutoDisplayEnabled(currentVersion)) {
-                this.settings.lastShownVersion = currentVersion;
-                await this.saveSettingsAndUpdate();
+                await this.advanceLastShownVersion(currentVersion);
                 return;
             }
 
@@ -1959,59 +2025,45 @@ export default class NotebookNavigatorPlugin extends Plugin implements ISettings
                 window.setTimeout(() => {
                     // Wrap in runAsyncAction to handle async without blocking callback
                     runAsyncAction(async () => {
-                        this.settings.lastShownVersion = currentVersion;
-                        await this.saveSettingsAndUpdate();
+                        await this.advanceLastShownVersion(currentVersion);
                     });
                 }, 1000);
             }).open();
             return;
         }
 
-        // Check if version has changed
-        if (lastShownVersion !== currentVersion) {
-            // Import release notes helpers dynamically
-            const {
-                getReleaseNotesBetweenVersions,
-                getLatestReleaseNotes,
-                compareVersions,
-                isReleaseAutoDisplayEnabled,
-                shouldAutoDisplayReleaseNotesForUpdate
-            } = await import('./releaseNotes');
-
-            const isUpgrade = compareVersions(currentVersion, lastShownVersion) > 0;
-            if (isUpgrade) {
-                // For upgrades, auto-display is enabled when any release note in (lastShownVersion, currentVersion]
-                // has showOnUpdate not explicitly set to false.
-                if (!shouldAutoDisplayReleaseNotesForUpdate(lastShownVersion, currentVersion)) {
-                    return;
-                }
-            } else if (!isReleaseAutoDisplayEnabled(currentVersion)) {
-                return;
-            }
-
-            const { WhatsNewModal } = await import('./modals/WhatsNewModal');
-
-            // Get release notes between versions
-            let releaseNotes;
-            if (isUpgrade) {
-                // Show notes from last shown to current
-                releaseNotes = getReleaseNotesBetweenVersions(lastShownVersion, currentVersion);
-            } else {
-                // Downgraded or same version - just show latest 5 releases
-                releaseNotes = getLatestReleaseNotes();
-            }
-
-            // Show the info modal when version changes
-            new WhatsNewModal(this.app, releaseNotes, () => {
-                // Save version after 1 second delay when user closes the modal
-                window.setTimeout(() => {
-                    // Wrap in runAsyncAction to handle async without blocking callback
-                    runAsyncAction(async () => {
-                        this.settings.lastShownVersion = currentVersion;
-                        await this.saveSettingsAndUpdate();
-                    });
-                }, 1000);
-            }).open();
+        // A newer shared marker can come from a device running a newer plugin version. Downgrades
+        // never auto-display because recording the older version would reopen the dialog elsewhere.
+        const { getReleaseNotesBetweenVersions, compareVersions, isReleaseAutoDisplayEnabled } = await import('./releaseNotes');
+        if (compareVersions(currentVersion, lastShownVersion) <= 0) {
+            return;
         }
+
+        if (!this.settings.showReleaseNotes) {
+            // Keep the high-water marker current while dialogs are disabled, otherwise
+            // re-enabling them would replay release notes from every skipped update.
+            await this.advanceLastShownVersion(currentVersion);
+            return;
+        }
+
+        // Only the current release decides whether startup should open the dialog. Advance the
+        // marker when it opts out so the skipped dialog is not reconsidered on the next startup.
+        if (!isReleaseAutoDisplayEnabled(currentVersion)) {
+            await this.advanceLastShownVersion(currentVersion);
+            return;
+        }
+
+        const { WhatsNewModal } = await import('./modals/WhatsNewModal');
+        const releaseNotes = getReleaseNotesBetweenVersions(lastShownVersion, currentVersion);
+
+        new WhatsNewModal(this.app, releaseNotes, () => {
+            // Save version after 1 second delay when user closes the modal
+            window.setTimeout(() => {
+                // Wrap in runAsyncAction to handle async without blocking callback
+                runAsyncAction(async () => {
+                    await this.advanceLastShownVersion(currentVersion);
+                });
+            }, 1000);
+        }).open();
     }
 }

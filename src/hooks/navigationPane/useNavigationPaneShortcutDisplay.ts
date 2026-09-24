@@ -127,7 +127,6 @@ export function useNavigationPaneShortcutDisplay({
 
             const folderNoteSettings = getFolderNoteDetectionSettings({
                 enableFolderNotes: settings.enableFolderNotes,
-                folderNoteName: settings.folderNoteName,
                 folderNoteNamePattern: settings.folderNoteNamePattern
             });
 

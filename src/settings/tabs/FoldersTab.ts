@@ -30,11 +30,11 @@ import {
 } from '../nativeSettingControls';
 import { addSettingSyncModeToggle } from '../syncModeToggle';
 import { FilePathInputSuggest } from '../../suggest/FilePathInputSuggest';
-import { FOLDER_NOTE_NAME_PATTERN_PLACEHOLDER } from '../../utils/folderNoteName';
+import { FOLDER_NOTE_NAME_PATTERN_TOKEN } from '../../utils/folderNoteName';
 import { normalizeOptionalVaultFilePath } from '../../utils/pathUtils';
-import { getTemplaterCreateNoteFromTemplate } from '../../utils/templaterIntegration';
 import { isFolderNoteTemplateCompatible, isSupportedFolderNoteExtension } from '../../utils/folderNotes';
 import { setElementVisible } from '../dependentSettings';
+import { renderTemplateEngineStatus } from '../templateEngineStatus';
 
 /** Builds native 1.13 setting definitions for folder and folder note settings. */
 export function createFoldersSettingDefinitions(context: SettingsTabContext, heading?: string): SettingDefinitionItem[] {
@@ -61,7 +61,7 @@ export function createFoldersSettingDefinitions(context: SettingsTabContext, hea
                 render: setting => renderFolderSortOrderSetting(setting, context)
             })
         ]),
-        createGroupDefinition(strings.settings.sections.folderNotes, [
+        createGroupDefinition(strings.settings.pages.foldersAndFolderNotes.groups.folderNotes, [
             createToggleDefinition('enableFolderNotes', {
                 name: strings.settings.items.enableFolderNotes.name,
                 desc: strings.settings.items.enableFolderNotes.desc
@@ -78,13 +78,13 @@ export function createFoldersSettingDefinitions(context: SettingsTabContext, hea
                 }
             }),
             createToggleDefinition('showNearestFolderNoteInSidebar', {
-                name: strings.settings.items.showNearestFolderNoteInSidebar.name,
-                desc: strings.settings.items.showNearestFolderNoteInSidebar.desc,
+                name: strings.settings.items.showClosestFolderNoteInRightSidebar.name,
+                desc: strings.settings.items.showClosestFolderNoteInRightSidebar.desc,
                 visible: () => plugin.settings.enableFolderNotes && plugin.settings.folderNoteOpenLocation === 'right-sidebar'
             }),
             createToggleDefinition('enableFolderNoteLinks', {
-                name: strings.settings.items.enableFolderNoteLinks.name,
-                desc: strings.settings.items.enableFolderNoteLinks.desc,
+                name: strings.settings.items.folderNamesOpenFolderNotes.name,
+                desc: strings.settings.items.folderNamesOpenFolderNotes.desc,
                 visible: () => plugin.settings.enableFolderNotes
             }),
             createToggleDefinition('hideFolderNoteInList', {
@@ -99,7 +99,7 @@ export function createFoldersSettingDefinitions(context: SettingsTabContext, hea
             })
         ]),
         createGroupDefinition(
-            strings.settings.sections.folderNoteFiles,
+            strings.settings.pages.foldersAndFolderNotes.groups.folderNoteFiles,
             [
                 createDropdownDefinition('folderNoteType', {
                     name: strings.settings.items.folderNoteType.name,
@@ -112,17 +112,11 @@ export function createFoldersSettingDefinitions(context: SettingsTabContext, hea
                         base: strings.settings.items.folderNoteType.options.base
                     }
                 }),
-                createTextDefinition('folderNoteName', {
+                createTextDefinition('folderNoteNamePattern', {
                     name: strings.settings.items.folderNoteName.name,
                     desc: strings.settings.items.folderNoteName.desc,
-                    aliases: [strings.settings.items.folderNoteName.placeholder],
-                    placeholder: strings.settings.items.folderNoteName.placeholder
-                }),
-                createTextDefinition('folderNoteNamePattern', {
-                    name: strings.settings.items.folderNoteNamePattern.name,
-                    desc: strings.settings.items.folderNoteNamePattern.desc,
-                    aliases: [FOLDER_NOTE_NAME_PATTERN_PLACEHOLDER],
-                    placeholder: FOLDER_NOTE_NAME_PATTERN_PLACEHOLDER
+                    aliases: ['index', FOLDER_NOTE_NAME_PATTERN_TOKEN],
+                    placeholder: FOLDER_NOTE_NAME_PATTERN_TOKEN
                 }),
                 createRenderDefinition({
                     name: strings.settings.items.folderNoteTemplate.name,
@@ -130,7 +124,7 @@ export function createFoldersSettingDefinitions(context: SettingsTabContext, hea
                     render: setting => renderFolderNoteTemplateSetting(setting, context)
                 }),
                 createRenderDefinition({
-                    name: 'Templater',
+                    name: 'Templates',
                     searchable: false,
                     render: setting => renderFolderNoteTemplateInfoSetting(setting, context)
                 })
@@ -201,13 +195,10 @@ function renderFolderNoteTemplateSetting(setting: Setting, context: SettingsTabC
     updateWarning();
 }
 
-function renderFolderNoteTemplateInfoSetting(setting: Setting, context: SettingsTabContext): void {
+export function renderFolderNoteTemplateInfoSetting(setting: Setting, context: SettingsTabContext): void {
     setting.setName('').setDesc('');
     setting.settingEl.addClass('nn-setting-info-container');
     setting.descEl.empty();
-
-    const templaterSupportText = getTemplaterCreateNoteFromTemplate(context.app)
-        ? strings.settings.items.calendarCustomFilePattern.templaterSupportInstalled
-        : strings.settings.items.calendarCustomFilePattern.templaterSupportMissing;
-    setting.descEl.createEl('strong', { text: templaterSupportText });
+    setting.descEl.createDiv({ text: strings.settings.items.templateEngine.usage });
+    renderTemplateEngineStatus(setting, context, 'folders-template-engine-status');
 }

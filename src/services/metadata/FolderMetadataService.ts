@@ -23,6 +23,7 @@ import { ItemType, type CollapsedPinnedContexts } from '../../types';
 import { isFolderShortcut } from '../../types/shortcuts';
 import type { FileContentChange } from '../../storage/IndexedDBStorage';
 import { normalizeCanonicalIconId } from '../../utils/iconizeFormat';
+import { renameTemplateReferences } from '../../utils/fileCreationUtils';
 import { getParentFolderPath } from '../../utils/pathUtils';
 import { createShortcutTargetPathEventMatcher } from '../../utils/shortcutPathResolver';
 import {
@@ -97,7 +98,6 @@ export class FolderMetadataService extends BaseMetadataService {
             useFrontmatterMetadata: settings.useFrontmatterMetadata,
             enableFolderNotes: settings.enableFolderNotes,
             inheritFolderColors: settings.inheritFolderColors,
-            folderNoteName: settings.folderNoteName.trim(),
             folderNoteNamePattern: settings.folderNoteNamePattern.trim(),
             frontmatterNameField: settings.frontmatterNameField.trim(),
             frontmatterIconField: settings.frontmatterIconField.trim(),
@@ -734,6 +734,8 @@ export class FolderMetadataService extends BaseMetadataService {
             changed = this.updateNestedPaths(settings.folderSortOverrides, oldPath, newPath) || changed;
             changed = this.updateNestedPaths(settings.folderTreeSortOverrides, oldPath, newPath) || changed;
             changed = this.updateNestedPaths(settings.folderAppearances, oldPath, newPath) || changed;
+            changed = this.updateNestedPaths(settings.folderTemplates, oldPath, newPath) || changed;
+            changed = renameTemplateReferences(settings, oldPath, newPath) || changed;
 
             const shortcutsChanged = this.updateShortcuts(settings, shortcut => {
                 if (!isFolderShortcut(shortcut) || !matchesShortcutPath(shortcut.path)) {
@@ -771,6 +773,7 @@ export class FolderMetadataService extends BaseMetadataService {
             changed = this.deleteNestedPaths(settings.folderSortOverrides, folderPath) || changed;
             changed = this.deleteNestedPaths(settings.folderTreeSortOverrides, folderPath) || changed;
             changed = this.deleteNestedPaths(settings.folderAppearances, folderPath) || changed;
+            changed = this.deleteNestedPaths(settings.folderTemplates, folderPath) || changed;
 
             const shortcutsChanged = this.updateShortcuts(settings, shortcut => {
                 if (!isFolderShortcut(shortcut)) {
@@ -806,7 +809,8 @@ export class FolderMetadataService extends BaseMetadataService {
             this.cleanupMetadata(targetSettings, 'folderIcons', validator),
             this.cleanupMetadata(targetSettings, 'folderSortOverrides', validator),
             this.cleanupMetadata(targetSettings, 'folderTreeSortOverrides', validator),
-            this.cleanupMetadata(targetSettings, 'folderAppearances', validator)
+            this.cleanupMetadata(targetSettings, 'folderAppearances', validator),
+            this.cleanupMetadata(targetSettings, 'folderTemplates', validator)
         ]);
 
         return collapsedPinnedContextChanges || results.some(changed => changed);
@@ -831,7 +835,8 @@ export class FolderMetadataService extends BaseMetadataService {
             this.cleanupMetadata(targetSettings, 'folderIcons', validator),
             this.cleanupMetadata(targetSettings, 'folderSortOverrides', validator),
             this.cleanupMetadata(targetSettings, 'folderTreeSortOverrides', validator),
-            this.cleanupMetadata(targetSettings, 'folderAppearances', validator)
+            this.cleanupMetadata(targetSettings, 'folderAppearances', validator),
+            this.cleanupMetadata(targetSettings, 'folderTemplates', validator)
         ]);
 
         return {

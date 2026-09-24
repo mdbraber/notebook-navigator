@@ -101,9 +101,10 @@ export function usePropertyNoteLink(): PropertyNoteLink {
                 return;
             }
 
-            // Middle-click always opens in a new tab.
+            // Middle-click always opens in a new tab. Prevents the default without stopping propagation:
+            // Obsidian's Linux window listener only blocks the primary-selection paste on mouseup after it
+            // sees a default-prevented mousedown, so stopping propagation here would paste the selection.
             event.preventDefault();
-            event.stopPropagation();
             runAsyncAction(() => openPropertyNoteFile({ app, commandQueue, propertyNote, context: 'tab' }));
         },
         [propertyNote, app, commandQueue]

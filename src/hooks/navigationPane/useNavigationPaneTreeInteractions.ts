@@ -38,7 +38,7 @@ import {
 } from '../../types';
 import type { PropertyTreeNode, TagTreeNode } from '../../types/storage';
 import type { InclusionOperator } from '../../utils/filterSearch';
-import { getFolderNote, openFolderNoteFile, type FolderNoteOpenContext } from '../../utils/folderNotes';
+import { getFolderNote, openFolderNoteFile, revealFolderNoteInNavigator, type FolderNoteOpenContext } from '../../utils/folderNotes';
 import { resolvePropertyNote } from '../../utils/propertyNoteLookup';
 import { openPropertyNoteFile } from '../../utils/propertyNotes';
 import type { PropertyHierarchyIndex } from '../../utils/propertyHierarchy';
@@ -283,6 +283,7 @@ export function useNavigationPaneTreeInteractions({
                 ? resolveFolderNoteClickOpenContext(event, settings.folderNoteOpenLocation, settings.multiSelectModifier)
                 : resolveFolderNoteDefaultOpenContext(settings.folderNoteOpenLocation);
             focusListPaneAfterRightSidebarFolderNoteSelection(openContext);
+            revealFolderNoteInNavigator(selectionDispatch, folderNote);
 
             if (openContext === 'right-sidebar' && settings.showNearestFolderNoteInSidebar && !wasSelectedFolder) {
                 return;
@@ -325,12 +326,23 @@ export function useNavigationPaneTreeInteractions({
                 return;
             }
 
+            // Prevents the default without stopping propagation: Obsidian's Linux window listener only blocks the
+            // primary-selection paste on mouseup after it sees a default-prevented mousedown, so stopping propagation
+            // here would paste the selection into the opened note.
             event.preventDefault();
-            event.stopPropagation();
 
             selectionDispatch({ type: 'SET_SELECTED_FOLDER', folder, autoSelectedFile: null });
+            revealFolderNoteInNavigator(selectionDispatch, folderNote);
 
-            runAsyncAction(() => openFolderNoteFile({ app, commandQueue, folder, folderNote, context: 'tab' }));
+            runAsyncAction(() =>
+                openFolderNoteFile({
+                    app,
+                    commandQueue,
+                    folder,
+                    folderNote,
+                    context: 'tab'
+                })
+            );
         },
         [app, commandQueue, selectionDispatch, settings]
     );

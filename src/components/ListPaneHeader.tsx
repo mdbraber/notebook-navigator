@@ -31,7 +31,7 @@ import type { BreadcrumbSegment } from '../hooks/useListPaneTitle';
 import { usePropertyNoteLink } from '../hooks/usePropertyNoteLink';
 import { useSelectedFolderFileVersion } from '../hooks/useSelectedFolderFileVersion';
 import { ItemType } from '../types';
-import { getFolderNote, openFolderNoteFile } from '../utils/folderNotes';
+import { getFolderNote, openFolderNoteFile, revealFolderNoteInNavigator } from '../utils/folderNotes';
 import { resolveFolderNoteClickOpenContext } from '../utils/keyboardOpenContext';
 import { usesMobileChrome } from '../utils/paneLayout';
 import { normalizeTagPath } from '../utils/tagUtils';
@@ -53,6 +53,7 @@ interface ListPaneHeaderProps {
     breadcrumbSegments: BreadcrumbSegment[];
     iconName: string;
     showIcon: boolean;
+    titleColor?: string;
 }
 
 export const ListPaneHeader = React.memo(function ListPaneHeader({
@@ -68,7 +69,8 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
     desktopTitle,
     breadcrumbSegments,
     iconName,
-    showIcon
+    showIcon,
+    titleColor
 }: ListPaneHeaderProps) {
     const iconRef = React.useRef<HTMLSpanElement | null>(null);
     const { app, plugin } = useServices();
@@ -160,14 +162,12 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
 
         return getFolderNote(selectedFolder, {
             enableFolderNotes: settings.enableFolderNotes,
-            folderNoteName: settings.folderNoteName,
             folderNoteNamePattern: settings.folderNoteNamePattern
         });
     }, [
         selectedFolder,
         settings.enableFolderNotes,
         settings.enableFolderNoteLinks,
-        settings.folderNoteName,
         settings.folderNoteNamePattern,
         shouldResolveSelectedFolderNote,
         selectedFolderFileVersion
@@ -183,6 +183,7 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
             event.stopPropagation();
 
             const openContext = resolveFolderNoteClickOpenContext(event, settings.folderNoteOpenLocation, settings.multiSelectModifier);
+            revealFolderNoteInNavigator(selectionDispatch, selectedFolderNote);
 
             runAsyncAction(() =>
                 openFolderNoteFile({
@@ -195,7 +196,16 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
                 })
             );
         },
-        [selectedFolder, selectedFolderNote, settings.folderNoteOpenLocation, settings.multiSelectModifier, app, commandQueue, plugin]
+        [
+            selectedFolder,
+            selectedFolderNote,
+            settings.folderNoteOpenLocation,
+            settings.multiSelectModifier,
+            app,
+            commandQueue,
+            plugin,
+            selectionDispatch
+        ]
     );
 
     const handleSelectedFolderNoteMouseDown = React.useCallback(
@@ -204,9 +214,11 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
                 return;
             }
 
-            // Middle-click opens in a new tab and suppresses default browser behavior.
+            // Prevents the default without stopping propagation: Obsidian's Linux window listener only blocks the
+            // primary-selection paste on mouseup after it sees a default-prevented mousedown, so stopping propagation
+            // here would paste the selection into the opened note.
             event.preventDefault();
-            event.stopPropagation();
+            revealFolderNoteInNavigator(selectionDispatch, selectedFolderNote);
 
             runAsyncAction(() =>
                 openFolderNoteFile({
@@ -218,7 +230,7 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
                 })
             );
         },
-        [selectedFolder, selectedFolderNote, app, commandQueue]
+        [selectedFolder, selectedFolderNote, app, commandQueue, selectionDispatch]
     );
 
     const breadcrumbContent = useMemo((): React.ReactNode => {
@@ -284,6 +296,7 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
                                   ? propertyNoteLink.handleMouseDown
                                   : undefined
                         }
+                        style={segment.isLast && titleColor ? { color: titleColor } : undefined}
                     >
                         {segment.label}
                     </span>
@@ -330,7 +343,8 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
         selectedFolderNote,
         handleSelectedFolderNoteClick,
         handleSelectedFolderNoteMouseDown,
-        propertyNoteLink
+        propertyNoteLink,
+        titleColor
     ]);
 
     const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
@@ -427,8 +441,14 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
                     </button>
                 ) : null}
                 <span className="nn-pane-header-title">
-                    {shouldShowHeaderIcon && <span ref={iconRef} className="nn-pane-header-icon" />}
-                    {shouldShowHeaderTitle && <span className="nn-pane-header-text">{breadcrumbContent}</span>}
+                    {shouldShowHeaderIcon && (
+                        <span ref={iconRef} className="nn-pane-header-icon" style={titleColor ? { color: titleColor } : undefined} />
+                    )}
+                    {shouldShowHeaderTitle && (
+                        <span className="nn-pane-header-text" style={titleColor ? { color: titleColor } : undefined}>
+                            {breadcrumbContent}
+                        </span>
+                    )}
                 </span>
                 <div className="nn-header-actions">
                     {showSearchButton ? (
@@ -500,7 +520,10 @@ export const ListPaneHeader = React.memo(function ListPaneHeader({
                     {showAppearanceButton ? (
                         <button
                             className={`nn-icon-button ${hasCustomAppearance ? 'nn-icon-button-active' : ''}`}
-                            aria-label={strings.paneHeader.changeAppearance}
+                            aria-label={
+                                hasCustomAppearance ? strings.paneHeader.changeAppearanceCustomized : strings.paneHeader.changeAppearance
+                            }
+                            aria-haspopup="menu"
                             onClick={handleAppearanceMenu}
                             disabled={actionsDisabled || !hasAppearanceOrSortSelection}
                             tabIndex={-1}

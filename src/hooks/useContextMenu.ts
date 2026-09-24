@@ -90,6 +90,7 @@ export function useContextMenu(elementRef: React.RefObject<HTMLElement | null>, 
     const uxPreferences = useUXPreferences();
     const includeDescendantNotes = uxPreferences.includeDescendantNotes;
     const showHiddenItems = uxPreferences.showHiddenItems;
+    const searchActive = uxPreferences.searchActive;
     const selectionState = useSelectionState();
     const { expandedFolders, expandedTags, expandedProperties } = useExpansionState();
     const selectionDispatch = useSelectionDispatch();
@@ -296,7 +297,8 @@ export function useContextMenu(elementRef: React.RefObject<HTMLElement | null>, 
                 propertyTreeService,
                 commandQueue,
                 shortcuts,
-                visibility: { includeDescendantNotes, showHiddenItems }
+                visibility: { includeDescendantNotes, showHiddenItems },
+                searchActive
             };
 
             const state: MenuState = {
@@ -361,6 +363,7 @@ export function useContextMenu(elementRef: React.RefObject<HTMLElement | null>, 
             selectionDispatch,
             expansionDispatch,
             uiDispatch,
+            searchActive,
             isMobile,
             tagTreeService,
             propertyTreeService,

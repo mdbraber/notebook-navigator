@@ -17,26 +17,28 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
-import { useSelectionState } from '../context/SelectionContext';
+import { useSelectionDispatch, useSelectionState } from '../context/SelectionContext';
 import { useCommandQueue, useServices } from '../context/ServicesContext';
 import { useSettingsState } from '../context/SettingsContext';
 import { usePropertyNoteLink } from '../hooks/usePropertyNoteLink';
 import { useSelectedFolderFileVersion } from '../hooks/useSelectedFolderFileVersion';
 import { ItemType } from '../types';
 import { runAsyncAction } from '../utils/async';
-import { getFolderNote, openFolderNoteFile } from '../utils/folderNotes';
+import { getFolderNote, openFolderNoteFile, revealFolderNoteInNavigator } from '../utils/folderNotes';
 import { resolveFolderNoteClickOpenContext } from '../utils/keyboardOpenContext';
 
 interface ListPaneTitleAreaProps {
     desktopTitle: string;
+    titleColor?: string;
 }
 
-export const ListPaneTitleArea = React.memo(function ListPaneTitleArea({ desktopTitle }: ListPaneTitleAreaProps) {
+export const ListPaneTitleArea = React.memo(function ListPaneTitleArea({ desktopTitle, titleColor }: ListPaneTitleAreaProps) {
     const { app, plugin } = useServices();
     const commandQueue = useCommandQueue();
     const settings = useSettingsState();
     const selectionState = useSelectionState();
     const propertyNoteLink = usePropertyNoteLink();
+    const selectionDispatch = useSelectionDispatch();
 
     // Folder note interactions only apply when a folder is selected.
     const selectedFolder = selectionState.selectionType === ItemType.FOLDER ? selectionState.selectedFolder : null;
@@ -56,14 +58,12 @@ export const ListPaneTitleArea = React.memo(function ListPaneTitleArea({ desktop
 
         return getFolderNote(selectedFolder, {
             enableFolderNotes: settings.enableFolderNotes,
-            folderNoteName: settings.folderNoteName,
             folderNoteNamePattern: settings.folderNoteNamePattern
         });
     }, [
         selectedFolder,
         settings.enableFolderNotes,
         settings.enableFolderNoteLinks,
-        settings.folderNoteName,
         settings.folderNoteNamePattern,
         selectedFolderFileVersion
     ]);
@@ -78,6 +78,7 @@ export const ListPaneTitleArea = React.memo(function ListPaneTitleArea({ desktop
             event.stopPropagation();
 
             const openContext = resolveFolderNoteClickOpenContext(event, settings.folderNoteOpenLocation, settings.multiSelectModifier);
+            revealFolderNoteInNavigator(selectionDispatch, selectedFolderNote);
 
             runAsyncAction(() =>
                 openFolderNoteFile({
@@ -90,7 +91,16 @@ export const ListPaneTitleArea = React.memo(function ListPaneTitleArea({ desktop
                 })
             );
         },
-        [selectedFolder, selectedFolderNote, settings.folderNoteOpenLocation, settings.multiSelectModifier, app, commandQueue, plugin]
+        [
+            selectedFolder,
+            selectedFolderNote,
+            settings.folderNoteOpenLocation,
+            settings.multiSelectModifier,
+            app,
+            commandQueue,
+            plugin,
+            selectionDispatch
+        ]
     );
 
     const handleFolderNoteMouseDown = useCallback(
@@ -99,9 +109,11 @@ export const ListPaneTitleArea = React.memo(function ListPaneTitleArea({ desktop
                 return;
             }
 
-            // Middle-click always opens folder notes in a new tab.
+            // Prevents the default without stopping propagation: Obsidian's Linux window listener only blocks the
+            // primary-selection paste on mouseup after it sees a default-prevented mousedown, so stopping propagation
+            // here would paste the selection into the opened note.
             event.preventDefault();
-            event.stopPropagation();
+            revealFolderNoteInNavigator(selectionDispatch, selectedFolderNote);
 
             runAsyncAction(() =>
                 openFolderNoteFile({
@@ -113,7 +125,7 @@ export const ListPaneTitleArea = React.memo(function ListPaneTitleArea({ desktop
                 })
             );
         },
-        [selectedFolder, selectedFolderNote, app, commandQueue]
+        [selectedFolder, selectedFolderNote, app, commandQueue, selectionDispatch]
     );
 
     return (
@@ -138,6 +150,7 @@ export const ListPaneTitleArea = React.memo(function ListPaneTitleArea({ desktop
                                   ? propertyNoteLink.handleMouseDown
                                   : undefined
                         }
+                        style={titleColor ? { color: titleColor } : undefined}
                     >
                         {desktopTitle}
                     </span>

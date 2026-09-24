@@ -42,7 +42,7 @@ import {
     hasPotentialObsidianFileDragType
 } from '../utils/dragData';
 import { FolderMoveError } from '../services/FileSystemService';
-import { getFilesForNavigationSelection } from '../utils/selectionUtils';
+import { createMovedFileListMembershipCheck } from '../utils/selectionUtils';
 import {
     expandNavigationTreeItems,
     getFolderAncestorPaths,
@@ -66,6 +66,7 @@ type AutoExpandTarget = { type: 'folder' | 'tag'; path: string };
 
 const SUPPRESS_CLICK_AFTER_DROP_MS = 100;
 const OBSIDIAN_FILE_MIME = 'obsidian/file';
+const OBSIDIAN_FILES_MIME = 'obsidian/files';
 const TEXT_PLAIN_MIME = 'text/plain';
 const TEXT_URI_LIST_MIME = 'text/uri-list';
 
@@ -211,7 +212,7 @@ const setNativeFileDragPayload = (dataTransfer: DataTransfer, vaultName: string,
 };
 
 export function useDragAndDrop(containerRef: React.RefObject<HTMLElement | null>) {
-    const { app, isMobile, tagTreeService, propertyTreeService } = useServices();
+    const { app, isMobile, tagTreeService } = useServices();
     const fileSystemOps = useFileSystemOps();
     const tagOperations = useTagOperations();
     const selectionState = useSelectionState();
@@ -221,6 +222,7 @@ export function useDragAndDrop(containerRef: React.RefObject<HTMLElement | null>
     const internalDragSession = useInternalDragSession();
     const includeDescendantNotes = uxPreferences.includeDescendantNotes;
     const showHiddenItems = uxPreferences.showHiddenItems;
+    const searchActive = uxPreferences.searchActive;
     const expansionState = useExpansionState();
     const expansionDispatch = useExpansionDispatch();
     const dragOverElement = useRef<HTMLElement | null>(null);
@@ -362,25 +364,6 @@ export function useDragAndDrop(containerRef: React.RefObject<HTMLElement | null>
     );
 
     /**
-     * Helper function to get current file list based on selection
-     */
-    const getCurrentFileList = useCallback((): TFile[] => {
-        return getFilesForNavigationSelection(
-            {
-                selectionType: selectionState.selectionType,
-                selectedFolder: selectionState.selectedFolder,
-                selectedTag: selectionState.selectedTag,
-                selectedProperty: selectionState.selectedProperty
-            },
-            settings,
-            { includeDescendantNotes, showHiddenItems },
-            app,
-            tagTreeService,
-            propertyTreeService
-        );
-    }, [selectionState, settings, includeDescendantNotes, showHiddenItems, app, tagTreeService, propertyTreeService]);
-
-    /**
      * Converts an array of file paths to TFile objects
      */
     const getFilesFromPaths = useCallback(
@@ -453,19 +436,40 @@ export function useDragAndDrop(containerRef: React.RefObject<HTMLElement | null>
      */
     const moveFilesWithContext = useCallback(
         async (files: TFile[], targetFolder: TFolder) => {
-            const currentFiles = getCurrentFileList();
             await fileSystemOps.moveFilesToFolder({
                 files,
                 targetFolder,
                 selectionContext: {
-                    selectedFile: selectionState.selectedFile,
                     dispatch,
-                    allFiles: currentFiles
+                    isFileInCurrentList: createMovedFileListMembershipCheck(
+                        {
+                            selectionType: selectionState.selectionType,
+                            selectedFolder: selectionState.selectedFolder,
+                            selectedTag: selectionState.selectedTag,
+                            selectedProperty: selectionState.selectedProperty
+                        },
+                        settings,
+                        { includeDescendantNotes, showHiddenItems },
+                        searchActive,
+                        app
+                    )
                 },
                 showNotifications: true
             });
         },
-        [fileSystemOps, getCurrentFileList, selectionState.selectedFile, dispatch]
+        [
+            app,
+            dispatch,
+            fileSystemOps,
+            includeDescendantNotes,
+            searchActive,
+            selectionState.selectedFolder,
+            selectionState.selectedProperty,
+            selectionState.selectedTag,
+            selectionState.selectionType,
+            settings,
+            showHiddenItems
+        ]
     );
 
     const getMarkdownFilesFromDragEvent = useCallback(
@@ -541,6 +545,12 @@ export function useDragAndDrop(containerRef: React.RefObject<HTMLElement | null>
                 const draggedFiles = getFilesFromPaths(selectedPaths);
                 if (draggedFiles.length > 0) {
                     internalDragSession.setSession({ type: ItemType.FILE, filePaths: draggedFiles.map(file => file.path) });
+                    // The OS drag pasteboard on macOS keeps only the first URL of text/uri-list
+                    // (Chromium OSExchangeDataProviderMac::SetURLs), so the native URI payload alone
+                    // collapses a multi-file drop to one file. Custom MIME entries round-trip through
+                    // the drag session intact, so the complete selection travels in obsidian/files.
+                    // This also covers drops in other windows where the internal drag session is not available.
+                    e.dataTransfer.setData(OBSIDIAN_FILES_MIME, JSON.stringify(draggedFiles.map(file => file.path)));
                     setNativeFileDragPayload(e.dataTransfer, app.vault.getName(), draggedFiles);
                     setDragManagerPayload({
                         type: 'files',

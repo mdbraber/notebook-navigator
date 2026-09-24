@@ -50,11 +50,12 @@
  */
 
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
-import { TFolder, setTooltip } from 'obsidian';
+import { TFolder, setTooltip, setIcon } from 'obsidian';
 import { useServices } from '../context/ServicesContext';
 import { useSettingsState } from '../context/SettingsContext';
 import { useUXPreferences } from '../context/UXPreferencesContext';
 import { useContextMenu, hideNavigatorContextMenu } from '../hooks/useContextMenu';
+import { isInsideNativeTooltipTarget, useTooltip } from '../context/TooltipContext';
 import { getIconService, useIconServiceVersion } from '../services/icons';
 import { getTooltipPlacement } from '../utils/domUtils';
 import { getFolderNote } from '../utils/folderNoteLookup';
@@ -147,6 +148,12 @@ export const FolderItem = React.memo(function FolderItem({
     const chevronRef = React.useRef<HTMLDivElement | null>(null);
     const iconRef = React.useRef<HTMLSpanElement | null>(null);
     const noteCountRef = React.useRef<HTMLSpanElement | null>(null);
+    const templateIndicatorRef = React.useRef<HTMLSpanElement | null>(null);
+    // Only folders with their own mapping are marked; inherited templates are not, so the marker shows where templates are set
+    const folderTemplatePath =
+        settings.showFolderTemplateIcons && Object.prototype.hasOwnProperty.call(settings.folderTemplates, folder.path)
+            ? settings.folderTemplates[folder.path].template
+            : undefined;
     const iconVersion = useIconServiceVersion();
 
     // Merge provided count info with default values to ensure all properties are present
@@ -290,35 +297,68 @@ export const FolderItem = React.memo(function FolderItem({
         (e: React.MouseEvent<HTMLSpanElement>) => {
             hideNavigatorContextMenu();
             if (onNameMouseDown) {
-                e.stopPropagation();
+                // Middle-click must reach Obsidian's Linux window listener after the callback prevents the default;
+                // otherwise mouseup can paste the primary selection into the opened folder note.
+                if (e.button !== 1) {
+                    e.stopPropagation();
+                }
                 onNameMouseDown(e);
             }
         },
         [onNameMouseDown]
     );
 
-    // Add Obsidian tooltip
+    const itemTooltip = useTooltip();
+
+    const handleTooltipMouseOver = useCallback(
+        (event: React.MouseEvent) => {
+            const row = folderRef.current;
+            if (!row || !tooltip) {
+                return;
+            }
+            // Descendants with native tooltips (the hidden-from-parents count indicator) own
+            // the hover; hiding the row tooltip mirrors how Obsidian shows only the innermost
+            // labelled element's tooltip. The mouseover refire when leaving the descendant
+            // restores the row tooltip.
+            if (isInsideNativeTooltipTarget(row, event.target)) {
+                itemTooltip.hideTooltip(row);
+                return;
+            }
+            itemTooltip.showTooltip(row, tooltip);
+        },
+        [itemTooltip, tooltip]
+    );
+
+    const handleTooltipMouseLeave = useCallback(() => {
+        const row = folderRef.current;
+        if (row) {
+            itemTooltip.hideTooltip(row);
+        }
+    }, [itemTooltip]);
+
+    // Refresh a visible or pending tooltip when the folder counts change while hovered.
     useEffect(() => {
-        if (!folderRef.current) return;
-
-        // Skip tooltip creation on mobile
-        if (isMobile) return;
-
-        // Remove tooltip if disabled
-        if (!settings.showTooltips) {
-            setTooltip(folderRef.current, '');
+        const row = folderRef.current;
+        if (!row) {
             return;
         }
-
         if (!tooltip) {
-            setTooltip(folderRef.current, '');
+            itemTooltip.hideTooltip(row);
             return;
         }
+        itemTooltip.updateTooltip(row, tooltip);
+    }, [itemTooltip, tooltip]);
 
-        setTooltip(folderRef.current, tooltip, {
-            placement: getTooltipPlacement()
-        });
-    }, [settings.showTooltips, isMobile, tooltip]);
+    // Hide the tooltip when the row unmounts, otherwise a virtualized scroll can leave a
+    // tooltip anchored to a detached element.
+    useEffect(() => {
+        const row = folderRef.current;
+        return () => {
+            if (row) {
+                itemTooltip.hideTooltip(row);
+            }
+        };
+    }, [itemTooltip]);
 
     useEffect(() => {
         if (chevronRef.current) {
@@ -327,6 +367,17 @@ export const FolderItem = React.memo(function FolderItem({
             iconService.renderIcon(chevronRef.current, iconId);
         }
     }, [iconVersion, isExpanded, settings.interfaceIcons]);
+
+    // Render the folder template marker and name the template in its tooltip
+    useEffect(() => {
+        const indicator = templateIndicatorRef.current;
+        if (!indicator || !folderTemplatePath) {
+            return;
+        }
+        setIcon(indicator, 'lucide-notepad-text-dashed');
+        const templateName = folderTemplatePath.split('/').pop()?.replace(/\.md$/i, '') ?? folderTemplatePath;
+        setTooltip(indicator, templateName, { placement: 'top' });
+    }, [folderTemplatePath]);
 
     // Update folder icon
     useEffect(() => {
@@ -411,6 +462,8 @@ export const FolderItem = React.memo(function FolderItem({
             data-level={level}
             onClick={onClick}
             onDoubleClick={handleDoubleClick}
+            onMouseOver={tooltip ? handleTooltipMouseOver : undefined}
+            onMouseLeave={tooltip ? handleTooltipMouseLeave : undefined}
             style={folderStyle}
             role="treeitem"
             aria-expanded={hasChildren ? isExpanded : undefined}
@@ -441,6 +494,7 @@ export const FolderItem = React.memo(function FolderItem({
                     </span>
                 )}
                 <span className="nn-navitem-spacer nn-navitem-spacer--leader" />
+                {folderTemplatePath !== undefined && <span ref={templateIndicatorRef} className="nn-navitem-template-indicator" />}
                 {shouldDisplayCount && (
                     <span ref={noteCountRef} className="nn-navitem-count">
                         {noteCountDisplay.label}
